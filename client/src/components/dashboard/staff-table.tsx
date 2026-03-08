@@ -16,8 +16,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Coffee, Briefcase, ChevronDown, ChevronRight } from "lucide-react";
 import { TimerCell } from "./timer-cell";
+import { LeaveStartModal } from "./leave-start-modal";
+import { StaffSearch } from "./staff-search";
 import { useToast } from "@/hooks/use-toast";
-import type { Staff } from "@shared/schema";
+import type { Staff, Leave } from "@shared/schema";
 
 export function StaffTable() {
   const { data: staffList, isLoading: isStaffLoading } = useStaff();
@@ -26,6 +28,10 @@ export function StaffTable() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [expandedJobdesks, setExpandedJobdesks] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [selectedLeave, setSelectedLeave] = useState<Leave | null>(null);
+  const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   if (isStaffLoading || isLeavesLoading) {
     return (
@@ -40,7 +46,7 @@ export function StaffTable() {
   const todayString = format(new Date(), "yyyy-MM-dd");
   const todaysLeaves = leaves.filter(l => l.date === todayString);
 
-  const handleLeave = (staffId: number, currentLeavesCount: number) => {
+  const handleLeave = (staffId: number, currentLeavesCount: number, staff: Staff) => {
     if (currentLeavesCount >= 4) {
       toast({
         variant: "destructive",
@@ -49,7 +55,13 @@ export function StaffTable() {
       });
       return;
     }
-    createLeave(staffId);
+    createLeave(staffId, {
+      onSuccess: (newLeave) => {
+        setSelectedLeave(newLeave);
+        setSelectedStaff(staff);
+        setModalOpen(true);
+      },
+    });
   };
 
   const canClockIn = (staff: any) => {
@@ -73,8 +85,24 @@ export function StaffTable() {
     return acc;
   }, {} as Record<string, Staff[]>);
 
+  // Filter staff by search query
+  const filteredStaffList = searchQuery.trim()
+    ? staffList.filter(staff =>
+        staff.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : staffList;
+
+  // Regroup by jobdesk after filtering
+  const filteredGroupedByJobdesk = filteredStaffList.reduce((acc, staff) => {
+    if (!acc[staff.jobdesk]) {
+      acc[staff.jobdesk] = [];
+    }
+    acc[staff.jobdesk].push(staff);
+    return acc;
+  }, {} as Record<string, Staff[]>);
+
   // Sort jobdesks by custom order, then alphabetically
-  const sortedJobdesks = Object.keys(groupedByJobdesk).sort((a, b) => {
+  const sortedJobdesks = Object.keys(filteredGroupedByJobdesk).sort((a, b) => {
     const aIndex = jobdeskOrder.indexOf(a);
     const bIndex = jobdeskOrder.indexOf(b);
     
@@ -129,7 +157,7 @@ export function StaffTable() {
         <TableCell className="text-right pr-6">
           <Button 
             size="sm" 
-            onClick={() => handleLeave(staff.id, leavesCount)}
+            onClick={() => handleLeave(staff.id, leavesCount, staff)}
             disabled={isPending || isLimitReached}
             className={`rounded-full px-5 transition-all ${
               isLimitReached 
@@ -147,14 +175,24 @@ export function StaffTable() {
   };
 
   return (
-    <Card className="glass-panel border-0 overflow-hidden shadow-xl">
-      <div className="overflow-x-auto">
-        {staffList.length === 0 ? (
-          <div className="flex items-center justify-center py-12">
-            <Briefcase className="w-12 h-12 mx-auto mb-3 opacity-20" />
-            <p className="text-muted-foreground">Belum ada data staff.</p>
-          </div>
-        ) : (
+    <>
+      <Card className="glass-panel border-0 p-4 mb-4">
+        <StaffSearch value={searchQuery} onChange={setSearchQuery} />
+      </Card>
+
+      <Card className="glass-panel border-0 overflow-hidden shadow-xl">
+        <div className="overflow-x-auto">
+          {staffList.length === 0 ? (
+            <div className="flex items-center justify-center py-12">
+              <Briefcase className="w-12 h-12 mx-auto mb-3 opacity-20" />
+              <p className="text-muted-foreground">Belum ada data staff.</p>
+            </div>
+          ) : filteredStaffList.length === 0 ? (
+            <div className="flex items-center justify-center py-12">
+              <Briefcase className="w-12 h-12 mx-auto mb-3 opacity-20" />
+              <p className="text-muted-foreground">Tidak ada staff yang cocok dengan pencarian.</p>
+            </div>
+          ) : (
           <div className="space-y-0">
             {sortedJobdesks.map((jobdesk) => {
               const isExpanded = expandedJobdesks.has(jobdesk);
@@ -195,7 +233,7 @@ export function StaffTable() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {staffInJobdesk.map((staff) => (
+                          {filteredGroupedByJobdesk[jobdesk]?.map((staff) => (
                             <StaffRow key={staff.id} staff={staff} />
                           ))}
                         </TableBody>
@@ -209,5 +247,13 @@ export function StaffTable() {
         )}
       </div>
     </Card>
+
+      <LeaveStartModal
+        open={modalOpen}
+        leave={selectedLeave}
+        staff={selectedStaff}
+        onOpenChange={setModalOpen}
+      />
+    </>
   );
 }
