@@ -74,8 +74,9 @@ export function useClockIn() {
       const data = await res.json();
       return api.leaves.clockIn.responses[200].parse(data);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [api.leaves.list.path] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: [api.leaves.list.path] });
+      await queryClient.refetchQueries({ queryKey: [api.leaves.list.path] });
       toast({
         title: "Clock In Berhasil",
         description: "Anda sudah check in.",
