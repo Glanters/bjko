@@ -1,5 +1,5 @@
 import { useStaff } from "@/hooks/use-staff";
-import { useLeaves, useCreateLeave } from "@/hooks/use-leaves";
+import { useLeaves, useCreateLeave, useResetStaffLimit } from "@/hooks/use-leaves";
 import { useAuth } from "@/hooks/use-auth";
 import { format } from "date-fns";
 import { useState } from "react";
@@ -14,7 +14,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Coffee, Briefcase, ChevronDown, ChevronRight, Trash2, Clock } from "lucide-react";
+import { Coffee, Briefcase, ChevronDown, ChevronRight, Trash2, Clock, RotateCcw } from "lucide-react";
 import { TimerCell } from "./timer-cell";
 import { LeaveStartModal } from "./leave-start-modal";
 import { StaffSearch } from "./staff-search";
@@ -27,6 +27,7 @@ export function StaffTable() {
   const { data: staffList, isLoading: isStaffLoading } = useStaff();
   const { data: leaves, isLoading: isLeavesLoading } = useLeaves();
   const { mutate: createLeave, isPending } = useCreateLeave();
+  const { mutate: resetLimit, isPending: isResetting } = useResetStaffLimit();
   const { user } = useAuth();
   const { toast } = useToast();
   const [expandedJobdesks, setExpandedJobdesks] = useState<Set<string>>(new Set());
@@ -203,6 +204,23 @@ export function StaffTable() {
           </Button>
           {user?.role === "admin" && (
             <>
+              {isLimitReached && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    if (confirm(`Reset limit izin "${staff.name}" hari ini? Semua record izin hari ini akan dihapus.`)) {
+                      resetLimit(staff.id);
+                    }
+                  }}
+                  disabled={isResetting}
+                  title="Reset Limit Izin"
+                  className="h-9 w-9 p-0 text-amber-400 hover:text-amber-300 hover:bg-amber-400/10"
+                  data-testid={`button-reset-limit-${staff.id}`}
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </Button>
+              )}
               <EditStaffDialog staff={staff} />
               <Button
                 size="sm"

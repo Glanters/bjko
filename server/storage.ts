@@ -1,6 +1,6 @@
 import { users, staff, leaves, auditLogs, settings, type User, type InsertUser, type Staff, type InsertStaff, type Leave, type InsertLeave, type AuditLog, type InsertAuditLog, type Setting } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -38,6 +38,7 @@ export interface IStorage {
   updateLeaveClockIn(id: number, clockInTime: Date): Promise<Leave>;
   deleteLeave(id: number): Promise<boolean>;
   updateLeave(id: number, clockInTime: Date | null): Promise<Leave>;
+  resetStaffLeavesToday(staffId: number, date: string): Promise<number>;
   getAuditLogs(): Promise<AuditLog[]>;
   createAuditLog(log: InsertAuditLog): Promise<AuditLog>;
   getSetting(key: string): Promise<string | undefined>;
@@ -121,6 +122,13 @@ export class DatabaseStorage implements IStorage {
   async updateLeave(id: number, clockInTime: Date | null): Promise<Leave> {
     const [leave] = await db.update(leaves).set({ clockInTime }).where(eq(leaves.id, id)).returning();
     return leave;
+  }
+
+  async resetStaffLeavesToday(staffId: number, date: string): Promise<number> {
+    const result = await db.delete(leaves).where(
+      and(eq(leaves.staffId, staffId), eq(leaves.date, date))
+    );
+    return result.rowCount ?? 0;
   }
 
   async deleteUser(id: number): Promise<boolean> {

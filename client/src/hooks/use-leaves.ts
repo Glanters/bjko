@@ -55,6 +55,39 @@ export function useCreateLeave() {
   });
 }
 
+export function useResetStaffLimit() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (staffId: number) => {
+      const res = await fetch(`/api/leaves/reset/${staffId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Gagal mereset limit.");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.leaves.list.path] });
+      toast({
+        title: "Limit Direset",
+        description: "Limit izin staff hari ini berhasil direset.",
+      });
+    },
+    onError: (err: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Gagal Reset",
+        description: err.message,
+      });
+    },
+  });
+}
+
 export function useClockIn() {
   const queryClient = useQueryClient();
   const { toast } = useToast();

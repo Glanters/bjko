@@ -227,6 +227,29 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/leaves/reset/:staffId", async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const user = await storage.getUser(req.session.userId);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: "Forbidden: Only admins can reset leave limits" });
+    }
+    try {
+      const staffId = parseInt(req.params.staffId);
+      const today = new Date().toISOString().split('T')[0];
+      const deleted = await storage.resetStaffLeavesToday(staffId, today);
+      await storage.createAuditLog({
+        action: "RESET_LEAVE_LIMIT",
+        username: user.username,
+        detail: `Reset limit izin staff ID ${staffId} (${deleted} record dihapus)`,
+      });
+      res.json({ message: "Limit izin berhasil direset", deleted });
+    } catch (err) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.post("/api/leaves/delete-by-date", async (req, res) => {
     if (!req.session.userId) {
       return res.status(401).json({ message: "Unauthorized" });
