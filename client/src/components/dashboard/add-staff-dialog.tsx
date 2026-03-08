@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { api } from "@shared/routes";
 import { useCreateStaff } from "@/hooks/use-staff";
+import { useUniqueJobdesks } from "@/hooks/use-unique-jobdesks";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Plus, Users } from "lucide-react";
 
 type InsertStaffForm = z.infer<typeof api.staff.create.input>;
@@ -29,6 +37,9 @@ type InsertStaffForm = z.infer<typeof api.staff.create.input>;
 export function AddStaffDialog() {
   const [open, setOpen] = useState(false);
   const { mutate: createStaff, isPending } = useCreateStaff();
+  const { jobdesks, isLoading: jobdesksLoading } = useUniqueJobdesks();
+  const [isNewJobdesk, setIsNewJobdesk] = useState(false);
+  const [newJobdeskValue, setNewJobdeskValue] = useState("");
 
   const form = useForm<InsertStaffForm>({
     resolver: zodResolver(api.staff.create.input),
@@ -44,9 +55,21 @@ export function AddStaffDialog() {
       onSuccess: () => {
         form.reset();
         setOpen(false);
+        setIsNewJobdesk(false);
+        setNewJobdeskValue("");
       },
     });
   }
+
+  const handleJobdeskChange = (value: string) => {
+    if (value === "new") {
+      setIsNewJobdesk(true);
+      form.setValue("jobdesk", "");
+    } else {
+      setIsNewJobdesk(false);
+      form.setValue("jobdesk", value);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -79,6 +102,7 @@ export function AddStaffDialog() {
                       placeholder="e.g. Budi Santoso" 
                       className="bg-background/50 border-white/10 focus-visible:ring-primary/30 rounded-xl h-11" 
                       {...field} 
+                      data-testid="input-staff-name"
                     />
                   </FormControl>
                   <FormMessage />
@@ -91,13 +115,63 @@ export function AddStaffDialog() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-foreground/80">Jobdesk</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="e.g. Customer Service" 
-                      className="bg-background/50 border-white/10 focus-visible:ring-primary/30 rounded-xl h-11" 
-                      {...field} 
-                    />
-                  </FormControl>
+                  {isNewJobdesk ? (
+                    <FormControl>
+                      <Input 
+                        placeholder="Masukkan jobdesk baru" 
+                        className="bg-background/50 border-white/10 focus-visible:ring-primary/30 rounded-xl h-11" 
+                        value={newJobdeskValue}
+                        onChange={(e) => {
+                          setNewJobdeskValue(e.target.value);
+                          field.onChange(e.target.value);
+                        }}
+                        data-testid="input-new-jobdesk"
+                      />
+                    </FormControl>
+                  ) : (
+                    <Select 
+                      value={field.value} 
+                      onValueChange={handleJobdeskChange}
+                      disabled={jobdesksLoading}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="bg-background/50 border-white/10 focus:ring-primary/30 rounded-xl h-11" data-testid="select-jobdesk">
+                          <SelectValue placeholder="Pilih atau buat jobdesk baru" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {jobdesks.length > 0 && (
+                          <>
+                            {jobdesks.map((jobdesk) => (
+                              <SelectItem key={jobdesk} value={jobdesk} data-testid={`jobdesk-option-${jobdesk}`}>
+                                {jobdesk}
+                              </SelectItem>
+                            ))}
+                            <div className="border-t border-white/10 my-2" />
+                          </>
+                        )}
+                        <SelectItem value="new" className="text-primary" data-testid="jobdesk-option-new">
+                          + Tambah Jobdesk Baru
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {isNewJobdesk && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setIsNewJobdesk(false);
+                        setNewJobdeskValue("");
+                        form.setValue("jobdesk", "");
+                      }}
+                      className="mt-2 h-8"
+                      data-testid="button-cancel-new-jobdesk"
+                    >
+                      ← Kembali ke pilihan
+                    </Button>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -111,8 +185,10 @@ export function AddStaffDialog() {
                   <FormControl>
                     <Input 
                       placeholder="e.g. agent" 
-                      className="bg-background/50 border-white/10 focus-visible:ring-primary/30 rounded-xl h-11" 
+                      className="bg-background/50 border-white/10 focus-visible:ring-primary/30 rounded-xl h-11"
+                      disabled
                       {...field} 
+                      data-testid="input-role"
                     />
                   </FormControl>
                   <FormMessage />
@@ -124,6 +200,7 @@ export function AddStaffDialog() {
                 type="submit" 
                 className="w-full h-11 rounded-xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-semibold shadow-lg hover:shadow-xl transition-all"
                 disabled={isPending}
+                data-testid="button-submit-staff"
               >
                 {isPending ? "Menyimpan..." : "Simpan Data Staff"}
               </Button>
