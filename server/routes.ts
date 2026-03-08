@@ -247,6 +247,93 @@ export async function registerRoutes(
     }
   });
 
+  app.patch(api.users.updateUsername.path, async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const user = await storage.getUser(req.session.userId);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: "Forbidden: Only admins can update usernames" });
+    }
+
+    try {
+      const input = api.users.updateUsername.input.parse(req.body);
+      const userId = parseInt(req.params.id);
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      const updatedUser = await storage.updateUserUsername(userId, input.username);
+      res.json(updatedUser);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.patch(api.staff.updateName.path, async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const user = await storage.getUser(req.session.userId);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: "Forbidden: Only admins can update staff" });
+    }
+
+    try {
+      const input = api.staff.updateName.input.parse(req.body);
+      const staffId = parseInt(req.params.id);
+      const staffRecord = await storage.getStaff().then(s => s.find(x => x.id === staffId));
+      if (!staffRecord) {
+        return res.status(404).json({ message: "Staff not found" });
+      }
+      const updatedStaff = await storage.updateStaffName(staffId, input.name);
+      res.json(updatedStaff);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Whitelist IP management (stored in memory for simplicity, could be DB)
+  let whitelistIps: string[] = [];
+
+  app.get(api.whitelist.get.path, async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const user = await storage.getUser(req.session.userId);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: "Forbidden: Only admins can view whitelist" });
+    }
+    res.json({ ips: whitelistIps });
+  });
+
+  app.patch(api.whitelist.update.path, async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const user = await storage.getUser(req.session.userId);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: "Forbidden: Only admins can update whitelist" });
+    }
+
+    try {
+      const input = api.whitelist.update.input.parse(req.body);
+      whitelistIps = input.ips;
+      res.json({ ips: whitelistIps });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Basic seeding if users table is empty
   try {
      const adminUser = await storage.getUserByUsername("admin");

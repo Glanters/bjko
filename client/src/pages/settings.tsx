@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff, Trash2 } from "lucide-react";
 
 export default function Settings() {
   const { user } = useAuth();
@@ -17,11 +18,21 @@ export default function Settings() {
   const [editingIp, setEditingIp] = useState<string>("");
   const [passwordEditingId, setPasswordEditingId] = useState<number | null>(null);
   const [newPassword, setNewPassword] = useState<string>("");
+  const [usernameEditingId, setUsernameEditingId] = useState<number | null>(null);
+  const [newUsername, setNewUsername] = useState<string>("");
   const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [whitelistText, setWhitelistText] = useState<string>("");
+  const [editingWhitelist, setEditingWhitelist] = useState<boolean>(false);
 
   const usersQuery = useQuery({
     queryKey: [api.users.list.path],
     queryFn: () => apiRequest(api.users.list.path).then(r => r.json()),
+    enabled: user?.role === "admin",
+  });
+
+  const whitelistQuery = useQuery({
+    queryKey: [api.whitelist.get.path],
+    queryFn: () => apiRequest(api.whitelist.get.path).then(r => r.json()),
     enabled: user?.role === "admin",
   });
 
@@ -60,6 +71,40 @@ export default function Settings() {
     },
   });
 
+  const updateUsernameMutation = useMutation({
+    mutationFn: (data: { userId: number; username: string }) =>
+      apiRequest(api.users.updateUsername.path.replace(":id", String(data.userId)), {
+        method: "PATCH",
+        body: JSON.stringify({ username: data.username }),
+      }).then(r => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.users.list.path] });
+      toast({ title: "Berhasil", description: "Username telah diperbarui" });
+      setUsernameEditingId(null);
+      setNewUsername("");
+    },
+    onError: (error: any) => {
+      const message = error?.message || "Gagal memperbarui username";
+      toast({ title: "Error", description: message, variant: "destructive" });
+    },
+  });
+
+  const updateWhitelistMutation = useMutation({
+    mutationFn: (ips: string[]) =>
+      apiRequest(api.whitelist.update.path, {
+        method: "PATCH",
+        body: JSON.stringify({ ips }),
+      }).then(r => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.whitelist.get.path] });
+      toast({ title: "Berhasil", description: "Whitelist IP telah diperbarui" });
+      setEditingWhitelist(false);
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Gagal memperbarui whitelist", variant: "destructive" });
+    },
+  });
+
   if (user?.role !== "admin") {
     return (
       <div className="flex items-center justify-center h-full">
@@ -75,18 +120,20 @@ export default function Settings() {
     );
   }
 
+  const whitelistIps = whitelistQuery.data?.ips || [];
+
   return (
     <div className="flex-1 overflow-auto p-6">
       <div className="max-w-6xl mx-auto space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Pengaturan</h1>
-          <p className="text-muted-foreground">Kelola konfigurasi sistem, IP, dan password pengguna</p>
+          <p className="text-muted-foreground">Kelola konfigurasi sistem, pengguna, dan whitelist IP</p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Manajemen Pengguna</CardTitle>
-            <CardDescription>Atur IP address dan password untuk setiap pengguna. Gunakan "*" untuk membolehkan semua IP</CardDescription>
+            <CardTitle>Manajemen Pengguna Agent</CardTitle>
+            <CardDescription>Edit password, username, dan IP address untuk setiap pengguna</CardDescription>
           </CardHeader>
           <CardContent>
             {usersQuery.isLoading ? (
@@ -108,7 +155,19 @@ export default function Settings() {
                   <TableBody>
                     {usersQuery.data?.map((u: any) => (
                       <TableRow key={u.id} data-testid={`row-user-${u.id}`}>
-                        <TableCell className="font-medium">{u.username}</TableCell>
+                        <TableCell className="font-medium">
+                          {usernameEditingId === u.id ? (
+                            <Input
+                              value={newUsername}
+                              onChange={(e) => setNewUsername(e.target.value)}
+                              placeholder="Username baru"
+                              data-testid={`input-username-${u.id}`}
+                              className="max-w-xs"
+                            />
+                          ) : (
+                            u.username
+                          )}
+                        </TableCell>
                         <TableCell>
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
                             {u.role}
@@ -197,8 +256,42 @@ export default function Settings() {
                                 Batal
                               </Button>
                             </>
+                          ) : usernameEditingId === u.id ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onClick={() => updateUsernameMutation.mutate({ userId: u.id, username: newUsername })}
+                                disabled={updateUsernameMutation.isPending || !newUsername.trim()}
+                                data-testid={`button-save-username-${u.id}`}
+                              >
+                                {updateUsernameMutation.isPending ? "..." : "Simpan"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setUsernameEditingId(null);
+                                  setNewUsername("");
+                                }}
+                                data-testid={`button-cancel-username-${u.id}`}
+                              >
+                                Batal
+                              </Button>
+                            </>
                           ) : (
                             <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setUsernameEditingId(u.id);
+                                  setNewUsername(u.username);
+                                }}
+                                data-testid={`button-edit-username-${u.id}`}
+                              >
+                                User
+                              </Button>
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -235,24 +328,74 @@ export default function Settings() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Cara Kerja Sistem</CardTitle>
+            <CardTitle>Whitelist IP</CardTitle>
+            <CardDescription>Atur daftar IP address yang diizinkan untuk login (satu per baris)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {editingWhitelist ? (
+              <div className="space-y-3">
+                <Textarea
+                  value={whitelistText}
+                  onChange={(e) => setWhitelistText(e.target.value)}
+                  placeholder="192.168.1.1&#10;192.168.1.2&#10;10.0.0.0/24"
+                  className="min-h-[200px] font-mono text-sm"
+                  data-testid="textarea-whitelist"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => {
+                      const ips = whitelistText.split('\n').filter(ip => ip.trim());
+                      updateWhitelistMutation.mutate(ips);
+                    }}
+                    disabled={updateWhitelistMutation.isPending}
+                    data-testid="button-save-whitelist"
+                  >
+                    {updateWhitelistMutation.isPending ? "Menyimpan..." : "Simpan"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setEditingWhitelist(false);
+                      setWhitelistText(whitelistIps.join('\n'));
+                    }}
+                    data-testid="button-cancel-whitelist"
+                  >
+                    Batal
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="bg-muted p-4 rounded-lg min-h-[150px] overflow-auto font-mono text-sm whitespace-pre-wrap break-words">
+                  {whitelistIps.length > 0 ? whitelistIps.join('\n') : 'Belum ada IP whitelist'}
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setEditingWhitelist(true);
+                    setWhitelistText(whitelistIps.join('\n'));
+                  }}
+                  data-testid="button-edit-whitelist"
+                >
+                  Edit Whitelist
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Informasi Sistem</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <h3 className="font-semibold mb-2">Admin (Master):</h3>
+              <h3 className="font-semibold mb-2">Fitur Keamanan:</h3>
               <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                <li>Menambahkan staff baru (misalnya: CINORTADI)</li>
-                <li>Username agent otomatis dibuat sesuai nama staff</li>
-                <li>Password default: password123 (bisa diubah di pengaturan)</li>
-                <li>Mengelola IP address yang diizinkan untuk setiap pengguna</li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="font-semibold mb-2">Agent:</h3>
-              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                <li>Login menggunakan username = nama staff (contoh: CINORTADI)</li>
-                <li>Password default: password123 (atau sesuai yang diatur admin)</li>
-                <li>Hanya bisa melihat dashboard izin, tidak bisa mengatur IP atau ubah password</li>
+                <li>Update username dan password untuk setiap user</li>
+                <li>Update IP address yang diizinkan per user</li>
+                <li>Whitelist IP untuk login (opsional)</li>
+                <li>Jika IP tidak sesuai → login ditolak dengan pesan "IP tidak sesuai"</li>
               </ul>
             </div>
           </CardContent>

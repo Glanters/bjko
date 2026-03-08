@@ -26,8 +26,10 @@ export interface IStorage {
   getUsers(): Promise<User[]>;
   updateUserIp(id: number, allowedIp: string): Promise<User>;
   updateUserPassword(id: number, password: string): Promise<User>;
+  updateUserUsername(id: number, username: string): Promise<User>;
   getStaff(): Promise<Staff[]>;
   createStaff(staff: InsertStaff): Promise<Staff>;
+  updateStaffName(id: number, name: string): Promise<Staff>;
   getLeaves(): Promise<Leave[]>;
   createLeave(leave: InsertLeave): Promise<Leave>;
   updateLeaveClockIn(id: number, clockInTime: Date): Promise<Leave>;
@@ -63,6 +65,11 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async updateUserUsername(id: number, username: string): Promise<User> {
+    const [user] = await db.update(users).set({ username }).where(eq(users.id, id)).returning();
+    return user;
+  }
+
   async getStaff(): Promise<Staff[]> {
     return await db.select().from(staff);
   }
@@ -70,6 +77,11 @@ export class DatabaseStorage implements IStorage {
   async createStaff(insertStaff: InsertStaff): Promise<Staff> {
     const [newStaff] = await db.insert(staff).values(insertStaff).returning();
     return newStaff;
+  }
+
+  async updateStaffName(id: number, name: string): Promise<Staff> {
+    const [staffRecord] = await db.update(staff).set({ name }).where(eq(staff.id, id)).returning();
+    return staffRecord;
   }
 
   async getLeaves(): Promise<Leave[]> {

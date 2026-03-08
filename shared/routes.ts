@@ -119,6 +119,71 @@ export const api = {
         403: errorSchemas.forbidden,
         404: errorSchemas.notFound,
       }
+    },
+    updateUsername: {
+      method: 'PATCH' as const,
+      path: '/api/users/:id/username' as const,
+      input: z.object({ username: z.string().min(1) }),
+      responses: {
+        200: z.custom<typeof users.$inferSelect>(),
+        400: errorSchemas.validation,
+        401: errorSchemas.unauthorized,
+        403: errorSchemas.forbidden,
+        404: errorSchemas.notFound,
+      }
+    }
+  },
+  staff: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/staff' as const,
+      responses: {
+        200: z.array(z.custom<typeof staff.$inferSelect>())
+      }
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/staff' as const,
+      input: insertStaffSchema,
+      responses: {
+        201: z.custom<typeof staff.$inferSelect>(),
+        401: errorSchemas.unauthorized,
+        403: errorSchemas.forbidden,
+      }
+    },
+    updateName: {
+      method: 'PATCH' as const,
+      path: '/api/staff/:id/name' as const,
+      input: z.object({ name: z.string().min(1) }),
+      responses: {
+        200: z.custom<typeof staff.$inferSelect>(),
+        400: errorSchemas.validation,
+        401: errorSchemas.unauthorized,
+        403: errorSchemas.forbidden,
+        404: errorSchemas.notFound,
+      }
+    }
+  },
+  whitelist: {
+    get: {
+      method: 'GET' as const,
+      path: '/api/whitelist' as const,
+      responses: {
+        200: z.object({ ips: z.array(z.string()) }),
+        401: errorSchemas.unauthorized,
+        403: errorSchemas.forbidden,
+      }
+    },
+    update: {
+      method: 'PATCH' as const,
+      path: '/api/whitelist' as const,
+      input: z.object({ ips: z.array(z.string()) }),
+      responses: {
+        200: z.object({ ips: z.array(z.string()) }),
+        400: errorSchemas.validation,
+        401: errorSchemas.unauthorized,
+        403: errorSchemas.forbidden,
+      }
     }
   }
 };
