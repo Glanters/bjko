@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard Izin Staff</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+body{
+margin:0;
+font-family:Arial;
+background:#1f1f1f;
+color:white;
+}
+
+header{
+background:#111;
+padding:15px;
+text-align:center;
+font-size:22px;
+}
+
+.container{
+width:95%;
+margin:auto;
+margin-top:20px;
+}
+
+.login{
+width:300px;
+margin:100px auto;
+background:#2b2b2b;
+padding:20px;
+border-radius:10px;
+text-align:center;
+}
+
+input{
+width:90%;
+padding:8px;
+margin:5px;
+}
+
+button{
+padding:8px 15px;
+cursor:pointer;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:20px;
+}
+
+th,td{
+padding:10px;
+border:1px solid #444;
+text-align:center;
+}
+
+th{
+background:#333;
+}
+
+.green{
+background:#0d7a39;
+}
+
+.red{
+background:#a32727;
+}
+
+.card{
+background:#2a2a2a;
+padding:15px;
+border-radius:10px;
+margin-top:20px;
+}
+
+.addStaff{
+margin-top:15px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+Dashboard Monitoring Izin Staff
+</header>
+
+<div id="loginPage" class="login">
+
+<h2>Login Admin</h2>
+
+<input id="username" placeholder="username">
+
+<input id="password" type="password" placeholder="password">
+
+<br><br>
+
+<button onclick="login()">Login</button>
+
+</div>
+
+<div id="dashboard" style="display:none">
+
+<div class="container">
+
+<div class="card">
+
+<h3>Tambah Staff</h3>
+
+<input id="nama" placeholder="Nama Staff">
+<input id="jobdesk" placeholder="Jobdesk">
+<input id="role" placeholder="Role">
+
+<button onclick="addStaff()">Tambah</button>
+
+</div>
+
+<div class="card">
+
+<h3>Daftar Staff</h3>
+
+<table>
+
+<thead>
+
+<tr>
+<th>Nama</th>
+<th>Jobdesk</th>
+<th>Role</th>
+<th>Izin</th>
+<th>Timer</th>
+<th>Total Hari Ini</th>
+</tr>
+
+</thead>
+
+<tbody id="staffTable"></tbody>
+
+</table>
+
+</div>
+
+<div class="card">
+
+<h3>Grafik Staff Paling Sering Izin</h3>
+
+<canvas id="chart"></canvas>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+let adminUser="admin"
+let adminPass="12345"
+
+function login(){
+
+let u=username.value
+let p=password.value
+
+if(u==adminUser && p==adminPass){
+
+loginPage.style.display="none"
+dashboard.style.display="block"
+
+init()
+
+}else{
+
+alert("Login gagal")
+
+}
+
+}
+
+let staffDB=JSON.parse(localStorage.getItem("staffDB")) || []
+
+let izinDB=JSON.parse(localStorage.getItem("izinDB")) || []
+
+function saveDB(){
+
+localStorage.setItem("staffDB",JSON.stringify(staffDB))
+localStorage.setItem("izinDB",JSON.stringify(izinDB))
+
+}
+
+function addStaff(){
+
+let s={
+
+id:Date.now(),
+nama:nama.value,
+jobdesk:jobdesk.value,
+role:role.value
+
+}
+
+staffDB.push(s)
+
+saveDB()
+
+renderStaff()
+
+}
+
+function renderStaff(){
+
+let html=""
+
+staffDB.forEach(s=>{
+
+let totalHari=countToday(s.id)
+
+html+=`
+
+<tr>
+
+<td>${s.nama}</td>
+
+<td>${s.jobdesk}</td>
+
+<td>${s.role}</td>
+
+<td>
+
+<button onclick="izin(${s.id})">
+
+Mulai Izin
+
+</button>
+
+</td>
+
+<td id="timer-${s.id}">-</td>
+
+<td>${totalHari}</td>
+
+</tr>
+
+`
+
+})
+
+staffTable.innerHTML=html
+
+}
+
+function izin(id){
+
+let today=new Date().toDateString()
+
+let total=countToday(id)
+
+if(total>=4){
+
+alert("Maksimal izin 4x hari ini")
+
+return
+
+}
+
+izinDB.push({
+
+staff:id,
+start:Date.now(),
+tanggal:today
+
+})
+
+saveDB()
+
+}
+
+function countToday(id){
+
+let today=new Date().toDateString()
+
+return izinDB.filter(x=>x.staff==id && x.tanggal==today).length
+
+}
+
+function updateTimer(){
+
+let now=Date.now()
+
+staffDB.forEach(s=>{
+
+let data=izinDB.filter(x=>x.staff==s.id)
+
+if(data.length==0) return
+
+let last=data[data.length-1]
+
+let durasi=Math.floor((now-last.start)/1000)
+
+let sisa=900-durasi
+
+let el=document.getElementById("timer-"+s.id)
+
+if(!el) return
+
+if(sisa>0){
+
+let m=Math.floor(sisa/60)
+let d=sisa%60
+
+el.innerHTML=m+":"+d
+
+el.parentElement.className="green"
+
+}else{
+
+let lewat=Math.abs(sisa)
+
+let m=Math.floor(lewat/60)
+let d=lewat%60
+
+el.innerHTML="Telat "+m+":"+d
+
+el.parentElement.className="red"
+
+}
+
+})
+
+}
+
+function resetHarian(){
+
+let today=new Date().toDateString()
+
+izinDB=izinDB.filter(x=>x.tanggal==today)
+
+saveDB()
+
+}
+
+function grafik(){
+
+let data={}
+
+izinDB.forEach(x=>{
+
+let staff=staffDB.find(s=>s.id==x.staff)
+
+if(!staff) return
+
+if(!data[staff.nama]) data[staff.nama]=0
+
+data[staff.nama]++
+
+})
+
+let labels=Object.keys(data)
+let values=Object.values(data)
+
+new Chart(document.getElementById("chart"),{
+
+type:"bar",
+
+data:{
+
+labels:labels,
+
+datasets:[{
+
+label:"Jumlah Izin",
+
+data:values
+
+}]
+
+}
+
+})
+
+}
+
+function init(){
+
+renderStaff()
+
+grafik()
+
+setInterval(updateTimer,1000)
+
+setInterval(resetHarian,60000)
+
+}
+
+</script>
+
+</body>
+</html>
