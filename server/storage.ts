@@ -25,6 +25,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   getUsers(): Promise<User[]>;
   updateUserIp(id: number, allowedIp: string): Promise<User>;
+  updateUserPassword(id: number, password: string): Promise<User>;
   getStaff(): Promise<Staff[]>;
   createStaff(staff: InsertStaff): Promise<Staff>;
   getLeaves(): Promise<Leave[]>;
@@ -53,6 +54,11 @@ export class DatabaseStorage implements IStorage {
 
   async updateUserIp(id: number, allowedIp: string): Promise<User> {
     const [user] = await db.update(users).set({ allowedIp }).where(eq(users.id, id)).returning();
+    return user;
+  }
+
+  async updateUserPassword(id: number, password: string): Promise<User> {
+    const [user] = await db.update(users).set({ password }).where(eq(users.id, id)).returning();
     return user;
   }
 

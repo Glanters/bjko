@@ -95,6 +95,18 @@ export const api = {
         403: errorSchemas.forbidden,
         404: errorSchemas.notFound,
       }
+    },
+    updatePassword: {
+      method: 'PATCH' as const,
+      path: '/api/users/:id/password' as const,
+      input: z.object({ password: z.string().min(6) }),
+      responses: {
+        200: z.custom<typeof users.$inferSelect>(),
+        400: errorSchemas.validation,
+        401: errorSchemas.unauthorized,
+        403: errorSchemas.forbidden,
+        404: errorSchemas.notFound,
+      }
     }
   }
 };
