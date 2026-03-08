@@ -31,6 +31,7 @@ export interface IStorage {
   getStaff(): Promise<Staff[]>;
   createStaff(staff: InsertStaff): Promise<Staff>;
   updateStaffName(id: number, name: string): Promise<Staff>;
+  deleteStaff(id: number): Promise<boolean>;
   getLeaves(): Promise<Leave[]>;
   createLeave(leave: InsertLeave): Promise<Leave>;
   updateLeaveClockIn(id: number, clockInTime: Date): Promise<Leave>;
@@ -113,6 +114,11 @@ export class DatabaseStorage implements IStorage {
 
   async deleteUser(id: number): Promise<boolean> {
     const result = await db.delete(users).where(eq(users.id, id));
+    return !!result;
+  }
+
+  async deleteStaff(id: number): Promise<boolean> {
+    const result = await db.delete(staff).where(eq(staff.id, id));
     return !!result;
   }
 }

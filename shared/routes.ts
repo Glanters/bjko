@@ -175,6 +175,16 @@ export const api = {
         403: errorSchemas.forbidden,
         404: errorSchemas.notFound,
       }
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/staff/:id' as const,
+      responses: {
+        200: z.object({ message: z.string() }),
+        401: errorSchemas.unauthorized,
+        403: errorSchemas.forbidden,
+        404: errorSchemas.notFound,
+      }
     }
   },
   whitelist: {

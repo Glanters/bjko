@@ -14,11 +14,12 @@ import {
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Coffee, Briefcase, ChevronDown, ChevronRight } from "lucide-react";
+import { Coffee, Briefcase, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
 import { TimerCell } from "./timer-cell";
 import { LeaveStartModal } from "./leave-start-modal";
 import { StaffSearch } from "./staff-search";
 import { useToast } from "@/hooks/use-toast";
+import { useDeleteStaff } from "@/hooks/use-delete-staff";
 import type { Staff, Leave } from "@shared/schema";
 
 export function StaffTable() {
@@ -32,6 +33,7 @@ export function StaffTable() {
   const [selectedLeave, setSelectedLeave] = useState<Leave | null>(null);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const { mutate: deleteStaff, isPending: isDeletingStaff } = useDeleteStaff();
 
   if (isStaffLoading || isLeavesLoading) {
     return (
@@ -154,7 +156,7 @@ export function StaffTable() {
         <TableCell className="text-center">
           <TimerCell leaves={staffLeavesToday} staffId={staff.id} canClockIn={canClockIn(staff)} />
         </TableCell>
-        <TableCell className="text-right pr-6">
+        <TableCell className="text-right pr-6 flex items-center justify-end gap-2">
           <Button 
             size="sm" 
             onClick={() => handleLeave(staff.id, leavesCount, staff)}
@@ -169,6 +171,22 @@ export function StaffTable() {
             <Coffee className="w-3.5 h-3.5 mr-2" />
             {isLimitReached ? 'Limit' : 'Mulai Izin'}
           </Button>
+          {user?.role === "admin" && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                if (confirm(`Hapus staff "${staff.name}"?`)) {
+                  deleteStaff(staff.id);
+                }
+              }}
+              disabled={isDeletingStaff}
+              className="h-9 w-9 p-0 text-red-400 hover:text-red-300 hover:bg-red-400/10"
+              data-testid={`button-delete-staff-${staff.id}`}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
         </TableCell>
       </TableRow>
     );

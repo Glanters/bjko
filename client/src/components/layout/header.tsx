@@ -1,14 +1,18 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { LogOut, ShieldAlert, User as UserIcon, Settings as SettingsIcon } from "lucide-react";
+import { LogOut, ShieldAlert, User as UserIcon, Settings as SettingsIcon, ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useLocation } from "wouter";
 
 export function Header() {
   const { user, logout, isLoggingOut } = useAuth();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
 
   if (!user) return null;
+
+  // Show back button on non-dashboard pages
+  const isOnDashboard = location === "/";
+  const showBackButton = !isOnDashboard && location !== "/login";
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
@@ -27,7 +31,20 @@ export function Header() {
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          {showBackButton && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => navigate("/")}
+              className="text-muted-foreground hover:text-primary transition-colors rounded-full px-4"
+              data-testid="button-back"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Kembali
+            </Button>
+          )}
+
           <div className="hidden md:flex items-center gap-3 px-4 py-1.5 rounded-full bg-secondary/50 border border-white/5">
             <UserIcon className="w-4 h-4 text-muted-foreground" />
             <span className="text-sm font-medium">{user.username}</span>

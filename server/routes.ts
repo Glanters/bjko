@@ -360,6 +360,29 @@ export async function registerRoutes(
     }
   });
 
+  app.delete(api.staff.delete.path, async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const user = await storage.getUser(req.session.userId);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: "Forbidden: Only admins can delete staff" });
+    }
+
+    try {
+      const staffId = parseInt(req.params.id);
+      const targetStaff = await storage.getStaff();
+      const staff = targetStaff.find(s => s.id === staffId);
+      if (!staff) {
+        return res.status(404).json({ message: "Staff not found" });
+      }
+      await storage.deleteStaff(staffId);
+      res.json({ message: "Staff berhasil dihapus" });
+    } catch (err) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.patch(api.staff.updateName.path, async (req, res) => {
     if (!req.session.userId) {
       return res.status(401).json({ message: "Unauthorized" });
