@@ -36,6 +36,16 @@ export function Header() {
             </Badge>
           </div>
           
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => navigate("/history")}
+            className="text-muted-foreground hover:text-primary transition-colors rounded-full px-4"
+            data-testid="button-history"
+          >
+            Riwayat
+          </Button>
+          
           {user.role === "admin" && (
             <Button 
               variant="ghost" 

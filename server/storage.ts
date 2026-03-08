@@ -33,6 +33,8 @@ export interface IStorage {
   getLeaves(): Promise<Leave[]>;
   createLeave(leave: InsertLeave): Promise<Leave>;
   updateLeaveClockIn(id: number, clockInTime: Date): Promise<Leave>;
+  deleteLeave(id: number): Promise<boolean>;
+  updateLeave(id: number, clockInTime: Date | null): Promise<Leave>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -94,6 +96,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateLeaveClockIn(id: number, clockInTime: Date): Promise<Leave> {
+    const [leave] = await db.update(leaves).set({ clockInTime }).where(eq(leaves.id, id)).returning();
+    return leave;
+  }
+
+  async deleteLeave(id: number): Promise<boolean> {
+    const result = await db.delete(leaves).where(eq(leaves.id, id));
+    return !!result;
+  }
+
+  async updateLeave(id: number, clockInTime: Date | null): Promise<Leave> {
     const [leave] = await db.update(leaves).set({ clockInTime }).where(eq(leaves.id, id)).returning();
     return leave;
   }

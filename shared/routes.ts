@@ -65,6 +65,28 @@ export const api = {
         401: errorSchemas.unauthorized,
         404: errorSchemas.notFound,
       }
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/leaves/:id' as const,
+      responses: {
+        200: z.object({ message: z.string() }),
+        401: errorSchemas.unauthorized,
+        403: errorSchemas.forbidden,
+        404: errorSchemas.notFound,
+      }
+    },
+    update: {
+      method: 'PATCH' as const,
+      path: '/api/leaves/:id' as const,
+      input: z.object({ clockInTime: z.string().nullable().optional() }),
+      responses: {
+        200: z.custom<typeof leaves.$inferSelect>(),
+        400: errorSchemas.validation,
+        401: errorSchemas.unauthorized,
+        403: errorSchemas.forbidden,
+        404: errorSchemas.notFound,
+      }
     }
   },
   users: {

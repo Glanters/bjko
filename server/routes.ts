@@ -185,6 +185,52 @@ export async function registerRoutes(
     }
   });
 
+  app.delete(api.leaves.delete.path, async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const user = await storage.getUser(req.session.userId);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: "Forbidden: Only admins can delete leaves" });
+    }
+
+    try {
+      const leaveId = parseInt(req.params.id);
+      const success = await storage.deleteLeave(leaveId);
+      if (!success) {
+        return res.status(404).json({ message: "Leave not found" });
+      }
+      res.json({ message: "Leave deleted successfully" });
+    } catch (err) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.patch(api.leaves.update.path, async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const user = await storage.getUser(req.session.userId);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: "Forbidden: Only admins can update leaves" });
+    }
+
+    try {
+      const leaveId = parseInt(req.params.id);
+      const input = api.leaves.update.input.parse(req.body);
+      const clockInTime = input.clockInTime ? new Date(input.clockInTime) : null;
+      const updated = await storage.updateLeave(leaveId, clockInTime);
+      res.json(updated);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.get(api.users.list.path, async (req, res) => {
     if (!req.session.userId) {
       return res.status(401).json({ message: "Unauthorized" });

@@ -7,8 +7,9 @@ import NotFound from "@/pages/not-found";
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import Settings from "@/pages/settings";
+import History from "@/pages/history";
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react"; 
 
 // Protected Route Wrapper
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -57,6 +58,9 @@ function Router() {
       <Route path="/">
         {() => <ProtectedRoute component={Dashboard} />}
       </Route>
+      <Route path="/history">
+        {() => <ProtectedRoute component={History} />}
+      </Route>
       <Route path="/settings">
         {() => <ProtectedRoute component={Settings} />}
       </Route>
@@ -69,7 +73,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <div className="dark"> {/* Force dark mode class if system requires it, otherwise base layer handles it */}
+        <div className="dark">
           <Toaster />
           <Router />
         </div>
