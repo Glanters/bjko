@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
+import type { Leave } from "@shared/schema";
 
 export function useLeaves() {
   return useQuery({
@@ -74,8 +75,13 @@ export function useClockIn() {
       const data = await res.json();
       return api.leaves.clockIn.responses[200].parse(data);
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: [api.leaves.list.path] });
+    onSuccess: async (updatedLeave) => {
+      // Immediately update the cache so CurrentLeavePanel removes staff instantly
+      queryClient.setQueryData([api.leaves.list.path], (old: Leave[] | undefined) => {
+        if (!old) return old;
+        return old.map(l => l.id === updatedLeave.id ? updatedLeave : l);
+      });
+      // Also refetch to ensure full consistency
       await queryClient.refetchQueries({ queryKey: [api.leaves.list.path] });
       toast({
         title: "Clock In Berhasil",
