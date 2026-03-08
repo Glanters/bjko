@@ -3,6 +3,7 @@ import { Header } from "@/components/layout/header";
 import { AddStaffDialog } from "@/components/dashboard/add-staff-dialog";
 import { StaffTable } from "@/components/dashboard/staff-table";
 import { LeaveChart } from "@/components/dashboard/leave-chart";
+import { CurrentLeavePanel } from "@/components/dashboard/current-leave-panel";
 import { Activity } from "lucide-react";
 
 export default function Dashboard() {
@@ -43,7 +44,8 @@ export default function Dashboard() {
             <StaffTable />
           </div>
           <div className="lg:col-span-1 order-1 lg:order-2">
-            <div className="sticky top-24">
+            <div className="sticky top-24 flex flex-col gap-4">
+              <CurrentLeavePanel />
               <LeaveChart />
             </div>
           </div>
