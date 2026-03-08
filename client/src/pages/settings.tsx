@@ -39,6 +39,18 @@ export default function Settings() {
     }
   }, [limitsQuery.data]);
 
+  const handleSaveJobdeskLimits = () => {
+    const limits: Record<string, number> = {};
+    jobdeskLimitsText.split("\n").forEach(line => {
+      const [jobdesk, limitStr] = line.split("=");
+      if (jobdesk && limitStr) {
+        limits[jobdesk.trim()] = parseInt(limitStr.trim());
+      }
+    });
+    updateLimitsMutation.mutate(limits);
+    setEditingJobdeskLimits(false);
+  };
+
   const usersQuery = useQuery({
     queryKey: [api.users.list.path],
     queryFn: () => apiRequest(api.users.list.path).then(r => r.json()),
