@@ -1,16 +1,147 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage, setupSession } from "./storage";
+import { api } from "@shared/routes";
+import { z } from "zod";
+
+// Extend Express Session to include userId
+declare module 'express-session' {
+  interface SessionData {
+    userId: number;
+  }
+}
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  // put application routes here
-  // prefix all routes with /api
+  setupSession(app);
 
-  // use storage to perform CRUD operations on the storage interface
-  // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
+  app.post(api.auth.login.path, async (req, res) => {
+    try {
+      const input = api.auth.login.input.parse(req.body);
+      const user = await storage.getUserByUsername(input.username);
+
+      if (!user || user.password !== input.password) {
+        return res.status(401).json({ message: "Username atau password salah" });
+      }
+
+      // IP Check
+      const clientIp = req.ip || req.connection.remoteAddress || "";
+      if (user.allowedIp && !clientIp.includes(user.allowedIp) && user.allowedIp !== "*") {
+         return res.status(403).json({ message: "IP tidak sesuai" });
+      }
+
+      req.session.userId = user.id;
+      res.json({ user });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message, field: err.errors[0].path.join('.') });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get(api.auth.me.path, async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const user = await storage.getUser(req.session.userId);
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    res.json(user);
+  });
+
+  app.post(api.auth.logout.path, (req, res) => {
+    req.session.destroy(() => {
+      res.json({ message: "Logged out" });
+    });
+  });
+
+  app.get(api.staff.list.path, async (req, res) => {
+    const staffList = await storage.getStaff();
+    res.json(staffList);
+  });
+
+  app.post(api.staff.create.path, async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const user = await storage.getUser(req.session.userId);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: "Forbidden: Only admins can add staff" });
+    }
+
+    try {
+      const input = api.staff.create.input.parse(req.body);
+      const newStaff = await storage.createStaff(input);
+      res.status(201).json(newStaff);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+         return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get(api.leaves.list.path, async (req, res) => {
+    const leavesList = await storage.getLeaves();
+    res.json(leavesList);
+  });
+
+  app.post(api.leaves.create.path, async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    try {
+      const input = api.leaves.create.input.parse(req.body);
+      
+      const today = new Date().toISOString().split('T')[0];
+      const leaves = await storage.getLeaves();
+      const staffLeavesToday = leaves.filter(l => l.staffId === input.staffId && l.date === today);
+
+      if (staffLeavesToday.length >= 4) {
+        return res.status(400).json({ message: "Maksimal izin 4x hari ini" });
+      }
+
+      const newLeave = await storage.createLeave({
+        staffId: input.staffId,
+        date: today
+      });
+      res.status(201).json(newLeave);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+         return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Basic seeding if users table is empty
+  try {
+     const adminUser = await storage.getUserByUsername("admin");
+     if (!adminUser) {
+        await storage.createUser({
+           username: "admin",
+           password: "password123", // In a real app, hash this
+           role: "admin",
+           allowedIp: "*" // Allow all for demo
+        });
+     }
+     const agentUser = await storage.getUserByUsername("agent");
+     if (!agentUser) {
+        await storage.createUser({
+           username: "agent",
+           password: "password123",
+           role: "agent",
+           allowedIp: "*" // Allow all for demo
+        });
+     }
+  } catch (e) {
+     console.error("Failed to seed initial users", e);
+  }
 
   return httpServer;
 }
