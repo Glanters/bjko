@@ -119,6 +119,44 @@ export async function registerRoutes(
     }
   });
 
+  app.get(api.users.list.path, async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const user = await storage.getUser(req.session.userId);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: "Forbidden: Only admins can view users" });
+    }
+    const allUsers = await storage.getUsers();
+    res.json(allUsers);
+  });
+
+  app.patch(api.users.updateIp.path, async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const user = await storage.getUser(req.session.userId);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: "Forbidden: Only admins can update users" });
+    }
+
+    try {
+      const input = api.users.updateIp.input.parse(req.body);
+      const userId = parseInt(req.params.id);
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      const updatedUser = await storage.updateUserIp(userId, input.allowedIp);
+      res.json(updatedUser);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Basic seeding if users table is empty
   try {
      const adminUser = await storage.getUserByUsername("admin");

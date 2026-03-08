@@ -1,10 +1,12 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { LogOut, ShieldAlert, User as UserIcon } from "lucide-react";
+import { LogOut, ShieldAlert, User as UserIcon, Settings as SettingsIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useLocation } from "wouter";
 
 export function Header() {
   const { user, logout, isLoggingOut } = useAuth();
+  const [, navigate] = useLocation();
 
   if (!user) return null;
 
@@ -34,12 +36,26 @@ export function Header() {
             </Badge>
           </div>
           
+          {user.role === "admin" && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => navigate("/settings")}
+              className="text-muted-foreground hover:text-primary transition-colors rounded-full px-4"
+              data-testid="button-settings"
+            >
+              <SettingsIcon className="w-4 h-4 mr-2" />
+              Pengaturan
+            </Button>
+          )}
+          
           <Button 
             variant="ghost" 
             size="sm" 
             onClick={() => logout()}
             disabled={isLoggingOut}
             className="text-muted-foreground hover:text-red-400 hover:bg-red-400/10 transition-colors rounded-full px-4"
+            data-testid="button-logout"
           >
             <LogOut className="w-4 h-4 mr-2" />
             Logout

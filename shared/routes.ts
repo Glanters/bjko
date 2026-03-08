@@ -73,6 +73,29 @@ export const api = {
         401: errorSchemas.unauthorized,
       }
     }
+  },
+  users: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/users' as const,
+      responses: {
+        200: z.array(z.custom<typeof users.$inferSelect>()),
+        401: errorSchemas.unauthorized,
+        403: errorSchemas.forbidden,
+      }
+    },
+    updateIp: {
+      method: 'PATCH' as const,
+      path: '/api/users/:id/ip' as const,
+      input: z.object({ allowedIp: z.string() }),
+      responses: {
+        200: z.custom<typeof users.$inferSelect>(),
+        400: errorSchemas.validation,
+        401: errorSchemas.unauthorized,
+        403: errorSchemas.forbidden,
+        404: errorSchemas.notFound,
+      }
+    }
   }
 };
 
