@@ -28,8 +28,22 @@ export async function registerRoutes(
 
       // IP Check
       const clientIp = req.ip || req.connection.remoteAddress || "";
+
+      // Per-user IP check
       if (user.allowedIp && !clientIp.includes(user.allowedIp) && user.allowedIp !== "*") {
          return res.status(403).json({ message: "IP tidak sesuai" });
+      }
+
+      // Global whitelist check — applies to all users except those with allowedIp="*"
+      if (user.allowedIp !== "*") {
+        const savedWl = await storage.getSetting('whitelist_ips');
+        const globalWhitelist = savedWl ? savedWl.split('\n').filter(Boolean) : [];
+        if (globalWhitelist.length > 0) {
+          const isAllowed = globalWhitelist.some(ip => clientIp.includes(ip.trim()));
+          if (!isAllowed) {
+            return res.status(403).json({ message: "IP Anda tidak diizinkan. Hubungi admin." });
+          }
+        }
       }
 
       req.session.userId = user.id;
@@ -466,8 +480,9 @@ export async function registerRoutes(
     }
   });
 
-  // Whitelist IP management (stored in memory for simplicity, could be DB)
-  let whitelistIps: string[] = [];
+  // Whitelist IP management (persisted to DB)
+  const savedWhitelist = await storage.getSetting('whitelist_ips');
+  let whitelistIps: string[] = savedWhitelist ? savedWhitelist.split('\n').filter(Boolean) : [];
 
   // Jobdesk limits management (stored in memory, could be DB)
   let jobdeskLimits: Record<string, number> = {};
@@ -495,6 +510,7 @@ export async function registerRoutes(
     try {
       const input = api.whitelist.update.input.parse(req.body);
       whitelistIps = input.ips;
+      await storage.setSetting('whitelist_ips', input.ips.join('\n'));
       res.json({ ips: whitelistIps });
     } catch (err) {
       if (err instanceof z.ZodError) {
