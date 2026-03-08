@@ -36,25 +36,6 @@ export const api = {
       }
     }
   },
-  staff: {
-    list: {
-      method: 'GET' as const,
-      path: '/api/staff' as const,
-      responses: {
-        200: z.array(z.custom<typeof staff.$inferSelect>())
-      }
-    },
-    create: {
-      method: 'POST' as const,
-      path: '/api/staff' as const,
-      input: insertStaffSchema,
-      responses: {
-        201: z.custom<typeof staff.$inferSelect>(),
-        401: errorSchemas.unauthorized,
-        403: errorSchemas.forbidden,
-      }
-    }
-  },
   leaves: {
     list: {
       method: 'GET' as const,
