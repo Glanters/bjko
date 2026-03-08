@@ -19,10 +19,10 @@ export function Header() {
           </div>
           <div>
             <h1 className="font-display font-bold text-lg leading-tight text-gradient">
-              Monitor Izin
+              Dashboard IZIN Staff
             </h1>
             <p className="text-xs text-muted-foreground font-medium">
-              Internal Dashboard
+              BOSJOKO
             </p>
           </div>
         </div>

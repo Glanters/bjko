@@ -23,7 +23,7 @@ export default function Dashboard() {
           <div>
             <h2 className="text-3xl font-display font-bold text-gradient flex items-center gap-2">
               <Activity className="w-8 h-8 text-primary" />
-              Live Monitoring
+              Monitoring Izin Staff
             </h2>
             <p className="text-muted-foreground mt-2 max-w-xl">
               Pantau aktivitas izin staff secara real-time. Setiap staff memiliki kuota izin maksimal 4 kali dalam sehari dengan durasi 15 menit.
