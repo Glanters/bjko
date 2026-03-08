@@ -2,6 +2,7 @@ import { useStaff } from "@/hooks/use-staff";
 import { useLeaves, useCreateLeave } from "@/hooks/use-leaves";
 import { useAuth } from "@/hooks/use-auth";
 import { format } from "date-fns";
+import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -13,9 +14,10 @@ import {
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Coffee, Briefcase, Activity } from "lucide-react";
+import { Coffee, Briefcase, ChevronDown, ChevronRight } from "lucide-react";
 import { TimerCell } from "./timer-cell";
 import { useToast } from "@/hooks/use-toast";
+import type { Staff } from "@shared/schema";
 
 export function StaffTable() {
   const { data: staffList, isLoading: isStaffLoading } = useStaff();
@@ -23,6 +25,7 @@ export function StaffTable() {
   const { mutate: createLeave, isPending } = useCreateLeave();
   const { user } = useAuth();
   const { toast } = useToast();
+  const [expandedJobdesks, setExpandedJobdesks] = useState<Set<string>>(new Set());
 
   if (isStaffLoading || isLeavesLoading) {
     return (
@@ -49,7 +52,6 @@ export function StaffTable() {
     createLeave(staffId);
   };
 
-  // Check if user can clock in (admin can always, agent only for themselves)
   const canClockIn = (staff: any) => {
     if (!user) return false;
     if (user.role === "admin") return true;
@@ -59,81 +61,152 @@ export function StaffTable() {
     return false;
   };
 
+  // Define custom jobdesk order
+  const jobdeskOrder = ["CS LINE", "CS", "KAPTEN", "KASIR"];
+  
+  // Group staff by jobdesk
+  const groupedByJobdesk = staffList.reduce((acc, staff) => {
+    if (!acc[staff.jobdesk]) {
+      acc[staff.jobdesk] = [];
+    }
+    acc[staff.jobdesk].push(staff);
+    return acc;
+  }, {} as Record<string, Staff[]>);
+
+  // Sort jobdesks by custom order, then alphabetically
+  const sortedJobdesks = Object.keys(groupedByJobdesk).sort((a, b) => {
+    const aIndex = jobdeskOrder.indexOf(a);
+    const bIndex = jobdeskOrder.indexOf(b);
+    
+    if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+    if (aIndex !== -1) return -1;
+    if (bIndex !== -1) return 1;
+    return a.localeCompare(b);
+  });
+
+  const toggleJobdesk = (jobdesk: string) => {
+    const newExpanded = new Set(expandedJobdesks);
+    if (newExpanded.has(jobdesk)) {
+      newExpanded.delete(jobdesk);
+    } else {
+      newExpanded.add(jobdesk);
+    }
+    setExpandedJobdesks(newExpanded);
+  };
+
+  const StaffRow = ({ staff }: { staff: Staff }) => {
+    const staffLeavesToday = todaysLeaves.filter(l => l.staffId === staff.id);
+    const leavesCount = staffLeavesToday.length;
+    const isLimitReached = leavesCount >= 4;
+
+    return (
+      <TableRow className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+        <TableCell className="font-medium py-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/30 to-purple-500/30 flex items-center justify-center text-xs font-bold border border-white/10">
+              {staff.name.charAt(0).toUpperCase()}
+            </div>
+            {staff.name}
+          </div>
+        </TableCell>
+        <TableCell>
+          <Badge variant="outline" className="bg-background/50 border-white/10 text-muted-foreground font-normal">
+            {staff.jobdesk}
+          </Badge>
+        </TableCell>
+        <TableCell className="text-center">
+          <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm ${
+            isLimitReached 
+              ? 'bg-destructive/20 text-destructive border border-destructive/30' 
+              : 'bg-primary/10 text-primary border border-primary/20'
+          }`}>
+            {leavesCount}/4
+          </span>
+        </TableCell>
+        <TableCell className="text-center">
+          <TimerCell leaves={staffLeavesToday} staffId={staff.id} canClockIn={canClockIn(staff)} />
+        </TableCell>
+        <TableCell className="text-right pr-6">
+          <Button 
+            size="sm" 
+            onClick={() => handleLeave(staff.id, leavesCount)}
+            disabled={isPending || isLimitReached}
+            className={`rounded-full px-5 transition-all ${
+              isLimitReached 
+                ? 'opacity-50 grayscale' 
+                : 'bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-white shadow-lg shadow-teal-500/25 hover:shadow-teal-500/40 hover:-translate-y-0.5'
+            }`}
+            data-testid={`button-start-leave-${staff.id}`}
+          >
+            <Coffee className="w-3.5 h-3.5 mr-2" />
+            {isLimitReached ? 'Limit' : 'Mulai Izin'}
+          </Button>
+        </TableCell>
+      </TableRow>
+    );
+  };
+
   return (
     <Card className="glass-panel border-0 overflow-hidden shadow-xl">
       <div className="overflow-x-auto">
-        <Table>
-          <TableHeader className="bg-secondary/50 border-b border-white/5">
-            <TableRow className="hover:bg-transparent">
-              <TableHead className="font-display py-4">Nama Staff</TableHead>
-              <TableHead className="font-display py-4">Jobdesk</TableHead>
-              <TableHead className="font-display py-4 text-center">Total Hari Ini</TableHead>
-              <TableHead className="font-display py-4 text-center">Timer Izin</TableHead>
-              <TableHead className="font-display py-4 text-right pr-6">Aksi</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {staffList.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
-                  <Briefcase className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                  Belum ada data staff.
-                </TableCell>
-              </TableRow>
-            ) : (
-              staffList.map((staff) => {
-                const staffLeavesToday = todaysLeaves.filter(l => l.staffId === staff.id);
-                const leavesCount = staffLeavesToday.length;
-                const isLimitReached = leavesCount >= 4;
+        {staffList.length === 0 ? (
+          <div className="flex items-center justify-center py-12">
+            <Briefcase className="w-12 h-12 mx-auto mb-3 opacity-20" />
+            <p className="text-muted-foreground">Belum ada data staff.</p>
+          </div>
+        ) : (
+          <div className="space-y-0">
+            {sortedJobdesks.map((jobdesk) => {
+              const isExpanded = expandedJobdesks.has(jobdesk);
+              const staffInJobdesk = groupedByJobdesk[jobdesk];
+              
+              return (
+                <div key={jobdesk} className="border-b border-white/5 last:border-b-0">
+                  {/* Jobdesk Header */}
+                  <button
+                    onClick={() => toggleJobdesk(jobdesk)}
+                    className="w-full flex items-center gap-3 px-6 py-4 hover:bg-white/[0.03] transition-colors text-left"
+                    data-testid={`button-toggle-jobdesk-${jobdesk}`}
+                  >
+                    {isExpanded ? (
+                      <ChevronDown className="w-5 h-5 text-primary" />
+                    ) : (
+                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                    )}
+                    <h4 className="font-display font-semibold text-lg text-foreground">
+                      {jobdesk}
+                    </h4>
+                    <span className="ml-auto text-sm text-muted-foreground">
+                      {staffInJobdesk.length} staff
+                    </span>
+                  </button>
 
-                return (
-                  <TableRow key={staff.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
-                    <TableCell className="font-medium py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/30 to-purple-500/30 flex items-center justify-center text-xs font-bold border border-white/10">
-                          {staff.name.charAt(0).toUpperCase()}
-                        </div>
-                        {staff.name}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="bg-background/50 border-white/10 text-muted-foreground font-normal">
-                        {staff.jobdesk}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm ${
-                        isLimitReached 
-                          ? 'bg-destructive/20 text-destructive border border-destructive/30' 
-                          : 'bg-primary/10 text-primary border border-primary/20'
-                      }`}>
-                        {leavesCount}/4
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <TimerCell leaves={staffLeavesToday} staffId={staff.id} canClockIn={canClockIn(staff)} />
-                    </TableCell>
-                    <TableCell className="text-right pr-6">
-                      <Button 
-                        size="sm" 
-                        onClick={() => handleLeave(staff.id, leavesCount)}
-                        disabled={isPending || isLimitReached}
-                        className={`rounded-full px-5 transition-all ${
-                          isLimitReached 
-                            ? 'opacity-50 grayscale' 
-                            : 'bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-white shadow-lg shadow-teal-500/25 hover:shadow-teal-500/40 hover:-translate-y-0.5'
-                        }`}
-                      >
-                        <Coffee className="w-3.5 h-3.5 mr-2" />
-                        {isLimitReached ? 'Limit' : 'Mulai Izin'}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
+                  {/* Jobdesk Staff */}
+                  {isExpanded && (
+                    <div className="border-t border-white/5">
+                      <Table>
+                        <TableHeader className="bg-secondary/20 border-b border-white/5">
+                          <TableRow className="hover:bg-transparent">
+                            <TableHead className="font-display py-3 text-sm">Nama Staff</TableHead>
+                            <TableHead className="font-display py-3 text-sm">Jobdesk</TableHead>
+                            <TableHead className="font-display py-3 text-center text-sm">Total Hari Ini</TableHead>
+                            <TableHead className="font-display py-3 text-center text-sm">Timer Izin</TableHead>
+                            <TableHead className="font-display py-3 text-right pr-6 text-sm">Aksi</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {staffInJobdesk.map((staff) => (
+                            <StaffRow key={staff.id} staff={staff} />
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </Card>
   );
