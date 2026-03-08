@@ -134,6 +134,12 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Maksimal izin 4x hari ini" });
       }
 
+      // Block if staff already has an active leave that hasn't been clocked in
+      const activeLeave = staffLeavesToday.find(l => !l.clockInTime);
+      if (activeLeave) {
+        return res.status(400).json({ message: "Masih ada izin aktif yang belum clock in. Harap clock in terlebih dahulu." });
+      }
+
       // Check jobdesk limit
       const staffData = await storage.getStaff();
       const staffRecord = staffData.find(s => s.id === input.staffId);

@@ -14,7 +14,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Coffee, Briefcase, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
+import { Coffee, Briefcase, ChevronDown, ChevronRight, Trash2, Clock } from "lucide-react";
 import { TimerCell } from "./timer-cell";
 import { LeaveStartModal } from "./leave-start-modal";
 import { StaffSearch } from "./staff-search";
@@ -129,6 +129,9 @@ export function StaffTable() {
     const staffLeavesToday = todaysLeaves.filter(l => l.staffId === staff.id);
     const leavesCount = staffLeavesToday.length;
     const isLimitReached = leavesCount >= 4;
+    const hasActiveLeave = staffLeavesToday.some(l => !l.clockInTime);
+    // Only truly disabled during pending or limit — for active leave we handle via onClick toast
+    const isButtonDisabled = isPending || isLimitReached;
 
     return (
       <TableRow className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
@@ -160,17 +163,43 @@ export function StaffTable() {
         <TableCell className="text-right pr-6 flex items-center justify-end gap-2">
           <Button 
             size="sm" 
-            onClick={() => handleLeave(staff.id, leavesCount, staff)}
-            disabled={isPending || isLimitReached}
+            onClick={() => {
+              if (hasActiveLeave) {
+                toast({
+                  variant: "destructive",
+                  title: "Izin Masih Aktif",
+                  description: "Harap clock in terlebih dahulu sebelum memulai izin baru.",
+                });
+                return;
+              }
+              handleLeave(staff.id, leavesCount, staff);
+            }}
+            disabled={isButtonDisabled}
             className={`rounded-full px-5 transition-all ${
-              isLimitReached 
-                ? 'opacity-50 grayscale' 
-                : 'bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-white shadow-lg shadow-teal-500/25 hover:shadow-teal-500/40 hover:-translate-y-0.5'
+              isLimitReached
+                ? 'opacity-50 grayscale cursor-not-allowed'
+                : hasActiveLeave
+                  ? 'bg-amber-500/20 border border-amber-500/40 text-amber-400 opacity-80 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-white shadow-lg shadow-teal-500/25 hover:shadow-teal-500/40 hover:-translate-y-0.5'
             }`}
             data-testid={`button-start-leave-${staff.id}`}
           >
-            <Coffee className="w-3.5 h-3.5 mr-2" />
-            {isLimitReached ? 'Limit' : 'Mulai Izin'}
+            {isLimitReached ? (
+              <>
+                <Coffee className="w-3.5 h-3.5 mr-2" />
+                Limit
+              </>
+            ) : hasActiveLeave ? (
+              <>
+                <Clock className="w-3.5 h-3.5 mr-2" />
+                Sedang Izin
+              </>
+            ) : (
+              <>
+                <Coffee className="w-3.5 h-3.5 mr-2" />
+                {isPending ? 'Memproses...' : 'Mulai Izin'}
+              </>
+            )}
           </Button>
           {user?.role === "admin" && (
             <>
