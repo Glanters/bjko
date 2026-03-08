@@ -188,6 +188,28 @@ export const api = {
         403: errorSchemas.forbidden,
       }
     }
+  },
+  jobdeskLimits: {
+    get: {
+      method: 'GET' as const,
+      path: '/api/jobdesk-limits' as const,
+      responses: {
+        200: z.object({ limits: z.record(z.string(), z.number()) }),
+        401: errorSchemas.unauthorized,
+        403: errorSchemas.forbidden,
+      }
+    },
+    update: {
+      method: 'PATCH' as const,
+      path: '/api/jobdesk-limits' as const,
+      input: z.object({ limits: z.record(z.string(), z.number()) }),
+      responses: {
+        200: z.object({ limits: z.record(z.string(), z.number()) }),
+        400: errorSchemas.validation,
+        401: errorSchemas.unauthorized,
+        403: errorSchemas.forbidden,
+      }
+    }
   }
 };
 

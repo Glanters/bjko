@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Loader2, Eye, EyeOff, Trash2 } from "lucide-react";
+import { useJobdeskLimits, useUpdateJobdeskLimits } from "@/hooks/use-jobdesk-limits";
 
 export default function Settings() {
   const { user } = useAuth();
@@ -23,6 +24,20 @@ export default function Settings() {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [whitelistText, setWhitelistText] = useState<string>("");
   const [editingWhitelist, setEditingWhitelist] = useState<boolean>(false);
+  const [jobdeskLimitsText, setJobdeskLimitsText] = useState<string>("");
+  const [editingJobdeskLimits, setEditingJobdeskLimits] = useState<boolean>(false);
+
+  const limitsQuery = useJobdeskLimits();
+  const updateLimitsMutation = useUpdateJobdeskLimits();
+
+  useEffect(() => {
+    if (limitsQuery.data?.limits) {
+      const text = Object.entries(limitsQuery.data.limits)
+        .map(([jobdesk, limit]) => `${jobdesk}=${limit}`)
+        .join("\n");
+      setJobdeskLimitsText(text);
+    }
+  }, [limitsQuery.data]);
 
   const usersQuery = useQuery({
     queryKey: [api.users.list.path],
@@ -386,6 +401,69 @@ export default function Settings() {
 
         <Card>
           <CardHeader>
+            <CardTitle>Limit Staff Per Jobdesk</CardTitle>
+            <CardDescription>Atur maksimal staff yang bisa keluar bersamaan per jobdesk</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {editingJobdeskLimits ? (
+              <>
+                <Textarea
+                  value={jobdeskLimitsText}
+                  onChange={(e) => setJobdeskLimitsText(e.target.value)}
+                  placeholder="CONTOH JOBDESK=2&#10;CS=2&#10;MARKETING=3"
+                  className="font-mono"
+                  rows={6}
+                />
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleSaveJobdeskLimits}
+                    disabled={updateLimitsMutation.isPending}
+                    size="sm"
+                    data-testid="button-save-jobdesk-limits"
+                  >
+                    {updateLimitsMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                    Simpan
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setEditingJobdeskLimits(false)}
+                    size="sm"
+                  >
+                    Batal
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="space-y-4">
+                {limitsQuery.isLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading...</p>
+                ) : limitsQuery.data?.limits && Object.keys(limitsQuery.data.limits).length > 0 ? (
+                  <div className="bg-secondary/30 p-4 rounded-lg">
+                    {Object.entries(limitsQuery.data.limits).map(([jobdesk, limit]) => (
+                      <div key={jobdesk} className="flex justify-between text-sm py-1">
+                        <span className="font-medium">{jobdesk}</span>
+                        <span className="text-muted-foreground">Max {limit} staff bersamaan</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Belum ada limit yang diatur</p>
+                )}
+                <Button
+                  onClick={() => setEditingJobdeskLimits(true)}
+                  variant="outline"
+                  size="sm"
+                  data-testid="button-edit-jobdesk-limits"
+                >
+                  Edit Limit
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Informasi Sistem</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -395,6 +473,7 @@ export default function Settings() {
                 <li>Update username dan password untuk setiap user</li>
                 <li>Update IP address yang diizinkan per user</li>
                 <li>Whitelist IP untuk login (opsional)</li>
+                <li>Limit staff per jobdesk yang bisa keluar bersamaan</li>
                 <li>Jika IP tidak sesuai → login ditolak dengan pesan "IP tidak sesuai"</li>
               </ul>
             </div>

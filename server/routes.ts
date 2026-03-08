@@ -134,6 +134,20 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Maksimal izin 4x hari ini" });
       }
 
+      // Check jobdesk limit
+      const staffData = await storage.getStaff();
+      const staffRecord = staffData.find(s => s.id === input.staffId);
+      if (staffRecord && jobdeskLimits[staffRecord.jobdesk]) {
+        const maxConcurrent = jobdeskLimits[staffRecord.jobdesk];
+        const concurrentLeaves = leaves.filter(l => {
+          const staff = staffData.find(s => s.id === l.staffId);
+          return staff?.jobdesk === staffRecord.jobdesk && l.date === today && !l.clockInTime;
+        });
+        if (concurrentLeaves.length >= maxConcurrent) {
+          return res.status(400).json({ message: `Maksimal ${maxConcurrent} staff ${staffRecord.jobdesk} yang bisa keluar bersamaan` });
+        }
+      }
+
       const newLeave = await storage.createLeave({
         staffId: input.staffId,
         date: today
@@ -350,6 +364,9 @@ export async function registerRoutes(
   // Whitelist IP management (stored in memory for simplicity, could be DB)
   let whitelistIps: string[] = [];
 
+  // Jobdesk limits management (stored in memory, could be DB)
+  let jobdeskLimits: Record<string, number> = {};
+
   app.get(api.whitelist.get.path, async (req, res) => {
     if (!req.session.userId) {
       return res.status(401).json({ message: "Unauthorized" });
@@ -374,6 +391,38 @@ export async function registerRoutes(
       const input = api.whitelist.update.input.parse(req.body);
       whitelistIps = input.ips;
       res.json({ ips: whitelistIps });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get(api.jobdeskLimits.get.path, async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const user = await storage.getUser(req.session.userId);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: "Forbidden: Only admins can view jobdesk limits" });
+    }
+    res.json({ limits: jobdeskLimits });
+  });
+
+  app.patch(api.jobdeskLimits.update.path, async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const user = await storage.getUser(req.session.userId);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: "Forbidden: Only admins can update jobdesk limits" });
+    }
+
+    try {
+      const input = api.jobdeskLimits.update.input.parse(req.body);
+      jobdeskLimits = input.limits;
+      res.json({ limits: jobdeskLimits });
     } catch (err) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: err.errors[0].message });
