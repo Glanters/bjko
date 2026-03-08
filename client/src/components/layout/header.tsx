@@ -1,11 +1,13 @@
 import { useAuth } from "@/hooks/use-auth";
+import { useTheme } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
-import { LogOut, ShieldAlert, User as UserIcon, Settings as SettingsIcon, ArrowLeft } from "lucide-react";
+import { LogOut, ShieldAlert, User as UserIcon, Settings as SettingsIcon, ArrowLeft, Sun, Moon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useLocation } from "wouter";
 
 export function Header() {
   const { user, logout, isLoggingOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [location, navigate] = useLocation();
 
   if (!user) return null;
@@ -44,6 +46,20 @@ export function Header() {
               Kembali
             </Button>
           )}
+
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={toggleTheme}
+            className="text-muted-foreground hover:text-primary transition-colors rounded-full px-3"
+            data-testid="button-theme-toggle"
+          >
+            {theme === "dark" ? (
+              <Sun className="w-4 h-4" />
+            ) : (
+              <Moon className="w-4 h-4" />
+            )}
+          </Button>
 
           <div className="hidden md:flex items-center gap-3 px-4 py-1.5 rounded-full bg-secondary/50 border border-white/5">
             <UserIcon className="w-4 h-4 text-muted-foreground" />
