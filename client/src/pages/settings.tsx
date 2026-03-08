@@ -53,13 +53,13 @@ export default function Settings() {
 
   const usersQuery = useQuery({
     queryKey: [api.users.list.path],
-    queryFn: () => apiRequest(api.users.list.path).then(r => r.json()),
+    queryFn: () => apiRequest("GET", api.users.list.path).then(r => r.json()),
     enabled: user?.role === "admin",
   });
 
   const whitelistQuery = useQuery({
     queryKey: [api.whitelist.get.path],
-    queryFn: () => apiRequest(api.whitelist.get.path).then(r => r.json()),
+    queryFn: () => apiRequest("GET", api.whitelist.get.path).then(r => r.json()),
     enabled: user?.role === "admin",
   });
 
