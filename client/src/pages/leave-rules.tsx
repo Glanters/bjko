@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Settings2, Clock, Calendar, Users, Save } from "lucide-react";
+import { Settings2, Clock, Calendar, Users, Save, Timer } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useLeaveSettings, useUpdateLeaveSetting } from "@/hooks/use-leave-settings";
 import { useJobdeskLimits, useUpdateJobdeskLimits } from "@/hooks/use-jobdesk-limits";
@@ -20,13 +20,13 @@ export default function LeaveRules() {
   const { mutate: updateLimits, isPending: updatingLimits } = useUpdateJobdeskLimits();
 
   const [maxLeavesPerDay, setMaxLeavesPerDay] = useState(4);
-  const [leaveDurationMinutes, setLeaveDurationMinutes] = useState(15);
+  const [leaveDurationSeconds, setLeaveDurationSeconds] = useState(900);
   const [jobdeskLimitsText, setJobdeskLimitsText] = useState("");
 
   useEffect(() => {
     if (settings) {
       if (settings.max_leaves_per_day) setMaxLeavesPerDay(Number(settings.max_leaves_per_day));
-      if (settings.leave_duration_minutes) setLeaveDurationMinutes(Number(settings.leave_duration_minutes));
+      if (settings.leave_duration_seconds) setLeaveDurationSeconds(Number(settings.leave_duration_seconds));
     }
   }, [settings]);
 
@@ -44,8 +44,11 @@ export default function LeaveRules() {
   };
 
   const handleSaveDuration = () => {
-    updateSetting({ key: "leave_duration_minutes", value: String(leaveDurationMinutes) });
+    updateSetting({ key: "leave_duration_seconds", value: String(leaveDurationSeconds) });
   };
+
+  const durationMinutes = Math.floor(leaveDurationSeconds / 60);
+  const durationSecs = leaveDurationSeconds % 60;
 
   const handleSaveJobdeskLimits = () => {
     const limits: Record<string, number> = {};
@@ -123,40 +126,59 @@ export default function LeaveRules() {
             <Card className="glass-panel border-0">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-cyan-400" />
-                  Durasi Izin (Menit)
+                  <Timer className="w-5 h-5 text-cyan-400" />
+                  Durasi Izin
                 </CardTitle>
                 <CardDescription>
-                  Tentukan durasi standar izin yang diberikan kepada setiap staff
+                  Tentukan durasi standar izin dalam detik. Timer di dashboard akan langsung menggunakan nilai ini.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <Label>Durasi izin</Label>
-                    <span className="text-2xl font-bold text-cyan-400" data-testid="value-duration">{leaveDurationMinutes} menit</span>
+                    <div className="text-right">
+                      <span className="text-2xl font-bold text-cyan-400 font-mono" data-testid="value-duration">
+                        {String(durationMinutes).padStart(2, "0")}:{String(durationSecs).padStart(2, "0")}
+                      </span>
+                      <p className="text-xs text-muted-foreground mt-0.5">{leaveDurationSeconds} detik</p>
+                    </div>
                   </div>
                   <Slider
-                    value={[leaveDurationMinutes]}
-                    onValueChange={([v]) => setLeaveDurationMinutes(v)}
-                    min={5}
-                    max={60}
-                    step={5}
+                    value={[leaveDurationSeconds]}
+                    onValueChange={([v]) => setLeaveDurationSeconds(v)}
+                    min={30}
+                    max={3600}
+                    step={30}
                     className="w-full"
                     data-testid="slider-duration"
                   />
                   <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>5 mnt</span>
+                    <span>30 dtk</span>
+                    <span>15 mnt</span>
                     <span>30 mnt</span>
                     <span>60 mnt</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Catatan: Perubahan durasi ini bersifat informasi. Timer 15 menit di dashboard perlu penyesuaian kode terpisah.
-                  </p>
+                  <div className="flex items-center gap-3 pt-2 border-t border-white/5">
+                    <Label className="shrink-0">Atur detik manual</Label>
+                    <Input
+                      type="number"
+                      min={30}
+                      max={7200}
+                      value={leaveDurationSeconds}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value);
+                        if (!isNaN(val) && val >= 30) setLeaveDurationSeconds(val);
+                      }}
+                      className="w-32 font-mono text-center"
+                      data-testid="input-duration-seconds"
+                    />
+                    <span className="text-sm text-muted-foreground">detik</span>
+                  </div>
                 </div>
                 <Button onClick={handleSaveDuration} disabled={updatingSetting} data-testid="button-save-duration">
                   <Save className="w-4 h-4 mr-2" />
-                  {updatingSetting ? "Menyimpan..." : "Simpan"}
+                  {updatingSetting ? "Menyimpan..." : "Simpan Durasi"}
                 </Button>
               </CardContent>
             </Card>

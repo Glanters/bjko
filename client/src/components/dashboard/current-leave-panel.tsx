@@ -5,8 +5,9 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Clock, UserCheck, AlertTriangle } from "lucide-react";
+import { useLeaveDuration } from "@/hooks/use-leave-settings";
 
-function LiveTimer({ startTime }: { startTime: string }) {
+function LiveTimer({ startTime, durationSeconds }: { startTime: string; durationSeconds: number }) {
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
@@ -21,7 +22,7 @@ function LiveTimer({ startTime }: { startTime: string }) {
 
   const minutes = Math.floor(elapsed / 60);
   const seconds = elapsed % 60;
-  const isOver = minutes >= 15;
+  const isOver = elapsed >= durationSeconds;
 
   return (
     <span className={`font-mono text-sm font-bold tabular-nums ${isOver ? "text-red-400" : "text-emerald-400"}`}>
@@ -33,6 +34,7 @@ function LiveTimer({ startTime }: { startTime: string }) {
 export function CurrentLeavePanel() {
   const { data: staffList } = useStaff();
   const { data: leaves } = useLeaves();
+  const leaveDurationSeconds = useLeaveDuration();
 
   if (!staffList || !leaves) return null;
 
@@ -86,7 +88,7 @@ export function CurrentLeavePanel() {
               if (!staff) return null;
 
               const elapsedMs = Date.now() - new Date(leave.startTime).getTime();
-              const isOver = elapsedMs >= 15 * 60 * 1000;
+              const isOver = elapsedMs >= leaveDurationSeconds * 1000;
 
               return (
                 <div
@@ -119,7 +121,7 @@ export function CurrentLeavePanel() {
 
                   {/* Timer */}
                   <div className="flex flex-col items-end gap-1 shrink-0">
-                    <LiveTimer startTime={leave.startTime} />
+                    <LiveTimer startTime={leave.startTime} durationSeconds={leaveDurationSeconds} />
                     {isOver && (
                       <div className="flex items-center gap-1 text-red-400">
                         <AlertTriangle className="w-2.5 h-2.5" />

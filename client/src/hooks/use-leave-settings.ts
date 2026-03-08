@@ -9,6 +9,12 @@ export function useLeaveSettings() {
   });
 }
 
+export function useLeaveDuration() {
+  const { data: settings } = useLeaveSettings();
+  const raw = settings?.leave_duration_seconds;
+  return raw ? parseInt(raw) : 900;
+}
+
 export function useUpdateLeaveSetting() {
   const { toast } = useToast();
   return useMutation({

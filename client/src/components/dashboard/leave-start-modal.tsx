@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { format, addMinutes } from "date-fns";
+import { format, addSeconds } from "date-fns";
 import { useClockIn } from "@/hooks/use-leaves";
+import { useLeaveDuration } from "@/hooks/use-leave-settings";
 import {
   Dialog,
   DialogContent,
@@ -20,7 +21,8 @@ interface LeaveStartModalProps {
 }
 
 export function LeaveStartModal({ open, leave, staff, onOpenChange }: LeaveStartModalProps) {
-  const [timeRemaining, setTimeRemaining] = useState<number>(15 * 60); // 15 minutes in seconds
+  const leaveDurationSeconds = useLeaveDuration();
+  const [timeRemaining, setTimeRemaining] = useState<number>(leaveDurationSeconds);
   const [clockInTime, setClockInTime] = useState<Date | null>(null);
   const { mutate: clockIn, isPending: isClockingIn } = useClockIn();
 
@@ -28,7 +30,7 @@ export function LeaveStartModal({ open, leave, staff, onOpenChange }: LeaveStart
     if (!open || !leave) return;
 
     // Reset timer when modal opens
-    setTimeRemaining(15 * 60);
+    setTimeRemaining(leaveDurationSeconds);
     setClockInTime(null);
 
     const interval = setInterval(() => {
@@ -49,7 +51,7 @@ export function LeaveStartModal({ open, leave, staff, onOpenChange }: LeaveStart
   const minutes = Math.floor(timeRemaining / 60);
   const seconds = timeRemaining % 60;
   const startTime = new Date(leave.startTime);
-  const endTime = addMinutes(startTime, 15);
+  const endTime = addSeconds(startTime, leaveDurationSeconds);
   const isTimeUp = timeRemaining === 0;
 
   const handleClockIn = () => {

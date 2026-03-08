@@ -5,6 +5,7 @@ import { Clock, AlertTriangle, LogIn } from "lucide-react";
 import { type Leave } from "@shared/schema";
 import { format } from "date-fns";
 import { useClockIn } from "@/hooks/use-leaves";
+import { useLeaveDuration } from "@/hooks/use-leave-settings";
 
 interface TimerCellProps {
   leaves: Leave[];
@@ -14,6 +15,7 @@ interface TimerCellProps {
 
 export function TimerCell({ leaves, staffId, canClockIn = false }: TimerCellProps) {
   const { mutate: clockIn, isPending: isClockingIn } = useClockIn();
+  const leaveDurationSeconds = useLeaveDuration();
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -37,7 +39,7 @@ export function TimerCell({ leaves, staffId, canClockIn = false }: TimerCellProp
   )[0];
 
   const startTimeMs = new Date(latestLeave.startTime!).getTime();
-  const endTimeMs = startTimeMs + 15 * 60 * 1000; // +15 mins
+  const endTimeMs = startTimeMs + leaveDurationSeconds * 1000;
   const remainingMs = endTimeMs - now;
   
   const isLate = remainingMs <= 0;
