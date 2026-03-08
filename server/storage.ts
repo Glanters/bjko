@@ -30,6 +30,7 @@ export interface IStorage {
   createStaff(staff: InsertStaff): Promise<Staff>;
   getLeaves(): Promise<Leave[]>;
   createLeave(leave: InsertLeave): Promise<Leave>;
+  updateLeaveClockIn(id: number, clockInTime: Date): Promise<Leave>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -77,6 +78,11 @@ export class DatabaseStorage implements IStorage {
 
   async createLeave(insertLeave: InsertLeave): Promise<Leave> {
     const [leave] = await db.insert(leaves).values(insertLeave).returning();
+    return leave;
+  }
+
+  async updateLeaveClockIn(id: number, clockInTime: Date): Promise<Leave> {
+    const [leave] = await db.update(leaves).set({ clockInTime }).where(eq(leaves.id, id)).returning();
     return leave;
   }
 }

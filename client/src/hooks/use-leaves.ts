@@ -30,7 +30,8 @@ export function useCreateLeave() {
       });
 
       if (!res.ok) {
-        throw new Error("Gagal memulai izin.");
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Gagal memulai izin.");
       }
 
       const data = await res.json();
@@ -41,6 +42,43 @@ export function useCreateLeave() {
       toast({
         title: "Izin Dimulai",
         description: "Timer izin telah berjalan.",
+      });
+    },
+    onError: (err: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Gagal",
+        description: err.message,
+      });
+    },
+  });
+}
+
+export function useClockIn() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (leaveId: number) => {
+      const res = await fetch(api.leaves.clockIn.path.replace(":id", String(leaveId)), {
+        method: api.leaves.clockIn.method,
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Gagal melakukan clock in.");
+      }
+
+      const data = await res.json();
+      return api.leaves.clockIn.responses[200].parse(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.leaves.list.path] });
+      toast({
+        title: "Clock In Berhasil",
+        description: "Anda sudah check in.",
       });
     },
     onError: (err: Error) => {

@@ -21,6 +21,7 @@ export const leaves = pgTable("leaves", {
   id: serial("id").primaryKey(),
   staffId: integer("staff_id").notNull(),
   startTime: timestamp("start_time").notNull().defaultNow(),
+  clockInTime: timestamp("clock_in_time"), // Waktu masuk/clock in
   date: text("date").notNull(), // Format 'YYYY-MM-DD' for easy querying
 });
 

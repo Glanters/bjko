@@ -1,5 +1,6 @@
 import { useStaff } from "@/hooks/use-staff";
 import { useLeaves, useCreateLeave } from "@/hooks/use-leaves";
+import { useAuth } from "@/hooks/use-auth";
 import { format } from "date-fns";
 import {
   Table,
@@ -20,6 +21,7 @@ export function StaffTable() {
   const { data: staffList, isLoading: isStaffLoading } = useStaff();
   const { data: leaves, isLoading: isLeavesLoading } = useLeaves();
   const { mutate: createLeave, isPending } = useCreateLeave();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   if (isStaffLoading || isLeavesLoading) {
@@ -45,6 +47,16 @@ export function StaffTable() {
       return;
     }
     createLeave(staffId);
+  };
+
+  // Check if user can clock in (admin can always, agent only for themselves)
+  const canClockIn = (staff: any) => {
+    if (!user) return false;
+    if (user.role === "admin") return true;
+    if (user.role === "agent") {
+      return staff.name === user.username;
+    }
+    return false;
   };
 
   return (
@@ -99,7 +111,7 @@ export function StaffTable() {
                       </span>
                     </TableCell>
                     <TableCell className="text-center">
-                      <TimerCell leaves={staffLeavesToday} />
+                      <TimerCell leaves={staffLeavesToday} staffId={staff.id} canClockIn={canClockIn(staff)} />
                     </TableCell>
                     <TableCell className="text-right pr-6">
                       <Button 

@@ -71,6 +71,18 @@ export const api = {
         201: z.custom<typeof leaves.$inferSelect>(),
         400: errorSchemas.validation,
         401: errorSchemas.unauthorized,
+        403: errorSchemas.forbidden,
+      }
+    },
+    clockIn: {
+      method: 'PATCH' as const,
+      path: '/api/leaves/:id/clock-in' as const,
+      input: z.object({}),
+      responses: {
+        200: z.custom<typeof leaves.$inferSelect>(),
+        400: errorSchemas.validation,
+        401: errorSchemas.unauthorized,
+        404: errorSchemas.notFound,
       }
     }
   },

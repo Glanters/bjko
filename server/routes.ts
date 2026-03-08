@@ -107,8 +107,24 @@ export async function registerRoutes(
       return res.status(401).json({ message: "Unauthorized" });
     }
 
+    const currentUser = await storage.getUser(req.session.userId);
+    if (!currentUser) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
     try {
       const input = api.leaves.create.input.parse(req.body);
+      
+      // Agent hanya bisa membuat izin untuk diri sendiri
+      if (currentUser.role === "agent") {
+        const agentStaff = await storage.getStaff();
+        const agentStaffName = currentUser.username;
+        const agentStaffRecord = agentStaff.find(s => s.name === agentStaffName);
+        
+        if (!agentStaffRecord || agentStaffRecord.id !== input.staffId) {
+          return res.status(403).json({ message: "Agent hanya bisa membuat izin untuk diri sendiri" });
+        }
+      }
       
       const today = new Date().toISOString().split('T')[0];
       const leaves = await storage.getLeaves();
@@ -127,6 +143,42 @@ export async function registerRoutes(
       if (err instanceof z.ZodError) {
          return res.status(400).json({ message: err.errors[0].message });
       }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.patch(api.leaves.clockIn.path, async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    try {
+      const leaveId = parseInt(req.params.id);
+      const leaveRecord = await db.select().from(leaves).where(eq(leaves.id, leaveId)).then(r => r[0]);
+      
+      if (!leaveRecord) {
+        return res.status(404).json({ message: "Leave record not found" });
+      }
+
+      const currentUser = await storage.getUser(req.session.userId);
+      if (!currentUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      // Verify user can update this leave
+      if (currentUser.role === "agent") {
+        const agentStaffName = currentUser.username;
+        const agentStaff = await storage.getStaff();
+        const agentStaffRecord = agentStaff.find(s => s.name === agentStaffName);
+        
+        if (!agentStaffRecord || agentStaffRecord.id !== leaveRecord.staffId) {
+          return res.status(403).json({ message: "Anda hanya bisa clock in izin milik Anda sendiri" });
+        }
+      }
+
+      const updatedLeave = await storage.updateLeaveClockIn(leaveId, new Date());
+      res.json(updatedLeave);
+    } catch (err) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
