@@ -18,6 +18,7 @@ import { Coffee, Briefcase, ChevronDown, ChevronRight, Trash2 } from "lucide-rea
 import { TimerCell } from "./timer-cell";
 import { LeaveStartModal } from "./leave-start-modal";
 import { StaffSearch } from "./staff-search";
+import { EditStaffDialog } from "./edit-staff-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useDeleteStaff } from "@/hooks/use-delete-staff";
 import type { Staff, Leave } from "@shared/schema";
@@ -172,20 +173,23 @@ export function StaffTable() {
             {isLimitReached ? 'Limit' : 'Mulai Izin'}
           </Button>
           {user?.role === "admin" && (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                if (confirm(`Hapus staff "${staff.name}"?`)) {
-                  deleteStaff(staff.id);
-                }
-              }}
-              disabled={isDeletingStaff}
-              className="h-9 w-9 p-0 text-red-400 hover:text-red-300 hover:bg-red-400/10"
-              data-testid={`button-delete-staff-${staff.id}`}
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
+            <>
+              <EditStaffDialog staff={staff} />
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  if (confirm(`Hapus staff "${staff.name}"?`)) {
+                    deleteStaff(staff.id);
+                  }
+                }}
+                disabled={isDeletingStaff}
+                className="h-9 w-9 p-0 text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                data-testid={`button-delete-staff-${staff.id}`}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </>
           )}
         </TableCell>
       </TableRow>

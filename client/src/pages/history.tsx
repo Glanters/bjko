@@ -40,7 +40,7 @@ export default function History() {
   const { mutate: updateClockIn } = useUpdateLeaveClockIn();
   const { mutate: deleteAllByDate, isPending: isDeletingAll } = useDeleteAllLeaves();
   const [staffMap, setStaffMap] = useState<Record<number, Staff>>({});
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);;
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/staff", { credentials: "include" })
@@ -50,6 +50,24 @@ export default function History() {
         setStaffMap(map);
       });
   }, []);
+
+  // Group leaves by date
+  const groupedByDate = leaves.reduce((acc, leave) => {
+    const date = leave.date;
+    if (!acc[date]) acc[date] = [];
+    acc[date].push(leave);
+    return acc;
+  }, {} as Record<string, Leave[]>);
+
+  // Sort dates in descending order
+  const sortedDates = Object.keys(groupedByDate).sort().reverse();
+
+  // Set default selected date to first available — must be before early return
+  useEffect(() => {
+    if (!selectedDate && sortedDates.length > 0) {
+      setSelectedDate(sortedDates[0]);
+    }
+  }, [sortedDates.length, selectedDate]);
 
   if (!user) return null;
 
@@ -78,28 +96,8 @@ export default function History() {
     }
   };
 
-  // Group leaves by date
-  const groupedByDate = leaves.reduce((acc, leave) => {
-    const date = leave.date;
-    if (!acc[date]) {
-      acc[date] = [];
-    }
-    acc[date].push(leave);
-    return acc;
-  }, {} as Record<string, Leave[]>);
-
-  // Sort dates in descending order
-  const sortedDates = Object.keys(groupedByDate).sort().reverse();
-
-  // Set default selected date to first available
-  useEffect(() => {
-    if (!selectedDate && sortedDates.length > 0) {
-      setSelectedDate(sortedDates[0]);
-    }
-  }, [sortedDates, selectedDate]);
-
   const displayDate = selectedDate || (sortedDates.length > 0 ? sortedDates[0] : null);
-  const displayLeaves = displayDate ? groupedByDate[displayDate] : [];
+  const displayLeaves = displayDate ? (groupedByDate[displayDate] || []) : [];
 
   return (
     <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">

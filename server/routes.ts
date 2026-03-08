@@ -507,6 +507,180 @@ export async function registerRoutes(
     }
   });
 
+  // Helper to log audit actions
+  const logAudit = async (userId: number, action: string, detail: string) => {
+    try {
+      const u = await storage.getUser(userId);
+      if (u) await storage.createAuditLog({ action, username: u.username, detail });
+    } catch {}
+  };
+
+  // PATCH /api/staff/:id - Update staff name and jobdesk
+  app.patch("/api/staff/:id", async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
+    const user = await storage.getUser(req.session.userId);
+    if (!user || user.role !== 'admin') return res.status(403).json({ message: "Forbidden" });
+    try {
+      const staffId = parseInt(req.params.id);
+      const { name, jobdesk } = req.body;
+      if (!name || !jobdesk) return res.status(400).json({ message: "Nama dan jobdesk wajib diisi" });
+      const updated = await storage.updateStaff(staffId, name.trim(), jobdesk.trim());
+      await logAudit(req.session.userId, "UPDATE_STAFF", `Staff #${staffId} diupdate: ${name} / ${jobdesk}`);
+      res.json(updated);
+    } catch {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // GET /api/audit-logs
+  app.get("/api/audit-logs", async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
+    const user = await storage.getUser(req.session.userId);
+    if (!user || user.role !== 'admin') return res.status(403).json({ message: "Forbidden" });
+    const logs = await storage.getAuditLogs();
+    res.json(logs);
+  });
+
+  // GET /api/settings
+  app.get("/api/settings", async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
+    const user = await storage.getUser(req.session.userId);
+    if (!user || user.role !== 'admin') return res.status(403).json({ message: "Forbidden" });
+    const allSettings = await storage.getAllSettings();
+    const obj: Record<string, string> = {};
+    for (const s of allSettings) obj[s.key] = s.value;
+    res.json(obj);
+  });
+
+  // POST /api/settings
+  app.post("/api/settings", async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
+    const user = await storage.getUser(req.session.userId);
+    if (!user || user.role !== 'admin') return res.status(403).json({ message: "Forbidden" });
+    try {
+      const { key, value } = req.body;
+      if (!key || value === undefined) return res.status(400).json({ message: "Key dan value wajib diisi" });
+      const setting = await storage.setSetting(key, String(value));
+      await logAudit(req.session.userId, "UPDATE_SETTING", `Setting ${key} = ${value}`);
+      res.json(setting);
+    } catch {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // GET /api/analytics
+  app.get("/api/analytics", async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
+    try {
+      const allLeaves = await storage.getLeaves();
+      const allStaff = await storage.getStaff();
+      const today = new Date().toISOString().split('T')[0];
+
+      // Today's leaves
+      const todayLeaves = allLeaves.filter(l => l.date === today);
+
+      // Last 7 days trend
+      const last7Days: { date: string; count: number }[] = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        last7Days.push({ date: dateStr, count: allLeaves.filter(l => l.date === dateStr).length });
+      }
+
+      // Leaves per jobdesk today
+      const leavesByJobdesk: Record<string, number> = {};
+      for (const l of todayLeaves) {
+        const s = allStaff.find(x => x.id === l.staffId);
+        if (s) leavesByJobdesk[s.jobdesk] = (leavesByJobdesk[s.jobdesk] || 0) + 1;
+      }
+
+      // Top 5 staff by leave count (all time)
+      const staffLeaveCounts: Record<number, number> = {};
+      for (const l of allLeaves) staffLeaveCounts[l.staffId] = (staffLeaveCounts[l.staffId] || 0) + 1;
+      const top5 = Object.entries(staffLeaveCounts)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5)
+        .map(([staffId, count]) => {
+          const s = allStaff.find(x => x.id === Number(staffId));
+          return { staffId: Number(staffId), name: s?.name || 'Unknown', jobdesk: s?.jobdesk || '-', count };
+        });
+
+      // On-time vs late
+      const completed = allLeaves.filter(l => l.clockInTime);
+      let onTime = 0, late = 0;
+      for (const l of completed) {
+        const start = new Date(l.startTime).getTime();
+        const ci = new Date(l.clockInTime!).getTime();
+        const diffMin = (ci - start) / 60000;
+        if (diffMin <= 15) onTime++; else late++;
+      }
+
+      res.json({
+        todayCount: todayLeaves.length,
+        totalCount: allLeaves.length,
+        last7Days,
+        leavesByJobdesk,
+        top5Staff: top5,
+        onTimeCount: onTime,
+        lateCount: late,
+        pendingCount: allLeaves.filter(l => !l.clockInTime).length,
+      });
+    } catch {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // GET /api/backup - Export all data
+  app.get("/api/backup", async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
+    const user = await storage.getUser(req.session.userId);
+    if (!user || user.role !== 'admin') return res.status(403).json({ message: "Forbidden" });
+    try {
+      const [allStaff, allLeaves, allUsers, allSettings] = await Promise.all([
+        storage.getStaff(),
+        storage.getLeaves(),
+        storage.getUsers(),
+        storage.getAllSettings(),
+      ]);
+      const backup = {
+        exportedAt: new Date().toISOString(),
+        version: "1.0",
+        staff: allStaff,
+        leaves: allLeaves,
+        users: allUsers.map(u => ({ ...u, password: '***hidden***' })),
+        settings: allSettings,
+      };
+      await logAudit(req.session.userId, "BACKUP", "Data backup diunduh");
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename=backup-${today()}.json`);
+      res.json(backup);
+    } catch {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  function today() { return new Date().toISOString().split('T')[0]; }
+
+  // POST /api/restore - Restore staff and leaves from backup
+  app.post("/api/restore", async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
+    const user = await storage.getUser(req.session.userId);
+    if (!user || user.role !== 'admin') return res.status(403).json({ message: "Forbidden" });
+    try {
+      const { staff: staffData, settings: settingsData } = req.body;
+      if (settingsData && Array.isArray(settingsData)) {
+        for (const s of settingsData) {
+          if (s.key && s.value) await storage.setSetting(s.key, s.value);
+        }
+      }
+      await logAudit(req.session.userId, "RESTORE", "Pengaturan dipulihkan dari backup");
+      res.json({ message: "Restore berhasil" });
+    } catch {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Basic seeding if users table is empty
   try {
      const adminUser = await storage.getUserByUsername("admin");

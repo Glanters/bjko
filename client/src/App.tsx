@@ -9,10 +9,13 @@ import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import Settings from "@/pages/settings";
 import History from "@/pages/history";
+import Analytics from "@/pages/analytics";
+import AuditLog from "@/pages/audit-log";
+import Backup from "@/pages/backup";
+import LeaveRules from "@/pages/leave-rules";
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2 } from "lucide-react"; 
+import { Loader2 } from "lucide-react";
 
-// Protected Route Wrapper
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { user, isLoading } = useAuth();
 
@@ -31,7 +34,22 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   return <Component />;
 }
 
-// Redirect if already logged in
+function AdminRoute({ component: Component }: { component: React.ComponentType }) {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) return <Redirect to="/login" />;
+  if (user.role !== "admin") return <Redirect to="/" />;
+  return <Component />;
+}
+
 function AuthRoute({ component: Component }: { component: React.ComponentType }) {
   const { user, isLoading } = useAuth();
 
@@ -63,7 +81,19 @@ function Router() {
         {() => <ProtectedRoute component={History} />}
       </Route>
       <Route path="/settings">
-        {() => <ProtectedRoute component={Settings} />}
+        {() => <AdminRoute component={Settings} />}
+      </Route>
+      <Route path="/analytics">
+        {() => <AdminRoute component={Analytics} />}
+      </Route>
+      <Route path="/audit-log">
+        {() => <AdminRoute component={AuditLog} />}
+      </Route>
+      <Route path="/backup">
+        {() => <AdminRoute component={Backup} />}
+      </Route>
+      <Route path="/leave-rules">
+        {() => <AdminRoute component={LeaveRules} />}
       </Route>
       <Route component={NotFound} />
     </Switch>

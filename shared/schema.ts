@@ -6,8 +6,8 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  role: text("role").notNull().default("agent"), // 'admin' | 'agent'
-  allowedIp: text("allowed_ip"), // Optional IP restriction
+  role: text("role").notNull().default("agent"),
+  allowedIp: text("allowed_ip"),
 });
 
 export const staff = pgTable("staff", {
@@ -21,13 +21,27 @@ export const leaves = pgTable("leaves", {
   id: serial("id").primaryKey(),
   staffId: integer("staff_id").notNull(),
   startTime: timestamp("start_time").notNull().defaultNow(),
-  clockInTime: timestamp("clock_in_time"), // Waktu masuk/clock in
-  date: text("date").notNull(), // Format 'YYYY-MM-DD' for easy querying
+  clockInTime: timestamp("clock_in_time"),
+  date: text("date").notNull(),
+});
+
+export const auditLogs = pgTable("audit_logs", {
+  id: serial("id").primaryKey(),
+  action: text("action").notNull(),
+  username: text("username").notNull(),
+  detail: text("detail"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const settings = pgTable("settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
 export const insertStaffSchema = createInsertSchema(staff).omit({ id: true });
 export const insertLeaveSchema = createInsertSchema(leaves).omit({ id: true, startTime: true, date: true });
+export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({ id: true, createdAt: true });
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -35,3 +49,6 @@ export type Staff = typeof staff.$inferSelect;
 export type InsertStaff = z.infer<typeof insertStaffSchema>;
 export type Leave = typeof leaves.$inferSelect;
 export type InsertLeave = z.infer<typeof insertLeaveSchema>;
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+export type Setting = typeof settings.$inferSelect;
