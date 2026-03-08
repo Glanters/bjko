@@ -221,6 +221,34 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/leaves/delete-by-date", async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const user = await storage.getUser(req.session.userId);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: "Forbidden: Only admins can delete leaves" });
+    }
+
+    try {
+      const { date } = req.body;
+      if (!date) {
+        return res.status(400).json({ message: "Date is required" });
+      }
+      const leaves = await storage.getLeaves();
+      const leavesToDelete = leaves.filter(l => l.date === date);
+      
+      for (const leave of leavesToDelete) {
+        await storage.deleteLeave(leave.id);
+      }
+      
+      res.json({ message: `${leavesToDelete.length} leave(s) berhasil dihapus`, count: leavesToDelete.length });
+    } catch (err) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.patch(api.leaves.update.path, async (req, res) => {
     if (!req.session.userId) {
       return res.status(401).json({ message: "Unauthorized" });
