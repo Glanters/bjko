@@ -27,6 +27,7 @@ export interface IStorage {
   updateUserIp(id: number, allowedIp: string): Promise<User>;
   updateUserPassword(id: number, password: string): Promise<User>;
   updateUserUsername(id: number, username: string): Promise<User>;
+  deleteUser(id: number): Promise<boolean>;
   getStaff(): Promise<Staff[]>;
   createStaff(staff: InsertStaff): Promise<Staff>;
   updateStaffName(id: number, name: string): Promise<Staff>;
@@ -108,6 +109,11 @@ export class DatabaseStorage implements IStorage {
   async updateLeave(id: number, clockInTime: Date | null): Promise<Leave> {
     const [leave] = await db.update(leaves).set({ clockInTime }).where(eq(leaves.id, id)).returning();
     return leave;
+  }
+
+  async deleteUser(id: number): Promise<boolean> {
+    const result = await db.delete(users).where(eq(users.id, id));
+    return !!result;
   }
 }
 

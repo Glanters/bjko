@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
 import { Loader2, Eye, EyeOff, Trash2 } from "lucide-react";
 import { useJobdeskLimits, useUpdateJobdeskLimits } from "@/hooks/use-jobdesk-limits";
+import { useDeleteUser } from "@/hooks/use-delete-user";
 
 export default function Settings() {
   const { user } = useAuth();
@@ -29,6 +30,7 @@ export default function Settings() {
 
   const limitsQuery = useJobdeskLimits();
   const updateLimitsMutation = useUpdateJobdeskLimits();
+  const { mutate: deleteUser, isPending: isDeletingUser } = useDeleteUser();
 
   useEffect(() => {
     if (limitsQuery.data?.limits) {
@@ -336,6 +338,22 @@ export default function Settings() {
                               >
                                 Pass
                               </Button>
+                              {u.role === "agent" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    if (confirm(`Hapus user "${u.username}"?`)) {
+                                      deleteUser(u.id);
+                                    }
+                                  }}
+                                  disabled={isDeletingUser}
+                                  className="text-red-400 hover:text-red-300 border-red-400/30 hover:bg-red-400/10"
+                                  data-testid={`button-delete-user-${u.id}`}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              )}
                             </>
                           )}
                         </TableCell>

@@ -335,6 +335,31 @@ export async function registerRoutes(
     }
   });
 
+  app.delete(api.users.delete.path, async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const user = await storage.getUser(req.session.userId);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: "Forbidden: Only admins can delete users" });
+    }
+
+    try {
+      const userId = parseInt(req.params.id);
+      if (userId === 1 || user.id === userId) {
+        return res.status(403).json({ message: "Tidak bisa menghapus akun admin atau akun sendiri" });
+      }
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      await storage.deleteUser(userId);
+      res.json({ message: "User berhasil dihapus" });
+    } catch (err) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.patch(api.staff.updateName.path, async (req, res) => {
     if (!req.session.userId) {
       return res.status(401).json({ message: "Unauthorized" });
