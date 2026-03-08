@@ -371,7 +371,10 @@ export default function Settings() {
                 <div className="flex gap-2">
                   <Button
                     onClick={() => {
-                      const ips = whitelistText.split('\n').filter(ip => ip.trim());
+                      const ips = whitelistText
+                        .split('\n')
+                        .map(ip => ip.trim())
+                        .filter(ip => ip.length > 0);
                       updateWhitelistMutation.mutate(ips);
                     }}
                     disabled={updateWhitelistMutation.isPending}
