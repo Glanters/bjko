@@ -65,9 +65,8 @@ export default function Settings() {
 
   const updateIpMutation = useMutation({
     mutationFn: (data: { userId: number; allowedIp: string }) =>
-      apiRequest(api.users.updateIp.path.replace(":id", String(data.userId)), {
-        method: "PATCH",
-        body: JSON.stringify({ allowedIp: data.allowedIp }),
+      apiRequest("PATCH", api.users.updateIp.path.replace(":id", String(data.userId)), {
+        allowedIp: data.allowedIp,
       }).then(r => r.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.users.list.path] });
@@ -82,9 +81,8 @@ export default function Settings() {
 
   const updatePasswordMutation = useMutation({
     mutationFn: (data: { userId: number; password: string }) =>
-      apiRequest(api.users.updatePassword.path.replace(":id", String(data.userId)), {
-        method: "PATCH",
-        body: JSON.stringify({ password: data.password }),
+      apiRequest("PATCH", api.users.updatePassword.path.replace(":id", String(data.userId)), {
+        password: data.password,
       }).then(r => r.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.users.list.path] });
@@ -100,9 +98,8 @@ export default function Settings() {
 
   const updateUsernameMutation = useMutation({
     mutationFn: (data: { userId: number; username: string }) =>
-      apiRequest(api.users.updateUsername.path.replace(":id", String(data.userId)), {
-        method: "PATCH",
-        body: JSON.stringify({ username: data.username }),
+      apiRequest("PATCH", api.users.updateUsername.path.replace(":id", String(data.userId)), {
+        username: data.username,
       }).then(r => r.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.users.list.path] });
@@ -118,17 +115,15 @@ export default function Settings() {
 
   const updateWhitelistMutation = useMutation({
     mutationFn: (ips: string[]) =>
-      apiRequest(api.whitelist.update.path, {
-        method: "PATCH",
-        body: JSON.stringify({ ips }),
-      }).then(r => r.json()),
+      apiRequest("PATCH", api.whitelist.update.path, { ips }).then(r => r.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.whitelist.get.path] });
       toast({ title: "Berhasil", description: "Whitelist IP telah diperbarui" });
       setEditingWhitelist(false);
     },
-    onError: () => {
-      toast({ title: "Error", description: "Gagal memperbarui whitelist", variant: "destructive" });
+    onError: (error: any) => {
+      const message = error?.message || "Gagal memperbarui whitelist";
+      toast({ title: "Error", description: message, variant: "destructive" });
     },
   });
 
