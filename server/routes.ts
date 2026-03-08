@@ -154,7 +154,8 @@ export async function registerRoutes(
 
     try {
       const leaveId = parseInt(req.params.id);
-      const leaveRecord = await db.select().from(leaves).where(eq(leaves.id, leaveId)).then(r => r[0]);
+      const allLeaves = await storage.getLeaves();
+      const leaveRecord = allLeaves.find(l => l.id === leaveId);
       
       if (!leaveRecord) {
         return res.status(404).json({ message: "Leave record not found" });
@@ -179,6 +180,7 @@ export async function registerRoutes(
       const updatedLeave = await storage.updateLeaveClockIn(leaveId, new Date());
       res.json(updatedLeave);
     } catch (err) {
+      console.error("Clock-in error:", err);
       res.status(500).json({ message: "Internal server error" });
     }
   });
