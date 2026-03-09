@@ -45,8 +45,8 @@ export function useAuth() {
       const data = await res.json();
       return api.auth.login.responses[200].parse(data);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [api.auth.me.path] });
+    onSuccess: (data) => {
+      queryClient.setQueryData([api.auth.me.path], data.user);
       setLocation("/welcome");
     },
     onError: (err: Error) => {
