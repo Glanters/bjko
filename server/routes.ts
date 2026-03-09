@@ -26,8 +26,11 @@ export async function registerRoutes(
         return res.status(401).json({ message: "Username atau password salah" });
       }
 
-      // IP Check
-      const clientIp = req.ip || req.connection.remoteAddress || "";
+      // IP Check — get real client IP from X-Forwarded-For (behind proxy)
+      const forwarded = req.headers['x-forwarded-for'] as string | undefined;
+      const clientIp = (forwarded ? forwarded.split(',')[0].trim() : null)
+        || req.ip
+        || (req.connection?.remoteAddress ?? "");
 
       // Per-user IP check
       if (user.allowedIp && !clientIp.includes(user.allowedIp) && user.allowedIp !== "*") {
