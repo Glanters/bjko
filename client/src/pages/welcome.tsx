@@ -1,6 +1,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
-import { Play } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Loader2 } from "lucide-react";
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -11,8 +12,7 @@ function getGreeting() {
 }
 
 function formatDate() {
-  const now = new Date();
-  return now.toLocaleDateString("en-US", {
+  return new Date().toLocaleDateString("en-US", {
     weekday: "long",
     day: "2-digit",
     month: "long",
@@ -23,109 +23,247 @@ function formatDate() {
 export default function Welcome() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const [loading, setLoading] = useState(false);
+  const [exiting, setExiting] = useState(false);
+  const rippleRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (rippleRef.current) {
+      rippleRef.current.style.animation = "none";
+    }
+  }, []);
 
   if (!user) return null;
 
   const greeting = getGreeting();
   const initial = user.username.charAt(0).toUpperCase();
 
-  const handleStart = () => {
-    setLocation("/");
+  const handleStart = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (loading) return;
+
+    const btn = e.currentTarget;
+    const rect = btn.getBoundingClientRect();
+    const ripple = btn.querySelector(".ripple") as HTMLElement;
+    if (ripple) {
+      ripple.style.left = `${e.clientX - rect.left}px`;
+      ripple.style.top = `${e.clientY - rect.top}px`;
+      ripple.style.animation = "none";
+      void ripple.offsetWidth;
+      ripple.style.animation = "btn-ripple 0.6s ease-out forwards";
+    }
+
+    setLoading(true);
+    setTimeout(() => {
+      setExiting(true);
+      setTimeout(() => setLocation("/"), 350);
+    }, 1100);
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center relative overflow-hidden p-4">
-      {/* Background blobs */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-primary/15 via-background to-background pointer-events-none" />
-      <div className="absolute w-[600px] h-[600px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary/8 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute top-10 right-10 w-64 h-64 bg-amber-500/5 rounded-full blur-[80px] pointer-events-none" />
-      <div className="absolute bottom-10 left-10 w-64 h-64 bg-primary/5 rounded-full blur-[80px] pointer-events-none" />
+    <div
+      className="min-h-screen bg-background flex items-center justify-center relative overflow-hidden p-4"
+      style={{
+        transition: "opacity 0.35s ease",
+        opacity: exiting ? 0 : 1,
+      }}
+    >
+      {/* Animated background orbs */}
+      <div
+        className="absolute w-[500px] h-[500px] rounded-full pointer-events-none"
+        style={{
+          top: "10%", left: "5%",
+          background: "radial-gradient(circle, hsl(var(--primary)/0.12) 0%, transparent 70%)",
+          animation: "orb-drift-1 12s ease-in-out infinite",
+          filter: "blur(40px)",
+        }}
+      />
+      <div
+        className="absolute w-[400px] h-[400px] rounded-full pointer-events-none"
+        style={{
+          bottom: "5%", right: "5%",
+          background: "radial-gradient(circle, hsl(45 90% 50% / 0.08) 0%, transparent 70%)",
+          animation: "orb-drift-2 15s ease-in-out infinite",
+          filter: "blur(50px)",
+        }}
+      />
+      <div
+        className="absolute w-[300px] h-[300px] rounded-full pointer-events-none"
+        style={{
+          top: "40%", right: "15%",
+          background: "radial-gradient(circle, hsl(var(--primary)/0.06) 0%, transparent 70%)",
+          animation: "orb-drift-1 18s ease-in-out infinite reverse",
+          filter: "blur(60px)",
+        }}
+      />
 
       {/* Card */}
       <div
-        className="relative z-10 w-full max-w-[320px] rounded-3xl p-8 flex flex-col items-center gap-5"
+        className="welcome-card-enter relative z-10 w-full max-w-[310px] rounded-3xl pt-10 pb-8 px-8 flex flex-col items-center gap-4"
         style={{
-          background: "radial-gradient(ellipse at top, hsl(var(--card)/0.95) 0%, hsl(var(--background)/0.98) 100%)",
-          border: "1px solid hsl(var(--primary)/0.35)",
-          boxShadow: "0 0 40px hsl(var(--primary)/0.15), 0 0 80px hsl(var(--primary)/0.05), inset 0 1px 0 hsl(var(--primary)/0.1)",
+          background: "linear-gradient(160deg, hsl(var(--card)/0.98) 0%, hsl(var(--background)/0.99) 100%)",
+          border: "1px solid hsl(var(--primary)/0.4)",
+          boxShadow: `
+            0 0 0 1px hsl(var(--primary)/0.08),
+            0 0 30px hsl(var(--primary)/0.12),
+            0 0 80px hsl(var(--primary)/0.06),
+            0 24px 60px hsl(0 0% 0% / 0.4),
+            inset 0 1px 0 hsl(var(--primary)/0.15)
+          `,
         }}
         data-testid="card-welcome"
       >
-        {/* Decorative top quote marks */}
-        <div className="absolute top-4 left-6 text-4xl font-serif text-primary/10 leading-none select-none">"</div>
-        <div className="absolute top-4 right-6 text-4xl font-serif text-primary/10 leading-none select-none">"</div>
-
-        {/* Avatar */}
+        {/* Subtle top shimmer line */}
         <div
-          className="relative mt-2"
+          className="absolute top-0 left-8 right-8 h-px rounded-full pointer-events-none"
           style={{
-            filter: "drop-shadow(0 0 18px hsl(var(--primary)/0.5))",
+            background: "linear-gradient(90deg, transparent, hsl(var(--primary)/0.6), transparent)",
           }}
-        >
+        />
+
+        {/* Corner quote decorations */}
+        <div className="absolute top-5 left-5 text-3xl font-serif leading-none select-none" style={{ color: "hsl(var(--primary)/0.15)" }}>"</div>
+        <div className="absolute top-5 right-5 text-3xl font-serif leading-none select-none" style={{ color: "hsl(var(--primary)/0.15)" }}>"</div>
+
+        {/* Avatar section */}
+        <div className="welcome-fade-up-1 relative flex items-center justify-center">
+          {/* Outer decorative ring — slow rotate */}
           <div
-            className="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center"
+            className="absolute w-[116px] h-[116px] rounded-full pointer-events-none"
             style={{
-              background: "radial-gradient(circle at 35% 35%, hsl(var(--card)) 0%, hsl(var(--background)) 100%)",
-              border: "2.5px solid hsl(var(--primary)/0.7)",
-              boxShadow: "0 0 0 4px hsl(var(--primary)/0.1), 0 0 20px hsl(var(--primary)/0.3)",
+              border: "1px dashed hsl(var(--primary)/0.25)",
+              animation: "ring-rotate 20s linear infinite",
+            }}
+          />
+          {/* Inner rotating arc */}
+          <div
+            className="absolute w-[108px] h-[108px] rounded-full pointer-events-none"
+            style={{
+              border: "2px solid transparent",
+              borderTopColor: "hsl(var(--primary)/0.7)",
+              borderRightColor: "hsl(var(--primary)/0.2)",
+              animation: "ring-counter-rotate 8s linear infinite",
+            }}
+          />
+
+          {/* Avatar circle */}
+          <div
+            className="avatar-float w-[88px] h-[88px] rounded-full overflow-hidden flex items-center justify-center relative z-10 avatar-glow"
+            style={{
+              background: "radial-gradient(circle at 35% 30%, hsl(var(--card)) 0%, hsl(var(--background)) 100%)",
+              border: "2px solid hsl(var(--primary)/0.75)",
             }}
             data-testid="avatar-welcome"
           >
             {user.avatarUrl ? (
               <img src={user.avatarUrl} alt={user.username} className="w-full h-full object-cover" />
             ) : (
-              <span
-                className="text-4xl font-bold"
-                style={{ color: "hsl(var(--primary))" }}
-              >
+              <span className="text-3xl font-bold select-none" style={{ color: "hsl(var(--primary))" }}>
                 {initial}
               </span>
             )}
           </div>
         </div>
 
-        {/* Greeting Text */}
-        <div className="text-center space-y-2">
-          <h2 className="text-xl font-bold text-white flex items-center justify-center gap-2" data-testid="text-greeting">
-            <span>{greeting.icon}</span>
+        {/* Greeting */}
+        <div className="welcome-fade-up-2 text-center">
+          <h2
+            className="text-lg font-bold flex items-center justify-center gap-2 mb-0.5"
+            style={{ color: "hsl(var(--foreground))" }}
+            data-testid="text-greeting"
+          >
+            <span className="text-xl">{greeting.icon}</span>
             <span>{greeting.text}</span>
           </h2>
+        </div>
 
+        {/* Username */}
+        <div className="welcome-fade-up-3 text-center -mt-1">
           <p
-            className="text-base font-semibold tracking-wide"
+            className="text-sm font-bold tracking-widest uppercase flex items-center justify-center gap-1.5"
             style={{ color: "hsl(var(--primary))" }}
             data-testid="text-username-welcome"
           >
-            {user.username.toUpperCase()}
+            <span className="text-base">👤</span>
+            <span>{user.username.toUpperCase()}</span>
           </p>
+        </div>
 
+        {/* Divider */}
+        <div
+          className="welcome-fade-up-3 w-16 h-px rounded-full"
+          style={{ background: "hsl(var(--primary)/0.25)" }}
+        />
+
+        {/* Sub info */}
+        <div className="welcome-fade-up-4 text-center space-y-1.5 -mt-1">
           <p className="text-sm text-muted-foreground flex items-center justify-center gap-1.5">
             <span>🚀</span>
             <span>Siap bertugas hari ini?</span>
           </p>
-
-          <p className="text-xs text-muted-foreground/70 flex items-center justify-center gap-1.5" data-testid="text-date-welcome">
+          <p
+            className="text-xs flex items-center justify-center gap-1.5"
+            style={{ color: "hsl(var(--muted-foreground)/0.7)" }}
+            data-testid="text-date-welcome"
+          >
             <span>📅</span>
             <span>{formatDate()}</span>
           </p>
         </div>
 
         {/* CTA Button */}
-        <button
-          onClick={handleStart}
-          className="w-full mt-2 py-3.5 px-6 rounded-xl font-bold text-sm tracking-widest uppercase flex items-center justify-center gap-2.5 transition-all duration-200 active:scale-95"
-          style={{
-            background: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(45 90% 45%) 100%)",
-            color: "hsl(var(--background))",
-            boxShadow: "0 4px 20px hsl(var(--primary)/0.4), 0 1px 0 hsl(45 100% 70% / 0.3) inset",
-          }}
-          onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 6px 28px hsl(var(--primary)/0.55), 0 1px 0 hsl(45 100% 70% / 0.3) inset")}
-          onMouseLeave={e => (e.currentTarget.style.boxShadow = "0 4px 20px hsl(var(--primary)/0.4), 0 1px 0 hsl(45 100% 70% / 0.3) inset")}
-          data-testid="button-mulai-bertugas"
-        >
-          <Play className="w-4 h-4 fill-current" />
-          Mulai Bertugas
-        </button>
+        <div className="welcome-fade-up-5 w-full mt-1">
+          <button
+            onClick={handleStart}
+            disabled={loading}
+            className="relative w-full overflow-hidden py-3.5 px-6 rounded-xl font-bold text-sm tracking-widest uppercase flex items-center justify-center gap-2.5 transition-transform duration-150 active:scale-95 disabled:cursor-not-allowed"
+            style={{
+              background: loading
+                ? "linear-gradient(135deg, hsl(var(--primary)/0.6) 0%, hsl(45 80% 40%/0.6) 100%)"
+                : "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(45 90% 45%) 100%)",
+              color: "hsl(var(--background))",
+              boxShadow: loading
+                ? "none"
+                : "0 4px 20px hsl(var(--primary)/0.45), inset 0 1px 0 hsl(45 100% 70% / 0.25)",
+              transition: "background 0.3s, box-shadow 0.3s, transform 0.15s",
+            }}
+            data-testid="button-mulai-bertugas"
+          >
+            {/* Ripple */}
+            <span
+              className="ripple absolute rounded-full pointer-events-none -translate-x-1/2 -translate-y-1/2"
+              style={{
+                width: "12px",
+                height: "12px",
+                background: "hsl(0 0% 100% / 0.4)",
+              }}
+            />
+
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Memuat...</span>
+              </>
+            ) : (
+              <>
+                <span className="text-base leading-none">▶</span>
+                <span>Mulai Bertugas</span>
+              </>
+            )}
+          </button>
+
+          {/* Loading progress bar */}
+          {loading && (
+            <div className="mt-3 h-0.5 w-full rounded-full overflow-hidden bg-white/5">
+              <div
+                className="h-full rounded-full"
+                style={{
+                  background: "linear-gradient(90deg, hsl(var(--primary)), hsl(45 90% 55%))",
+                  animation: "loading-bar 1.1s ease-in-out forwards",
+                }}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
