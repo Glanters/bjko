@@ -120,9 +120,12 @@ export default function Login() {
             </form>
           </Form>
 
-          <div className="mt-8 text-center text-xs text-muted-foreground/60 flex items-center justify-center gap-2">
-            <Lock className="w-3 h-3" />
-            IP Restricted Access Area
+          <div className="mt-8 text-center space-y-1">
+            <div className="text-xs text-muted-foreground/60 flex items-center justify-center gap-2">
+              <Lock className="w-3 h-3" />
+              IP Restricted Access Area
+            </div>
+            <p className="text-xs text-muted-foreground/40">Akses hanya untuk staff BOSJOKO</p>
           </div>
         </div>
       </div>
