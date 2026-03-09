@@ -41,6 +41,7 @@ export default function History() {
   const { mutate: deleteAllByDate, isPending: isDeletingAll } = useDeleteAllLeaves();
   const [staffMap, setStaffMap] = useState<Record<number, Staff>>({});
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>("SEMUA");
 
   useEffect(() => {
     fetch("/api/staff", { credentials: "include" })
@@ -97,7 +98,14 @@ export default function History() {
   };
 
   const displayDate = selectedDate || (sortedDates.length > 0 ? sortedDates[0] : null);
-  const displayLeaves = displayDate ? (groupedByDate[displayDate] || []) : [];
+  const rawDisplayLeaves: Leave[] = displayDate ? (groupedByDate[displayDate] || []) : [];
+  const displayLeaves = statusFilter === "SEMUA"
+    ? rawDisplayLeaves
+    : rawDisplayLeaves.filter(l => calculateStatus(l.startTime, l.clockInTime) === statusFilter);
+
+  const tepat = rawDisplayLeaves.filter(l => calculateStatus(l.startTime, l.clockInTime) === "TEPAT WAKTU").length;
+  const terlambat = rawDisplayLeaves.filter(l => calculateStatus(l.startTime, l.clockInTime) === "TERLAMBAT").length;
+  const belum = rawDisplayLeaves.filter(l => calculateStatus(l.startTime, l.clockInTime) === "BELUM CHECK IN").length;
 
   return (
     <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
@@ -116,11 +124,11 @@ export default function History() {
           </p>
         </div>
 
-        {/* Date Filter */}
-        <div className="mb-6 flex items-center gap-3">
+        {/* Filters */}
+        <div className="mb-6 flex flex-wrap items-center gap-3">
           <label className="text-sm font-medium text-muted-foreground">Filter Tanggal:</label>
           <Select value={displayDate || ""} onValueChange={setSelectedDate}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-40" data-testid="select-date-filter">
               <SelectValue placeholder="Pilih tanggal" />
             </SelectTrigger>
             <SelectContent>
@@ -132,7 +140,48 @@ export default function History() {
             </SelectContent>
           </Select>
 
-          {user.role === "admin" && displayDate && displayLeaves.length > 0 && (
+          <label className="text-sm font-medium text-muted-foreground ml-2">Filter Status:</label>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-44" data-testid="select-status-filter">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="SEMUA">Semua Status</SelectItem>
+              <SelectItem value="TEPAT WAKTU">Tepat Waktu</SelectItem>
+              <SelectItem value="TERLAMBAT">Terlambat</SelectItem>
+              <SelectItem value="BELUM CHECK IN">Belum Check In</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {displayDate && rawDisplayLeaves.length > 0 && (
+            <div className="flex items-center gap-2 ml-2">
+              <Badge
+                className="cursor-pointer bg-green-500/20 text-green-400 border-green-500/30 hover:bg-green-500/30"
+                onClick={() => setStatusFilter(statusFilter === "TEPAT WAKTU" ? "SEMUA" : "TEPAT WAKTU")}
+                data-testid="badge-filter-tepat"
+              >
+                Tepat Waktu: {tepat}
+              </Badge>
+              <Badge
+                className="cursor-pointer bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30"
+                onClick={() => setStatusFilter(statusFilter === "TERLAMBAT" ? "SEMUA" : "TERLAMBAT")}
+                data-testid="badge-filter-terlambat"
+              >
+                Terlambat: {terlambat}
+              </Badge>
+              {belum > 0 && (
+                <Badge
+                  className="cursor-pointer bg-gray-500/20 text-gray-400 border-gray-500/30 hover:bg-gray-500/30"
+                  onClick={() => setStatusFilter(statusFilter === "BELUM CHECK IN" ? "SEMUA" : "BELUM CHECK IN")}
+                  data-testid="badge-filter-belum"
+                >
+                  Belum Check In: {belum}
+                </Badge>
+              )}
+            </div>
+          )}
+
+          {user.role === "admin" && displayDate && rawDisplayLeaves.length > 0 && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button 
@@ -148,7 +197,7 @@ export default function History() {
               <AlertDialogContent>
                 <AlertDialogTitle>Hapus Semua Riwayat?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Anda akan menghapus {displayLeaves.length} riwayat izin pada tanggal {format(new Date(displayDate), "dd/MM/yyyy")}. Tindakan ini tidak dapat dibatalkan.
+                  Anda akan menghapus {rawDisplayLeaves.length} riwayat izin pada tanggal {format(new Date(displayDate), "dd/MM/yyyy")}. Tindakan ini tidak dapat dibatalkan.
                 </AlertDialogDescription>
                 <div className="flex gap-3 justify-end">
                   <AlertDialogCancel>Batal</AlertDialogCancel>
@@ -172,9 +221,13 @@ export default function History() {
           <div className="rounded-lg border border-white/5 bg-background/40 backdrop-blur-xl p-8 text-center">
             <p className="text-muted-foreground">Belum ada data izin</p>
           </div>
-        ) : !displayDate || displayLeaves.length === 0 ? (
+        ) : !displayDate || rawDisplayLeaves.length === 0 ? (
           <div className="rounded-lg border border-white/5 bg-background/40 backdrop-blur-xl p-8 text-center">
             <p className="text-muted-foreground">Tidak ada data izin untuk tanggal yang dipilih</p>
+          </div>
+        ) : displayLeaves.length === 0 ? (
+          <div className="rounded-lg border border-white/5 bg-background/40 backdrop-blur-xl p-8 text-center">
+            <p className="text-muted-foreground">Tidak ada data dengan status <span className="font-semibold text-foreground">{statusFilter}</span> untuk tanggal ini</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -183,7 +236,7 @@ export default function History() {
                 Riwayat {format(new Date(displayDate), "dd/MM/yyyy")}
               </h3>
               <span className="text-sm text-muted-foreground">
-                ({displayLeaves.length} izin)
+                ({displayLeaves.length}{statusFilter !== "SEMUA" ? ` dari ${rawDisplayLeaves.length}` : ""} izin)
               </span>
             </div>
 
