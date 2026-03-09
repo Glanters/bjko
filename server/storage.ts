@@ -25,6 +25,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   getUsers(): Promise<User[]>;
   updateUserIp(id: number, allowedIp: string): Promise<User>;
+  bulkUpdateAgentIp(allowedIp: string): Promise<number>;
   updateUserPassword(id: number, password: string): Promise<User>;
   updateUserUsername(id: number, username: string): Promise<User>;
   deleteUser(id: number): Promise<boolean>;
@@ -69,6 +70,11 @@ export class DatabaseStorage implements IStorage {
   async updateUserIp(id: number, allowedIp: string): Promise<User> {
     const [user] = await db.update(users).set({ allowedIp }).where(eq(users.id, id)).returning();
     return user;
+  }
+
+  async bulkUpdateAgentIp(allowedIp: string): Promise<number> {
+    const result = await db.update(users).set({ allowedIp }).where(eq(users.role, 'agent')).returning();
+    return result.length;
   }
 
   async updateUserPassword(id: number, password: string): Promise<User> {

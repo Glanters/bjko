@@ -18,6 +18,8 @@ export default function Settings() {
   const { toast } = useToast();
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingIp, setEditingIp] = useState<string>("");
+  const [bulkIp, setBulkIp] = useState<string>("");
+  const [showBulkIpConfirm, setShowBulkIpConfirm] = useState<boolean>(false);
   const [passwordEditingId, setPasswordEditingId] = useState<number | null>(null);
   const [newPassword, setNewPassword] = useState<string>("");
   const [usernameEditingId, setUsernameEditingId] = useState<number | null>(null);
@@ -78,6 +80,20 @@ export default function Settings() {
     },
     onError: () => {
       toast({ title: "Error", description: "Gagal memperbarui IP", variant: "destructive" });
+    },
+  });
+
+  const bulkUpdateIpMutation = useMutation({
+    mutationFn: (allowedIp: string) =>
+      apiRequest("PATCH", api.users.bulkUpdateIp.path, { allowedIp }).then(r => r.json()),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: [api.users.list.path] });
+      toast({ title: "Berhasil", description: data.message });
+      setBulkIp("");
+      setShowBulkIpConfirm(false);
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Gagal memperbarui IP semua pengguna", variant: "destructive" });
     },
   });
 
@@ -160,6 +176,53 @@ export default function Settings() {
             <CardDescription>Edit password, username, dan IP address untuk setiap pengguna</CardDescription>
           </CardHeader>
           <CardContent>
+            <div className="mb-4 p-4 rounded-lg border border-amber-500/30 bg-amber-500/5">
+              <p className="text-sm font-semibold text-amber-500 mb-2">Atur IP Semua Agent Sekaligus</p>
+              <p className="text-xs text-muted-foreground mb-3">Masukkan IP address yang akan diterapkan ke semua pengguna agent. Gunakan <code className="bg-muted px-1 rounded">*</code> untuk mengizinkan semua IP.</p>
+              <div className="flex gap-2 items-center">
+                <Input
+                  value={bulkIp}
+                  onChange={(e) => { setBulkIp(e.target.value); setShowBulkIpConfirm(false); }}
+                  placeholder="Contoh: 192.168.1.1 atau *"
+                  className="max-w-xs"
+                  data-testid="input-bulk-ip"
+                />
+                {!showBulkIpConfirm ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-amber-500/50 text-amber-500 hover:bg-amber-500/10"
+                    onClick={() => setShowBulkIpConfirm(true)}
+                    disabled={!bulkIp.trim()}
+                    data-testid="button-bulk-ip-start"
+                  >
+                    Terapkan ke Semua
+                  </Button>
+                ) : (
+                  <>
+                    <span className="text-xs text-muted-foreground">Yakin set semua agent ke <strong>{bulkIp}</strong>?</span>
+                    <Button
+                      size="sm"
+                      className="bg-amber-500 hover:bg-amber-600 text-black"
+                      onClick={() => bulkUpdateIpMutation.mutate(bulkIp.trim())}
+                      disabled={bulkUpdateIpMutation.isPending}
+                      data-testid="button-bulk-ip-confirm"
+                    >
+                      {bulkUpdateIpMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Ya, Terapkan"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowBulkIpConfirm(false)}
+                      data-testid="button-bulk-ip-cancel"
+                    >
+                      Batal
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+
             {usersQuery.isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin" />

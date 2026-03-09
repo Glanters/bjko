@@ -155,6 +155,16 @@ export const api = {
         403: errorSchemas.forbidden,
         404: errorSchemas.notFound,
       }
+    },
+    bulkUpdateIp: {
+      method: 'PATCH' as const,
+      path: '/api/users/bulk-ip' as const,
+      input: z.object({ allowedIp: z.string() }),
+      responses: {
+        200: z.object({ message: z.string(), updated: z.number() }),
+        401: errorSchemas.unauthorized,
+        403: errorSchemas.forbidden,
+      }
     }
   },
   staff: {
