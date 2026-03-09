@@ -382,12 +382,15 @@ export async function registerRoutes(
       return res.status(401).json({ message: "Unauthorized" });
     }
     const user = await storage.getUser(req.session.userId);
-    if (!user || user.role !== 'admin') {
-      return res.status(403).json({ message: "Forbidden: Only admins can update passwords" });
+    if (!user) {
+      return res.status(403).json({ message: "Forbidden" });
     }
     try {
       const input = api.users.updatePassword.input.parse(req.body);
       const userId = parseInt(req.params.id);
+      if (user.role !== 'admin' && user.id !== userId) {
+        return res.status(403).json({ message: "Forbidden: Anda hanya dapat mengubah password milik sendiri" });
+      }
       const targetUser = await storage.getUser(userId);
       if (!targetUser) {
         return res.status(404).json({ message: "User not found" });
