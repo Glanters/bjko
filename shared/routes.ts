@@ -135,6 +135,17 @@ export const api = {
         404: errorSchemas.notFound,
       }
     },
+    updateAvatar: {
+      method: 'PATCH' as const,
+      path: '/api/users/:id/avatar' as const,
+      input: z.object({ avatarUrl: z.string() }),
+      responses: {
+        200: z.custom<typeof users.$inferSelect>(),
+        401: errorSchemas.unauthorized,
+        403: errorSchemas.forbidden,
+        404: errorSchemas.notFound,
+      }
+    },
     delete: {
       method: 'DELETE' as const,
       path: '/api/users/:id' as const,

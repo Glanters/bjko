@@ -6,9 +6,9 @@ import {
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  LogOut, User as UserIcon, Settings as SettingsIcon,
+  LogOut, Settings as SettingsIcon,
   ArrowLeft, Sun, Moon, BarChart2, Shield, Database, Settings2,
-  ChevronDown, LayoutDashboard, History as HistoryIcon, Pencil, UserCircle,
+  ChevronDown, LayoutDashboard, History as HistoryIcon, Pencil,
 } from "lucide-react";
 import bosjokoLogo from "@assets/image_1773044190239.png";
 import { Badge } from "@/components/ui/badge";
@@ -74,21 +74,29 @@ export function Header() {
               }`}
             data-testid="button-profile"
           >
-            <UserIcon className="w-4 h-4 text-muted-foreground" />
+            <div className="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center bg-primary/30 shrink-0">
+              {user.avatarUrl ? (
+                <img src={user.avatarUrl} alt={user.username} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-xs font-bold text-primary">{user.username.charAt(0).toUpperCase()}</span>
+              )}
+            </div>
             <span className="text-sm font-medium">{user.username}</span>
             <Badge variant="outline" className="text-xs uppercase bg-background">{user.role}</Badge>
           </button>
 
           {/* Mobile profile button */}
-          <Button
-            variant={location === "/profile" ? "secondary" : "ghost"}
-            size="sm"
+          <button
             onClick={() => navigate("/profile")}
-            className="md:hidden text-muted-foreground hover:text-primary rounded-full px-2.5"
+            className="md:hidden w-8 h-8 rounded-full overflow-hidden border border-white/10 flex items-center justify-center bg-primary/20"
             data-testid="button-profile-mobile"
           >
-            <UserCircle className="w-4 h-4" />
-          </Button>
+            {user.avatarUrl ? (
+              <img src={user.avatarUrl} alt={user.username} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-sm font-bold text-primary">{user.username.charAt(0).toUpperCase()}</span>
+            )}
+          </button>
 
           {/* Dashboard */}
           <Button

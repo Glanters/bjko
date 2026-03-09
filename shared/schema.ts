@@ -8,6 +8,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   role: text("role").notNull().default("agent"),
   allowedIp: text("allowed_ip"),
+  avatarUrl: text("avatar_url"),
 });
 
 export const staff = pgTable("staff", {

@@ -362,21 +362,17 @@ export async function registerRoutes(
       return res.status(401).json({ message: "Unauthorized" });
     }
     const user = await storage.getUser(req.session.userId);
-    if (!user) return res.status(401).json({ message: "Unauthorized" });
-
-    const targetUserId = parseInt(req.params.id);
-    const isSelf = req.session.userId === targetUserId;
-    if (!isSelf && user.role !== 'admin') {
-      return res.status(403).json({ message: "Forbidden: Anda hanya bisa mengubah password sendiri" });
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: "Forbidden: Only admins can update passwords" });
     }
-
     try {
       const input = api.users.updatePassword.input.parse(req.body);
-      const targetUser = await storage.getUser(targetUserId);
+      const userId = parseInt(req.params.id);
+      const targetUser = await storage.getUser(userId);
       if (!targetUser) {
         return res.status(404).json({ message: "User not found" });
       }
-      const updatedUser = await storage.updateUserPassword(targetUserId, input.password);
+      const updatedUser = await storage.updateUserPassword(userId, input.password);
       res.json(updatedUser);
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -391,21 +387,43 @@ export async function registerRoutes(
       return res.status(401).json({ message: "Unauthorized" });
     }
     const user = await storage.getUser(req.session.userId);
-    if (!user) return res.status(401).json({ message: "Unauthorized" });
-
-    const targetUserId = parseInt(req.params.id);
-    const isSelf = req.session.userId === targetUserId;
-    if (!isSelf && user.role !== 'admin') {
-      return res.status(403).json({ message: "Forbidden: Anda hanya bisa mengubah username sendiri" });
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: "Forbidden: Only admins can update usernames" });
     }
-
     try {
       const input = api.users.updateUsername.input.parse(req.body);
-      const targetUser = await storage.getUser(targetUserId);
+      const userId = parseInt(req.params.id);
+      const targetUser = await storage.getUser(userId);
       if (!targetUser) {
         return res.status(404).json({ message: "User not found" });
       }
-      const updatedUser = await storage.updateUserUsername(targetUserId, input.username);
+      const updatedUser = await storage.updateUserUsername(userId, input.username);
+      res.json(updatedUser);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.patch(api.users.updateAvatar.path, async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const user = await storage.getUser(req.session.userId);
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+
+    const targetUserId = parseInt(req.params.id);
+    if (req.session.userId !== targetUserId && user.role !== 'admin') {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    try {
+      const input = api.users.updateAvatar.input.parse(req.body);
+      const targetUser = await storage.getUser(targetUserId);
+      if (!targetUser) return res.status(404).json({ message: "User not found" });
+      const updatedUser = await storage.updateUserAvatar(targetUserId, input.avatarUrl);
       res.json(updatedUser);
     } catch (err) {
       if (err instanceof z.ZodError) {

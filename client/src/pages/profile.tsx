@@ -5,76 +5,71 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { api } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
-import { User, Lock, Eye, EyeOff, CheckCircle2, ShieldCheck } from "lucide-react";
+import { useState, useRef } from "react";
+import { Camera, Trash2, ShieldCheck, Upload } from "lucide-react";
 
 export default function Profile() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
-  const [newUsername, setNewUsername] = useState("");
-  const [editingUsername, setEditingUsername] = useState(false);
-
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [editingPassword, setEditingPassword] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-
-  const updateUsernameMutation = useMutation({
-    mutationFn: (username: string) =>
-      apiRequest("PATCH", api.users.updateUsername.path.replace(":id", String(user!.id)), { username }).then(r => r.json()),
+  const updateAvatarMutation = useMutation({
+    mutationFn: (avatarUrl: string) =>
+      apiRequest("PATCH", api.users.updateAvatar.path.replace(":id", String(user!.id)), { avatarUrl }).then(r => r.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.auth.me.path] });
-      toast({ title: "Berhasil", description: "Username berhasil diperbarui" });
-      setEditingUsername(false);
-      setNewUsername("");
+      toast({ title: "Berhasil", description: "Foto profil berhasil diperbarui" });
+      setPreview(null);
     },
     onError: (err: any) => {
-      toast({ title: "Gagal", description: err?.message || "Gagal memperbarui username", variant: "destructive" });
-    },
-  });
-
-  const updatePasswordMutation = useMutation({
-    mutationFn: (password: string) =>
-      apiRequest("PATCH", api.users.updatePassword.path.replace(":id", String(user!.id)), { password }).then(r => r.json()),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [api.auth.me.path] });
-      toast({ title: "Berhasil", description: "Password berhasil diperbarui" });
-      setEditingPassword(false);
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-    },
-    onError: (err: any) => {
-      toast({ title: "Gagal", description: err?.message || "Gagal memperbarui password", variant: "destructive" });
+      toast({ title: "Gagal", description: err?.message || "Gagal memperbarui foto", variant: "destructive" });
     },
   });
 
   if (!user) return null;
 
-  const handleSaveUsername = () => {
-    if (!newUsername.trim()) return;
-    updateUsernameMutation.mutate(newUsername.trim());
+  const currentAvatar = preview || user.avatarUrl || null;
+  const initial = user.username.charAt(0).toUpperCase();
+
+  const handleFileChange = (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Error", description: "File harus berupa gambar (JPG, PNG, GIF, dll)", variant: "destructive" });
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: "Error", description: "Ukuran file maksimal 2MB", variant: "destructive" });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setPreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
-  const handleSavePassword = () => {
-    if (newPassword.length < 6) {
-      toast({ title: "Error", description: "Password minimal 6 karakter", variant: "destructive" });
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      toast({ title: "Error", description: "Konfirmasi password tidak cocok", variant: "destructive" });
-      return;
-    }
-    if (currentPassword !== user.password) {
-      toast({ title: "Error", description: "Password lama tidak sesuai", variant: "destructive" });
-      return;
-    }
-    updatePasswordMutation.mutate(newPassword);
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleFileChange(file);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFileChange(file);
+  };
+
+  const handleSave = () => {
+    if (!preview) return;
+    updateAvatarMutation.mutate(preview);
+  };
+
+  const handleRemove = () => {
+    updateAvatarMutation.mutate("");
+    setPreview(null);
   };
 
   return (
@@ -84,21 +79,43 @@ export default function Profile() {
 
       <Header />
 
-      <main className="flex-1 container mx-auto px-4 py-8 relative z-10 max-w-2xl">
+      <main className="flex-1 container mx-auto px-4 py-8 relative z-10 max-w-lg">
         <div className="mb-8">
           <h2 className="text-3xl font-display font-bold text-gradient">Profil Saya</h2>
-          <p className="text-muted-foreground mt-2">Kelola informasi akun Anda</p>
+          <p className="text-muted-foreground mt-2">Edit foto profil akun Anda</p>
         </div>
 
         {/* Profile Card */}
-        <div className="glass-panel rounded-2xl p-6 mb-6 border border-white/5">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center">
-              <User className="w-8 h-8 text-primary" />
+        <div className="glass-panel rounded-2xl p-8 border border-white/5">
+          {/* Current Avatar Display */}
+          <div className="flex flex-col items-center gap-4 mb-8">
+            <div className="relative group">
+              <div className="w-28 h-28 rounded-full overflow-hidden border-2 border-primary/30 shadow-lg shadow-primary/20">
+                {currentAvatar ? (
+                  <img
+                    src={currentAvatar}
+                    alt="Foto profil"
+                    className="w-full h-full object-cover"
+                    data-testid="img-avatar-preview"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center">
+                    <span className="text-4xl font-bold text-white">{initial}</span>
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute bottom-0 right-0 w-9 h-9 rounded-full bg-primary border-2 border-background flex items-center justify-center hover:bg-primary/80 transition-colors"
+                data-testid="button-change-photo"
+              >
+                <Camera className="w-4 h-4 text-white" />
+              </button>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-xl font-bold" data-testid="text-profile-username">{user.username}</h3>
+
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2">
+                <h3 className="text-xl font-bold" data-testid="text-username">{user.username}</h3>
                 <Badge
                   className={user.role === "admin"
                     ? "bg-primary/20 text-primary border-primary/30 uppercase text-xs"
@@ -108,192 +125,74 @@ export default function Profile() {
                   {user.role === "admin" ? "Master" : "Agent"}
                 </Badge>
               </div>
-              <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+              <p className="text-sm text-muted-foreground flex items-center justify-center gap-1 mt-1">
                 <ShieldCheck className="w-3.5 h-3.5" />
                 {user.role === "admin" ? "Akses penuh" : "Akses terbatas"}
               </p>
             </div>
           </div>
 
-          <div className="border-t border-white/5 pt-4 grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-muted-foreground mb-1">Username</p>
-              <p className="font-medium">{user.username}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground mb-1">Role</p>
-              <p className="font-medium capitalize">{user.role === "admin" ? "Master Admin" : "Agent"}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Change Username */}
-        <div className="glass-panel rounded-2xl p-6 mb-6 border border-white/5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <User className="w-5 h-5 text-primary" />
-              <h4 className="font-semibold">Ganti Username</h4>
-            </div>
-            {!editingUsername && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => { setEditingUsername(true); setNewUsername(user.username); }}
-                className="rounded-lg border-white/10 hover:border-primary/50"
-                data-testid="button-edit-username"
-              >
-                Edit
-              </Button>
-            )}
+          {/* Upload Area */}
+          <div
+            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all
+              ${isDragging
+                ? "border-primary bg-primary/10"
+                : "border-white/10 hover:border-primary/50 hover:bg-primary/5"
+              }`}
+            data-testid="dropzone-avatar"
+          >
+            <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+            <p className="text-sm font-medium mb-1">Klik atau seret foto ke sini</p>
+            <p className="text-xs text-muted-foreground">JPG, PNG, GIF — Maks. 2MB</p>
           </div>
 
-          {editingUsername ? (
-            <div className="space-y-3">
-              <div>
-                <label className="text-sm text-muted-foreground mb-1.5 block">Username Baru</label>
-                <Input
-                  value={newUsername}
-                  onChange={e => setNewUsername(e.target.value)}
-                  placeholder="Masukkan username baru"
-                  className="bg-black/20 border-white/10"
-                  data-testid="input-new-username"
-                />
-              </div>
-              <div className="flex gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleInputChange}
+            className="hidden"
+            data-testid="input-file-avatar"
+          />
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 mt-6">
+            {preview ? (
+              <>
                 <Button
-                  size="sm"
-                  onClick={handleSaveUsername}
-                  disabled={updateUsernameMutation.isPending || !newUsername.trim()}
-                  className="bg-primary/80 hover:bg-primary"
-                  data-testid="button-save-username"
+                  onClick={handleSave}
+                  disabled={updateAvatarMutation.isPending}
+                  className="flex-1 bg-primary/80 hover:bg-primary"
+                  data-testid="button-save-avatar"
                 >
-                  {updateUsernameMutation.isPending ? "Menyimpan..." : (
-                    <><CheckCircle2 className="w-4 h-4 mr-1.5" />Simpan</>
-                  )}
+                  {updateAvatarMutation.isPending ? "Menyimpan..." : "Simpan Foto"}
                 </Button>
                 <Button
-                  size="sm"
                   variant="outline"
-                  onClick={() => { setEditingUsername(false); setNewUsername(""); }}
+                  onClick={() => { setPreview(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
                   className="border-white/10"
-                  data-testid="button-cancel-username"
+                  data-testid="button-cancel-avatar"
                 >
                   Batal
                 </Button>
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">Username saat ini: <span className="text-foreground font-medium">{user.username}</span></p>
-          )}
-        </div>
-
-        {/* Change Password */}
-        <div className="glass-panel rounded-2xl p-6 border border-white/5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Lock className="w-5 h-5 text-primary" />
-              <h4 className="font-semibold">Ganti Password</h4>
-            </div>
-            {!editingPassword && (
+              </>
+            ) : user.avatarUrl ? (
               <Button
-                size="sm"
                 variant="outline"
-                onClick={() => setEditingPassword(true)}
-                className="rounded-lg border-white/10 hover:border-primary/50"
-                data-testid="button-edit-password"
+                onClick={handleRemove}
+                disabled={updateAvatarMutation.isPending}
+                className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50"
+                data-testid="button-remove-avatar"
               >
-                Edit
+                <Trash2 className="w-4 h-4 mr-2" />
+                Hapus Foto
               </Button>
-            )}
+            ) : null}
           </div>
-
-          {editingPassword ? (
-            <div className="space-y-3">
-              <div>
-                <label className="text-sm text-muted-foreground mb-1.5 block">Password Lama</label>
-                <Input
-                  type="password"
-                  value={currentPassword}
-                  onChange={e => setCurrentPassword(e.target.value)}
-                  placeholder="Masukkan password lama"
-                  className="bg-black/20 border-white/10"
-                  data-testid="input-current-password"
-                />
-              </div>
-              <div>
-                <label className="text-sm text-muted-foreground mb-1.5 block">Password Baru (min. 6 karakter)</label>
-                <div className="relative">
-                  <Input
-                    type={showNew ? "text" : "password"}
-                    value={newPassword}
-                    onChange={e => setNewPassword(e.target.value)}
-                    placeholder="Masukkan password baru"
-                    className="bg-black/20 border-white/10 pr-10"
-                    data-testid="input-new-password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNew(!showNew)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-              <div>
-                <label className="text-sm text-muted-foreground mb-1.5 block">Konfirmasi Password Baru</label>
-                <div className="relative">
-                  <Input
-                    type={showConfirm ? "text" : "password"}
-                    value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
-                    placeholder="Ulangi password baru"
-                    className="bg-black/20 border-white/10 pr-10"
-                    data-testid="input-confirm-password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirm(!showConfirm)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                {confirmPassword && newPassword !== confirmPassword && (
-                  <p className="text-xs text-red-400 mt-1">Password tidak cocok</p>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={handleSavePassword}
-                  disabled={updatePasswordMutation.isPending || !newPassword || !currentPassword || newPassword !== confirmPassword}
-                  className="bg-primary/80 hover:bg-primary"
-                  data-testid="button-save-password"
-                >
-                  {updatePasswordMutation.isPending ? "Menyimpan..." : (
-                    <><CheckCircle2 className="w-4 h-4 mr-1.5" />Simpan</>
-                  )}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setEditingPassword(false);
-                    setCurrentPassword("");
-                    setNewPassword("");
-                    setConfirmPassword("");
-                  }}
-                  className="border-white/10"
-                  data-testid="button-cancel-password"
-                >
-                  Batal
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">Password: <span className="text-foreground font-medium">••••••••</span></p>
-          )}
         </div>
       </main>
     </div>
