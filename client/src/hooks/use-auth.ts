@@ -47,11 +47,7 @@ export function useAuth() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.auth.me.path] });
-      toast({
-        title: "Login berhasil",
-        description: "Selamat datang di Dashboard",
-      });
-      setLocation("/");
+      setLocation("/welcome");
     },
     onError: (err: Error) => {
       toast({

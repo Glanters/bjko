@@ -14,6 +14,7 @@ import AuditLog from "@/pages/audit-log";
 import Backup from "@/pages/backup";
 import LeaveRules from "@/pages/leave-rules";
 import Profile from "@/pages/profile";
+import Welcome from "@/pages/welcome";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 
@@ -98,6 +99,9 @@ function Router() {
       </Route>
       <Route path="/profile">
         {() => <ProtectedRoute component={Profile} />}
+      </Route>
+      <Route path="/welcome">
+        {() => <ProtectedRoute component={Welcome} />}
       </Route>
       <Route component={NotFound} />
     </Switch>
