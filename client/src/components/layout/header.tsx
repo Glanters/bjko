@@ -6,10 +6,11 @@ import {
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  LogOut, ShieldAlert, User as UserIcon, Settings as SettingsIcon,
+  LogOut, User as UserIcon, Settings as SettingsIcon,
   ArrowLeft, Sun, Moon, BarChart2, Shield, Database, Settings2,
   ChevronDown, LayoutDashboard, History as HistoryIcon, Pencil,
 } from "lucide-react";
+import bosjokoLogo from "@assets/image_1773044190239.png";
 import { Badge } from "@/components/ui/badge";
 import { useLocation } from "wouter";
 
@@ -28,8 +29,8 @@ export function Header() {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center gap-3 shrink-0">
-          <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center border border-primary/30">
-            <ShieldAlert className="w-5 h-5 text-primary" />
+          <div className="w-10 h-10 rounded-xl overflow-hidden border border-white/10 shrink-0">
+            <img src={bosjokoLogo} alt="BOSJOKO Logo" className="w-full h-full object-cover" />
           </div>
           <div>
             <h1 className="font-display font-bold text-lg leading-tight text-gradient">

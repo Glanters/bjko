@@ -3,7 +3,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { api } from "@shared/routes";
 import { useAuth } from "@/hooks/use-auth";
-import { ShieldAlert, KeyRound, User, Lock } from "lucide-react";
+import { KeyRound, User, Lock } from "lucide-react";
+import bosjokoLogo from "@assets/image_1773044190239.png";
 import {
   Form,
   FormControl,
@@ -40,8 +41,8 @@ export default function Login() {
       <div className="w-full max-w-[420px] relative z-10">
         <div className="glass-panel p-8 md:p-10 rounded-3xl">
           <div className="flex flex-col items-center text-center mb-10">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center shadow-lg shadow-primary/25 mb-6">
-              <ShieldAlert className="w-8 h-8 text-white" />
+            <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-lg shadow-primary/25 mb-6 border border-white/10">
+              <img src={bosjokoLogo} alt="BOSJOKO Logo" className="w-full h-full object-cover" />
             </div>
             <h1 className="text-3xl font-display font-bold text-gradient mb-2">
               System Login
