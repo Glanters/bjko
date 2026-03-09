@@ -165,6 +165,16 @@ export const api = {
         401: errorSchemas.unauthorized,
         403: errorSchemas.forbidden,
       }
+    },
+    bulkUpdatePassword: {
+      method: 'PATCH' as const,
+      path: '/api/users/bulk-password' as const,
+      input: z.object({ password: z.string().min(6) }),
+      responses: {
+        200: z.object({ message: z.string(), updated: z.number() }),
+        401: errorSchemas.unauthorized,
+        403: errorSchemas.forbidden,
+      }
     }
   },
   staff: {

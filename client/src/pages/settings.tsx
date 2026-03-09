@@ -20,6 +20,10 @@ export default function Settings() {
   const [editingIp, setEditingIp] = useState<string>("");
   const [bulkIp, setBulkIp] = useState<string>("");
   const [showBulkIpConfirm, setShowBulkIpConfirm] = useState<boolean>(false);
+  const [bulkPassword, setBulkPassword] = useState<string>("");
+  const [bulkPasswordConfirm, setBulkPasswordConfirm] = useState<string>("");
+  const [showBulkPassConfirm, setShowBulkPassConfirm] = useState<boolean>(false);
+  const [showBulkPass, setShowBulkPass] = useState<boolean>(false);
   const [passwordEditingId, setPasswordEditingId] = useState<number | null>(null);
   const [newPassword, setNewPassword] = useState<string>("");
   const [usernameEditingId, setUsernameEditingId] = useState<number | null>(null);
@@ -94,6 +98,21 @@ export default function Settings() {
     },
     onError: () => {
       toast({ title: "Error", description: "Gagal memperbarui IP semua pengguna", variant: "destructive" });
+    },
+  });
+
+  const bulkUpdatePasswordMutation = useMutation({
+    mutationFn: (password: string) =>
+      apiRequest("PATCH", api.users.bulkUpdatePassword.path, { password }).then(r => r.json()),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: [api.users.list.path] });
+      toast({ title: "Berhasil", description: data.message });
+      setBulkPassword("");
+      setBulkPasswordConfirm("");
+      setShowBulkPassConfirm(false);
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Gagal memperbarui password semua pengguna", variant: "destructive" });
     },
   });
 
@@ -215,6 +234,75 @@ export default function Settings() {
                       variant="outline"
                       onClick={() => setShowBulkIpConfirm(false)}
                       data-testid="button-bulk-ip-cancel"
+                    >
+                      Batal
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="mb-4 p-4 rounded-lg border border-red-500/30 bg-red-500/5">
+              <p className="text-sm font-semibold text-red-400 mb-2">Ganti Password Semua Agent Sekaligus</p>
+              <p className="text-xs text-muted-foreground mb-3">Password baru yang akan diterapkan ke semua pengguna agent. Minimal 6 karakter.</p>
+              <div className="flex flex-wrap gap-2 items-center">
+                <Input
+                  type={showBulkPass ? "text" : "password"}
+                  value={bulkPassword}
+                  onChange={(e) => { setBulkPassword(e.target.value); setShowBulkPassConfirm(false); }}
+                  placeholder="Password baru (min. 6 karakter)"
+                  className="max-w-xs"
+                  data-testid="input-bulk-password"
+                />
+                <Input
+                  type={showBulkPass ? "text" : "password"}
+                  value={bulkPasswordConfirm}
+                  onChange={(e) => { setBulkPasswordConfirm(e.target.value); setShowBulkPassConfirm(false); }}
+                  placeholder="Konfirmasi password"
+                  className="max-w-xs"
+                  data-testid="input-bulk-password-confirm"
+                />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setShowBulkPass(!showBulkPass)}
+                  className="px-2 text-muted-foreground"
+                >
+                  {showBulkPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
+              </div>
+              {bulkPassword && bulkPasswordConfirm && bulkPassword !== bulkPasswordConfirm && (
+                <p className="text-xs text-red-400 mt-2">Password tidak cocok</p>
+              )}
+              <div className="flex gap-2 mt-3 items-center flex-wrap">
+                {!showBulkPassConfirm ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+                    onClick={() => setShowBulkPassConfirm(true)}
+                    disabled={!bulkPassword.trim() || bulkPassword.length < 6 || bulkPassword !== bulkPasswordConfirm}
+                    data-testid="button-bulk-password-start"
+                  >
+                    Terapkan ke Semua
+                  </Button>
+                ) : (
+                  <>
+                    <span className="text-xs text-muted-foreground">Yakin ganti password semua agent?</span>
+                    <Button
+                      size="sm"
+                      className="bg-red-500 hover:bg-red-600 text-white"
+                      onClick={() => bulkUpdatePasswordMutation.mutate(bulkPassword.trim())}
+                      disabled={bulkUpdatePasswordMutation.isPending}
+                      data-testid="button-bulk-password-confirm"
+                    >
+                      {bulkUpdatePasswordMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Ya, Ganti Semua"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowBulkPassConfirm(false)}
+                      data-testid="button-bulk-password-cancel"
                     >
                       Batal
                     </Button>

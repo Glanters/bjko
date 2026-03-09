@@ -377,6 +377,26 @@ export async function registerRoutes(
     }
   });
 
+  app.patch(api.users.bulkUpdatePassword.path, async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const user = await storage.getUser(req.session.userId);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: "Forbidden: Only admins can bulk update passwords" });
+    }
+    try {
+      const input = api.users.bulkUpdatePassword.input.parse(req.body);
+      const updated = await storage.bulkUpdateAgentPassword(input.password);
+      res.json({ message: `Berhasil memperbarui password untuk ${updated} pengguna`, updated });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.patch(api.users.updatePassword.path, async (req, res) => {
     if (!req.session.userId) {
       return res.status(401).json({ message: "Unauthorized" });
