@@ -8,7 +8,7 @@ import {
 import {
   LogOut, User as UserIcon, Settings as SettingsIcon,
   ArrowLeft, Sun, Moon, BarChart2, Shield, Database, Settings2,
-  ChevronDown, LayoutDashboard, History as HistoryIcon, Pencil,
+  ChevronDown, LayoutDashboard, History as HistoryIcon, Pencil, UserCircle,
 } from "lucide-react";
 import bosjokoLogo from "@assets/image_1773044190239.png";
 import { Badge } from "@/components/ui/badge";
@@ -64,12 +64,31 @@ export function Header() {
             {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </Button>
 
-          {/* User Badge */}
-          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/50 border border-white/5">
+          {/* User Badge — clickable to profile */}
+          <button
+            onClick={() => navigate("/profile")}
+            className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full border transition-colors cursor-pointer
+              ${location === "/profile"
+                ? "bg-primary/20 border-primary/40 text-primary"
+                : "bg-secondary/50 border-white/5 hover:bg-primary/10 hover:border-primary/30"
+              }`}
+            data-testid="button-profile"
+          >
             <UserIcon className="w-4 h-4 text-muted-foreground" />
             <span className="text-sm font-medium">{user.username}</span>
             <Badge variant="outline" className="text-xs uppercase bg-background">{user.role}</Badge>
-          </div>
+          </button>
+
+          {/* Mobile profile button */}
+          <Button
+            variant={location === "/profile" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => navigate("/profile")}
+            className="md:hidden text-muted-foreground hover:text-primary rounded-full px-2.5"
+            data-testid="button-profile-mobile"
+          >
+            <UserCircle className="w-4 h-4" />
+          </Button>
 
           {/* Dashboard */}
           <Button

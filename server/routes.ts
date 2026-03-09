@@ -362,18 +362,21 @@ export async function registerRoutes(
       return res.status(401).json({ message: "Unauthorized" });
     }
     const user = await storage.getUser(req.session.userId);
-    if (!user || user.role !== 'admin') {
-      return res.status(403).json({ message: "Forbidden: Only admins can update passwords" });
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+
+    const targetUserId = parseInt(req.params.id);
+    const isSelf = req.session.userId === targetUserId;
+    if (!isSelf && user.role !== 'admin') {
+      return res.status(403).json({ message: "Forbidden: Anda hanya bisa mengubah password sendiri" });
     }
 
     try {
       const input = api.users.updatePassword.input.parse(req.body);
-      const userId = parseInt(req.params.id);
-      const targetUser = await storage.getUser(userId);
+      const targetUser = await storage.getUser(targetUserId);
       if (!targetUser) {
         return res.status(404).json({ message: "User not found" });
       }
-      const updatedUser = await storage.updateUserPassword(userId, input.password);
+      const updatedUser = await storage.updateUserPassword(targetUserId, input.password);
       res.json(updatedUser);
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -388,18 +391,21 @@ export async function registerRoutes(
       return res.status(401).json({ message: "Unauthorized" });
     }
     const user = await storage.getUser(req.session.userId);
-    if (!user || user.role !== 'admin') {
-      return res.status(403).json({ message: "Forbidden: Only admins can update usernames" });
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+
+    const targetUserId = parseInt(req.params.id);
+    const isSelf = req.session.userId === targetUserId;
+    if (!isSelf && user.role !== 'admin') {
+      return res.status(403).json({ message: "Forbidden: Anda hanya bisa mengubah username sendiri" });
     }
 
     try {
       const input = api.users.updateUsername.input.parse(req.body);
-      const userId = parseInt(req.params.id);
-      const targetUser = await storage.getUser(userId);
+      const targetUser = await storage.getUser(targetUserId);
       if (!targetUser) {
         return res.status(404).json({ message: "User not found" });
       }
-      const updatedUser = await storage.updateUserUsername(userId, input.username);
+      const updatedUser = await storage.updateUserUsername(targetUserId, input.username);
       res.json(updatedUser);
     } catch (err) {
       if (err instanceof z.ZodError) {
