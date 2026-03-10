@@ -774,6 +774,16 @@ export async function registerRoutes(
     res.json({ jobdesks: updated });
   });
 
+  // DELETE /api/jobdeskList - Clear all jabatan from master list
+  app.delete("/api/jobdeskList", async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
+    const user = await storage.getUser(req.session.userId);
+    if (!user || user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
+    await saveJobdeskList([]);
+    await logAudit(req.session.userId, "RESET_JOBDESK_LIST", "Seluruh daftar jabatan master dihapus/direset");
+    res.json({ message: "Semua jabatan berhasil dihapus", jobdesks: [] });
+  });
+
   // Helper to log audit actions
   const logAudit = async (userId: number, action: string, detail: string) => {
     try {

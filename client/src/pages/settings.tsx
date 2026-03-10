@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
-import { Loader2, Eye, EyeOff, Trash2, UserX, Palette, RotateCcw, Check } from "lucide-react";
+import { Loader2, Eye, EyeOff, Trash2, UserX, Palette, RotateCcw, Check, Layers, Plus, AlertTriangle } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { useJobdeskLimits, useUpdateJobdeskLimits } from "@/hooks/use-jobdesk-limits";
 import { useDeleteUser } from "@/hooks/use-delete-user";
@@ -39,6 +39,8 @@ export default function Settings() {
   const [editingJobdeskLimits, setEditingJobdeskLimits] = useState<boolean>(false);
   const [themeBg, setThemeBg] = useState<string>("");
   const [themePrimary, setThemePrimary] = useState<string>("");
+  const [newJabatan, setNewJabatan] = useState<string>("");
+  const [showResetJabatanConfirm, setShowResetJabatanConfirm] = useState<boolean>(false);
 
   const limitsQuery = useJobdeskLimits();
   const updateLimitsMutation = useUpdateJobdeskLimits();
@@ -229,6 +231,40 @@ export default function Settings() {
       const message = error?.message || "Gagal memperbarui whitelist";
       toast({ title: "Error", description: message, variant: "destructive" });
     },
+  });
+
+  const jabatanQuery = useQuery<{ jobdesks: string[] }>({
+    queryKey: ["/api/jobdeskList"],
+    enabled: user?.role === "admin",
+  });
+
+  const addJabatanMutation = useMutation({
+    mutationFn: (name: string) => apiRequest("POST", "/api/jobdeskList", { name }).then(r => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/jobdeskList"] });
+      setNewJabatan("");
+      toast({ title: "Berhasil", description: "Jabatan ditambahkan ke master list" });
+    },
+    onError: () => toast({ title: "Error", description: "Gagal menambahkan jabatan", variant: "destructive" }),
+  });
+
+  const deleteJabatanMutation = useMutation({
+    mutationFn: (name: string) => apiRequest("DELETE", `/api/jobdeskList/${encodeURIComponent(name)}`).then(r => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/jobdeskList"] });
+      toast({ title: "Berhasil", description: "Jabatan dihapus dari master list" });
+    },
+    onError: () => toast({ title: "Error", description: "Gagal menghapus jabatan", variant: "destructive" }),
+  });
+
+  const resetJabatanMutation = useMutation({
+    mutationFn: () => apiRequest("DELETE", "/api/jobdeskList").then(r => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/jobdeskList"] });
+      setShowResetJabatanConfirm(false);
+      toast({ title: "Berhasil", description: "Semua jabatan telah dihapus dari master list" });
+    },
+    onError: () => toast({ title: "Error", description: "Gagal mereset jabatan", variant: "destructive" }),
   });
 
   if (user?.role !== "admin") {
@@ -851,6 +887,126 @@ export default function Settings() {
                 )}
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Master Kategori Jabatan */}
+        <Card className="border-orange-500/30 bg-orange-500/5">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Layers className="w-5 h-5 text-orange-400" />
+              <CardTitle className="text-orange-400">Master Kategori Jabatan</CardTitle>
+            </div>
+            <CardDescription>
+              Kelola daftar jabatan/jobdesk master. Tambah, hapus satu per satu, atau reset semua agar tidak menumpuk.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Add new jabatan */}
+            <div>
+              <p className="text-sm font-semibold text-foreground mb-2">Tambah Jabatan Baru</p>
+              <div className="flex gap-2">
+                <Input
+                  value={newJabatan}
+                  onChange={e => setNewJabatan(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter" && newJabatan.trim()) addJabatanMutation.mutate(newJabatan.trim()); }}
+                  placeholder="Contoh: CS LINE, kasir, kapten..."
+                  className="max-w-xs"
+                  data-testid="input-new-jabatan"
+                />
+                <Button
+                  size="sm"
+                  onClick={() => { if (newJabatan.trim()) addJabatanMutation.mutate(newJabatan.trim()); }}
+                  disabled={!newJabatan.trim() || addJabatanMutation.isPending}
+                  data-testid="button-add-jabatan"
+                >
+                  {addJabatanMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />}
+                  Tambah
+                </Button>
+              </div>
+            </div>
+
+            {/* Current list */}
+            <div>
+              <p className="text-sm font-semibold text-foreground mb-2">
+                Daftar Jabatan Saat Ini
+                {jabatanQuery.data?.jobdesks?.length ? (
+                  <span className="ml-2 text-xs text-muted-foreground font-normal">({jabatanQuery.data.jobdesks.length} jabatan)</span>
+                ) : null}
+              </p>
+              {jabatanQuery.isLoading ? (
+                <div className="flex items-center gap-2 text-muted-foreground text-sm"><Loader2 className="w-4 h-4 animate-spin" /> Memuat...</div>
+              ) : !jabatanQuery.data?.jobdesks?.length ? (
+                <p className="text-sm text-muted-foreground italic">Belum ada jabatan dalam master list.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {jabatanQuery.data.jobdesks.map(j => (
+                    <div
+                      key={j}
+                      className="flex items-center gap-1.5 bg-secondary/50 border border-white/10 rounded-lg px-3 py-1.5 text-sm"
+                      data-testid={`tag-jabatan-${j}`}
+                    >
+                      <span className="font-medium">{j}</span>
+                      <button
+                        onClick={() => deleteJabatanMutation.mutate(j)}
+                        disabled={deleteJabatanMutation.isPending}
+                        className="text-muted-foreground hover:text-red-400 transition-colors ml-1"
+                        data-testid={`button-delete-jabatan-${j}`}
+                        title={`Hapus "${j}"`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Reset all */}
+            {jabatanQuery.data?.jobdesks?.length ? (
+              <div className="pt-2 border-t border-white/10">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="w-4 h-4 text-red-400" />
+                  <p className="text-sm font-semibold text-red-400">Hapus Semua Jabatan</p>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Menghapus seluruh daftar jabatan dari master list. Data staff yang sudah ada tidak akan terpengaruh, hanya daftar pilihan jabatan yang dikosongkan.
+                </p>
+                {!showResetJabatanConfirm ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-red-500/40 text-red-400 hover:bg-red-500/10"
+                    onClick={() => setShowResetJabatanConfirm(true)}
+                    data-testid="button-reset-jabatan-start"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+                    Reset Semua Jabatan
+                  </Button>
+                ) : (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs text-red-400 font-medium">Yakin ingin menghapus semua {jabatanQuery.data.jobdesks.length} jabatan dari master list?</span>
+                    <Button
+                      size="sm"
+                      className="bg-red-600 hover:bg-red-700 text-white"
+                      onClick={() => resetJabatanMutation.mutate()}
+                      disabled={resetJabatanMutation.isPending}
+                      data-testid="button-reset-jabatan-confirm"
+                    >
+                      {resetJabatanMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Ya, Hapus Semua"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowResetJabatanConfirm(false)}
+                      data-testid="button-reset-jabatan-cancel"
+                    >
+                      Batal
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : null}
           </CardContent>
         </Card>
 
