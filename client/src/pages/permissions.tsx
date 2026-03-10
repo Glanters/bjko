@@ -9,7 +9,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { ShieldCheck, Layers, Trash2, Save, ChevronDown, Check, Briefcase } from "lucide-react";
-import type { User } from "@shared/schema";
 import type { StaffPermission } from "@shared/schema";
 
 const SHIFTS = ["PAGI", "SORE", "MALAM"];
@@ -242,7 +241,6 @@ function PermissionRoleRow({ role, perm, allJobdesks, onSave, onDelete }: {
 export default function Permissions() {
   const { toast } = useToast();
 
-  const { data: users } = useQuery<User[]>({ queryKey: ["/api/users"] });
   const { data: perms } = useQuery<StaffPermission[]>({ queryKey: ["/api/permissions"] });
   const { data: masterData } = useQuery<{ jobdesks: string[] }>({ queryKey: ["/api/jobdeskList"] });
   const { data: staffData } = useQuery<Array<{ jobdesk: string }>>({ queryKey: ["/api/staff"] });
@@ -266,16 +264,13 @@ export default function Permissions() {
     onError: () => toast({ title: "Gagal menghapus izin", variant: "destructive" }),
   });
 
-  const uniqueNonAdminRoles = useMemo(() => {
-    const all = (users ?? []).map(u => u.role).filter(r => r !== "admin");
-    return Array.from(new Set(all)).sort();
-  }, [users]);
-
   const allJobdesks = useMemo(() => {
     const masterList = masterData?.jobdesks ?? [];
     const staffList = (staffData ?? []).map(s => s.jobdesk).filter(Boolean);
     return Array.from(new Set([...masterList, ...staffList])).filter(Boolean).sort();
   }, [masterData, staffData]);
+
+  const uniqueNonAdminRoles = allJobdesks;
 
   const getPermForRole = (role: string) => (perms ?? []).find(p => p.role === role);
 
@@ -290,18 +285,17 @@ export default function Permissions() {
           <div className="mb-6">
             <h2 className="text-2xl font-display font-bold text-gradient flex items-center gap-2">
               <ShieldCheck className="w-6 h-6 text-primary" />
-              Manajemen Izin per Role
+              Manajemen Izin per Jabatan
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Atur izin berdasarkan role. Semua user dengan role yang sama akan mendapatkan izin yang sama.
-              Jika tidak ada izin yang diberikan, user tidak dapat melakukan perubahan staff.
+              Atur izin berdasarkan jabatan staff. Setiap jabatan memiliki pengaturan akses yang terpisah dan independen.
             </p>
           </div>
 
           {uniqueNonAdminRoles.length === 0 ? (
             <div className="glass-panel rounded-2xl border border-white/10 p-12 text-center text-muted-foreground">
               <ShieldCheck className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p>Belum ada role non-admin terdaftar.</p>
+              <p>Belum ada jabatan terdaftar. Tambahkan jabatan di halaman Jobdesk terlebih dahulu.</p>
             </div>
           ) : (
             <div className="space-y-4">

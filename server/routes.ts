@@ -88,7 +88,7 @@ export async function registerRoutes(
     }
     const user = await storage.getUser(req.session.userId);
     if (!user) return res.status(401).json({ message: "Unauthorized" });
-    const perm = await storage.getPermissionByRole(user.role);
+    const perm = await getPermForUser(req.session.userId!);
     if (user.role !== 'admin' && !perm?.canAddStaff) {
       return res.status(403).json({ message: "Forbidden: Anda tidak memiliki izin menambahkan staff" });
     }
@@ -439,7 +439,7 @@ export async function registerRoutes(
       const input = api.users.updatePassword.input.parse(req.body);
       const userId = parseInt(req.params.id);
       const csLine = await isCsLine(req.session.userId);
-      const perm = await storage.getPermissionByRole(user.role);
+      const perm = await getPermForUser(req.session.userId!);
 
       // Allow: admin (any), self with canEditPassword or no restriction, or CS LINE changing an agent password
       const isSelf = user.id === userId;
@@ -479,7 +479,7 @@ export async function registerRoutes(
       const input = api.users.updateUsername.input.parse(req.body);
       const userId = parseInt(req.params.id);
       const isSelf = user.id === userId;
-      const perm = await storage.getPermissionByRole(user.role);
+      const perm = await getPermForUser(req.session.userId!);
 
       // Admins can change anyone; agents can only change their own if canEditName is granted
       if (user.role !== 'admin' && !isSelf) {
@@ -578,7 +578,7 @@ export async function registerRoutes(
     }
     const user = await storage.getUser(req.session.userId);
     if (!user) return res.status(401).json({ message: "Unauthorized" });
-    const perm = await storage.getPermissionByRole(user.role);
+    const perm = await getPermForUser(req.session.userId!);
     if (user.role !== 'admin' && !perm?.canDeleteStaff) {
       return res.status(403).json({ message: "Forbidden: Anda tidak memiliki izin menghapus staff" });
     }
@@ -782,6 +782,19 @@ export async function registerRoutes(
     } catch {}
   };
 
+  // Helper: get permission for a user by their staff jabatan (falls back to login role)
+  const getPermForUser = async (userId: number) => {
+    const u = await storage.getUser(userId);
+    if (!u || u.role === 'admin') return null;
+    const staffList = await storage.getStaff();
+    const staff = staffList.find(s => s.name.toLowerCase() === u.username.toLowerCase());
+    if (staff && staff.jobdesk) {
+      const byJobdesk = await storage.getPermissionByRole(staff.jobdesk);
+      if (byJobdesk) return byJobdesk;
+    }
+    return await storage.getPermissionByRole(u.role);
+  };
+
   // Helper: check if a user is a CS LINE agent
   const isCsLine = async (userId: number): Promise<boolean> => {
     const u = await storage.getUser(userId);
@@ -802,7 +815,7 @@ export async function registerRoutes(
     if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
     const user = await storage.getUser(req.session.userId);
     if (!user) return res.status(401).json({ message: "Unauthorized" });
-    const perm = await storage.getPermissionByRole(user.role);
+    const perm = await getPermForUser(req.session.userId!);
     const isAdmin = user.role === 'admin';
     const canChangeJobdesk = isAdmin || !!perm?.canEditJobdesk;
     const canChangeName = isAdmin || !!perm?.canEditName;
@@ -830,7 +843,7 @@ export async function registerRoutes(
     if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
     const user = await storage.getUser(req.session.userId);
     if (!user) return res.status(401).json({ message: "Unauthorized" });
-    const perm = await storage.getPermissionByRole(user.role);
+    const perm = await getPermForUser(req.session.userId!);
     if (user.role !== 'admin' && !perm?.canEditJobdesk) return res.status(403).json({ message: "Forbidden" });
     try {
       const staffId = parseInt(req.params.id);
@@ -1042,7 +1055,7 @@ export async function registerRoutes(
       if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
       const user = await storage.getUser(req.session.userId);
       if (!user) return res.status(401).json({ message: "Unauthorized" });
-      const perm = await storage.getPermissionByRole(user.role);
+      const perm = await getPermForUser(req.session.userId!);
       res.json(perm ?? null);
     } catch { res.status(500).json({ message: "Internal server error" }); }
   });
