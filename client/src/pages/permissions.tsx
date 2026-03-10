@@ -168,7 +168,7 @@ export default function Permissions() {
     onError: () => toast({ title: "Gagal menghapus izin", variant: "destructive" }),
   });
 
-  const agentUsers = (users ?? []).filter(u => u.role === "agent");
+  const agentUsers = (users ?? []).filter(u => u.role !== "admin");
 
   const getPermForUser = (userId: number) => (perms ?? []).find(p => p.userId === userId);
 
