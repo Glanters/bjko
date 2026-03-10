@@ -2,7 +2,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
 import { useStaff } from "@/hooks/use-staff";
-import { useLeaves } from "@/hooks/use-leaves";
 import { Badge } from "@/components/ui/badge";
 import { useLocation } from "wouter";
 import { Users, Coffee, UserCheck, ArrowRight, ClipboardList, Briefcase, UserMinus, Activity } from "lucide-react";
@@ -11,17 +10,10 @@ import { id as localeId } from "date-fns/locale";
 
 function StatsCards() {
   const { data: staffList } = useStaff();
-  const { data: leaves } = useLeaves();
 
   const totalStaff = staffList?.length ?? 0;
   const agentCount = staffList?.filter(s => s.role === "agent").length ?? 0;
-
-  const localMidnight = new Date();
-  localMidnight.setHours(0, 0, 0, 0);
-
-  const sedangCuti = leaves?.filter(l =>
-    !l.clockInTime && new Date(l.startTime) >= localMidnight
-  ).length ?? 0;
+  const sedangCuti = staffList?.filter(s => !!s.cutiStatus).length ?? 0;
 
   return (
     <div className="grid grid-cols-3 gap-4" data-testid="stats-cards">
