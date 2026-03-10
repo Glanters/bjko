@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useStaff, useUpdateStaffJobdesk } from "@/hooks/use-staff";
+import { useStaff, useUpdateStaffJobdesk, useDeleteStaff } from "@/hooks/use-staff";
 import { useUniqueJobdesks } from "@/hooks/use-unique-jobdesks";
 import { useAuth } from "@/hooks/use-auth";
 import { Header } from "@/components/layout/header";
@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Briefcase, Pencil, Check, X, Plus } from "lucide-react";
+import { Search, Briefcase, Pencil, Check, X, Plus, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 
@@ -27,6 +27,7 @@ export default function Jobdesk() {
   const { data: staffList } = useStaff();
   const { jobdesks } = useUniqueJobdesks();
   const { mutate: updateJobdesk, isPending: isSaving } = useUpdateStaffJobdesk();
+  const { mutate: deleteStaff, isPending: isDeleting } = useDeleteStaff();
   const { data: myPerm } = useQuery<StaffPermission>({ queryKey: ["/api/permissions/me"] });
 
   const [activeShift, setActiveShift] = useState<Shift>("PAGI");
@@ -36,6 +37,7 @@ export default function Jobdesk() {
   const [isNewJobdeskMode, setIsNewJobdeskMode] = useState(false);
   const [newJobdeskText, setNewJobdeskText] = useState("");
   const [extraJobdesks, setExtraJobdesks] = useState<string[]>([]);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   const today = format(new Date(), "EEEE, dd MMM yyyy", { locale: localeId });
 
@@ -242,17 +244,56 @@ export default function Jobdesk() {
                               <X className="w-3 h-3" />
                             </Button>
                           </>
+                        ) : confirmDeleteId === s.id ? (
+                          <>
+                            <span className="text-xs text-red-400 font-medium">Hapus staff ini?</span>
+                            <Button
+                              size="sm"
+                              onClick={() => { deleteStaff(s.id); setConfirmDeleteId(null); }}
+                              disabled={isDeleting}
+                              className="h-7 px-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400 text-xs"
+                              data-testid={`button-confirm-delete-jobdesk-${s.id}`}
+                            >
+                              <Trash2 className="w-3 h-3 mr-1" />
+                              Ya, Hapus
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="h-7 px-2 rounded-lg text-muted-foreground hover:text-foreground text-xs"
+                              data-testid={`button-cancel-delete-jobdesk-${s.id}`}
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </>
                         ) : (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => startEdit(s.id, s.jobdesk)}
-                            className="h-7 px-2 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 text-xs"
-                            data-testid={`button-edit-jobdesk-${s.id}`}
-                          >
-                            <Pencil className="w-3 h-3 mr-1" />
-                            Edit
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            {canEdit && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => startEdit(s.id, s.jobdesk)}
+                                className="h-7 px-2 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 text-xs"
+                                data-testid={`button-edit-jobdesk-${s.id}`}
+                              >
+                                <Pencil className="w-3 h-3 mr-1" />
+                                Edit
+                              </Button>
+                            )}
+                            {isAdmin && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setConfirmDeleteId(s.id)}
+                                className="h-7 px-2 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 text-xs"
+                                data-testid={`button-delete-jobdesk-${s.id}`}
+                              >
+                                <Trash2 className="w-3 h-3 mr-1" />
+                                Hapus
+                              </Button>
+                            )}
+                          </div>
                         )}
                       </div>
                     )}

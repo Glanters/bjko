@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useStaff, useUpdateStaffCutiStatus } from "@/hooks/use-staff";
+import { useStaff, useUpdateStaffCutiStatus, useDeleteStaff } from "@/hooks/use-staff";
 import { useAuth } from "@/hooks/use-auth";
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { UserX, Search, Pencil, Check, X } from "lucide-react";
+import { UserX, Search, Pencil, Check, X, Trash2 } from "lucide-react";
 import type { Staff } from "@shared/schema";
 
 const CUTI_OPTIONS = ["Izin", "Sakit", "Cuti Tahunan", "Cuti Khusus", "Alpha"];
@@ -37,6 +37,7 @@ export default function StaffCuti() {
   const { user } = useAuth();
   const { data: staffList = [], isLoading } = useStaff();
   const { mutate: updateCutiStatus, isPending } = useUpdateStaffCutiStatus();
+  const { mutate: deleteStaff, isPending: isDeleting } = useDeleteStaff();
 
   const [search, setSearch] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -44,6 +45,7 @@ export default function StaffCuti() {
   const [isCustom, setIsCustom] = useState(false);
   const [customText, setCustomText] = useState("");
   const [filterStatus, setFilterStatus] = useState<"SEMUA" | "HADIR" | "CUTI">("SEMUA");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   const isAdmin = user?.role === "admin";
   const isCsLine = useMemo(() => {
@@ -270,6 +272,29 @@ export default function StaffCuti() {
                               <X className="w-3 h-3" />
                             </Button>
                           </>
+                        ) : confirmDeleteId === s.id ? (
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-red-400 font-medium">Hapus staff ini?</span>
+                            <Button
+                              size="sm"
+                              onClick={() => { deleteStaff(s.id); setConfirmDeleteId(null); }}
+                              disabled={isDeleting}
+                              className="h-7 px-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400 text-xs"
+                              data-testid={`button-confirm-delete-cuti-${s.id}`}
+                            >
+                              <Trash2 className="w-3 h-3 mr-1" />
+                              Ya, Hapus
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="h-7 px-2 rounded-lg text-muted-foreground hover:text-foreground text-xs"
+                              data-testid={`button-cancel-delete-cuti-${s.id}`}
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
                         ) : (
                           <div className="flex items-center gap-1">
                             <Button
@@ -288,12 +313,24 @@ export default function StaffCuti() {
                                 variant="ghost"
                                 onClick={() => clearStatus(s.id)}
                                 disabled={isPending}
-                                className="h-7 px-2 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 text-xs"
+                                className="h-7 px-2 rounded-lg text-muted-foreground hover:text-orange-400 hover:bg-orange-500/10 text-xs"
                                 data-testid={`button-clear-cuti-${s.id}`}
                                 title="Hapus Status"
                               >
                                 <X className="w-3 h-3 mr-1" />
-                                Hapus
+                                Hapus Status
+                              </Button>
+                            )}
+                            {isAdmin && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setConfirmDeleteId(s.id)}
+                                className="h-7 px-2 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 text-xs"
+                                data-testid={`button-delete-cuti-${s.id}`}
+                              >
+                                <Trash2 className="w-3 h-3 mr-1" />
+                                Hapus Staff
                               </Button>
                             )}
                           </div>

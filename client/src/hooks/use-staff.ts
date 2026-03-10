@@ -77,6 +77,25 @@ export function useUpdateStaffJobdesk() {
   });
 }
 
+export function useDeleteStaff() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/staff/${id}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.staff.list.path] });
+      toast({ title: "Berhasil", description: "Staff berhasil dihapus." });
+    },
+    onError: () => {
+      toast({ variant: "destructive", title: "Gagal", description: "Gagal menghapus staff." });
+    },
+  });
+}
+
 export function useUpdateStaffCutiStatus() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
