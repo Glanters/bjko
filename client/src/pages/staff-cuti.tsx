@@ -221,15 +221,16 @@ export default function StaffCuti() {
                               data-testid={`input-custom-status-${s.id}`}
                             />
                           ) : (
-                            <Select value={editStatus} onValueChange={val => {
+                            <Select value={editStatus || "__clear__"} onValueChange={val => {
                               if (val === "__custom__") { setIsCustom(true); setCustomText(""); }
+                              else if (val === "__clear__") setEditStatus("");
                               else setEditStatus(val);
                             }}>
                               <SelectTrigger className="h-7 text-xs bg-background/50 border-primary/30 rounded-lg w-36" data-testid={`select-cuti-status-${s.id}`}>
                                 <SelectValue placeholder="Pilih status..." />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="">— Hapus Status (Hadir)</SelectItem>
+                                <SelectItem value="__clear__">— Hapus Status (Hadir)</SelectItem>
                                 {CUTI_OPTIONS.map(o => (
                                   <SelectItem key={o} value={o}>{o}</SelectItem>
                                 ))}
