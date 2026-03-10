@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
-import { Loader2, Eye, EyeOff, Trash2 } from "lucide-react";
+import { Loader2, Eye, EyeOff, Trash2, UserX } from "lucide-react";
 import { useJobdeskLimits, useUpdateJobdeskLimits } from "@/hooks/use-jobdesk-limits";
 import { useDeleteUser } from "@/hooks/use-delete-user";
 
@@ -24,6 +24,7 @@ export default function Settings() {
   const [bulkPasswordConfirm, setBulkPasswordConfirm] = useState<string>("");
   const [showBulkPassConfirm, setShowBulkPassConfirm] = useState<boolean>(false);
   const [showBulkPass, setShowBulkPass] = useState<boolean>(false);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState<boolean>(false);
   const [passwordEditingId, setPasswordEditingId] = useState<number | null>(null);
   const [newPassword, setNewPassword] = useState<string>("");
   const [usernameEditingId, setUsernameEditingId] = useState<number | null>(null);
@@ -147,6 +148,19 @@ export default function Settings() {
     onError: (error: any) => {
       const message = error?.message || "Gagal memperbarui username";
       toast({ title: "Error", description: message, variant: "destructive" });
+    },
+  });
+
+  const bulkDeleteAgentsMutation = useMutation({
+    mutationFn: () =>
+      apiRequest("DELETE", api.users.bulkDeleteAgents.path).then(r => r.json()),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: [api.users.list.path] });
+      toast({ title: "Berhasil", description: data.message });
+      setShowBulkDeleteConfirm(false);
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Gagal menghapus semua agent", variant: "destructive" });
     },
   });
 
@@ -303,6 +317,49 @@ export default function Settings() {
                       variant="outline"
                       onClick={() => setShowBulkPassConfirm(false)}
                       data-testid="button-bulk-password-cancel"
+                    >
+                      Batal
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="mb-4 p-4 rounded-lg border border-rose-700/40 bg-rose-700/5">
+              <div className="flex items-center gap-2 mb-2">
+                <UserX className="w-4 h-4 text-rose-500" />
+                <p className="text-sm font-semibold text-rose-500">Hapus Semua Agent Sekaligus</p>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">Tindakan ini akan <strong>menghapus permanen</strong> semua akun pengguna dengan role Agent. Tidak dapat dibatalkan.</p>
+              <div className="flex gap-2 items-center flex-wrap">
+                {!showBulkDeleteConfirm ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-rose-700/50 text-rose-500 hover:bg-rose-700/10"
+                    onClick={() => setShowBulkDeleteConfirm(true)}
+                    data-testid="button-bulk-delete-agents-start"
+                  >
+                    <Trash2 className="w-3 h-3 mr-1" />
+                    Hapus Semua Agent
+                  </Button>
+                ) : (
+                  <>
+                    <span className="text-xs text-rose-400 font-medium">Yakin ingin menghapus SEMUA akun agent? Data tidak bisa dikembalikan!</span>
+                    <Button
+                      size="sm"
+                      className="bg-rose-600 hover:bg-rose-700 text-white"
+                      onClick={() => bulkDeleteAgentsMutation.mutate()}
+                      disabled={bulkDeleteAgentsMutation.isPending}
+                      data-testid="button-bulk-delete-agents-confirm"
+                    >
+                      {bulkDeleteAgentsMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Ya, Hapus Semua"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowBulkDeleteConfirm(false)}
+                      data-testid="button-bulk-delete-agents-cancel"
                     >
                       Batal
                     </Button>

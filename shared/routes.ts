@@ -175,6 +175,15 @@ export const api = {
         401: errorSchemas.unauthorized,
         403: errorSchemas.forbidden,
       }
+    },
+    bulkDeleteAgents: {
+      method: 'DELETE' as const,
+      path: '/api/users/bulk-agents' as const,
+      responses: {
+        200: z.object({ message: z.string(), deleted: z.number() }),
+        401: errorSchemas.unauthorized,
+        403: errorSchemas.forbidden,
+      }
     }
   },
   staff: {

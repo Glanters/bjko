@@ -404,6 +404,23 @@ export async function registerRoutes(
     }
   });
 
+  app.delete(api.users.bulkDeleteAgents.path, async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const user = await storage.getUser(req.session.userId);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: "Forbidden: Only admins can bulk delete agents" });
+    }
+    try {
+      const deleted = await storage.bulkDeleteAgents();
+      await logAudit(req.session.userId!, "BULK_DELETE_AGENTS", `Semua agent dihapus (${deleted} user)`);
+      res.json({ message: `Berhasil menghapus ${deleted} pengguna agent`, deleted });
+    } catch (err) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.patch(api.users.updatePassword.path, async (req, res) => {
     if (!req.session.userId) {
       return res.status(401).json({ message: "Unauthorized" });

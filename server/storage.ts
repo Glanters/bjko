@@ -27,6 +27,7 @@ export interface IStorage {
   updateUserIp(id: number, allowedIp: string): Promise<User>;
   bulkUpdateAgentIp(allowedIp: string): Promise<number>;
   bulkUpdateAgentPassword(password: string): Promise<number>;
+  bulkDeleteAgents(): Promise<number>;
   updateUserPassword(id: number, password: string): Promise<User>;
   updateUserUsername(id: number, username: string): Promise<User>;
   deleteUser(id: number): Promise<boolean>;
@@ -151,6 +152,11 @@ export class DatabaseStorage implements IStorage {
   async deleteUser(id: number): Promise<boolean> {
     const result = await db.delete(users).where(eq(users.id, id));
     return !!result;
+  }
+
+  async bulkDeleteAgents(): Promise<number> {
+    const result = await db.delete(users).where(eq(users.role, 'agent')).returning();
+    return result.length;
   }
 
   async deleteStaff(id: number): Promise<boolean> {
