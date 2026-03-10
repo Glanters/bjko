@@ -287,7 +287,7 @@ export default function Settings() {
                   return (
                     <button
                       key={preset.label}
-                      onClick={() => { setThemeBg(preset.bg); setThemePrimary(preset.primary); }}
+                      onClick={() => { setThemeBg(preset.bg); setThemePrimary(preset.primary); applyCustomColors(preset.bg, preset.primary); }}
                       className={`relative rounded-xl overflow-hidden border-2 transition-all hover:scale-105 ${
                         isActive ? "border-white shadow-lg shadow-white/20" : "border-transparent"
                       }`}
@@ -321,14 +321,14 @@ export default function Settings() {
                   <input
                     type="color"
                     value={themeBg ? hslToHex(themeBg) : "#1b2c3e"}
-                    onChange={e => setThemeBg(hexToHsl(e.target.value))}
+                    onChange={e => { const v = hexToHsl(e.target.value); setThemeBg(v); applyCustomColors(v, themePrimary); }}
                     className="w-10 h-10 rounded-lg cursor-pointer border border-white/20"
                     data-testid="input-color-bg"
                   />
                   <div className="flex-1">
                     <Input
                       value={themeBg}
-                      onChange={e => setThemeBg(e.target.value)}
+                      onChange={e => { setThemeBg(e.target.value); applyCustomColors(e.target.value, themePrimary); }}
                       placeholder="H S% L% (misal: 211 43% 12%)"
                       className="text-sm font-mono h-9"
                       data-testid="input-hsl-bg"
@@ -343,14 +343,14 @@ export default function Settings() {
                   <input
                     type="color"
                     value={themePrimary ? hslToHex(themePrimary) : "#0a7ff5"}
-                    onChange={e => setThemePrimary(hexToHsl(e.target.value))}
+                    onChange={e => { const v = hexToHsl(e.target.value); setThemePrimary(v); applyCustomColors(themeBg, v); }}
                     className="w-10 h-10 rounded-lg cursor-pointer border border-white/20"
                     data-testid="input-color-primary"
                   />
                   <div className="flex-1">
                     <Input
                       value={themePrimary}
-                      onChange={e => setThemePrimary(e.target.value)}
+                      onChange={e => { setThemePrimary(e.target.value); applyCustomColors(themeBg, e.target.value); }}
                       placeholder="H S% L% (misal: 210 95% 50%)"
                       className="text-sm font-mono h-9"
                       data-testid="input-hsl-primary"
@@ -364,20 +364,36 @@ export default function Settings() {
             {/* Preview */}
             {(themeBg || themePrimary) && (
               <div>
-                <p className="text-sm font-semibold text-foreground mb-2">Preview</p>
+                <p className="text-sm font-semibold text-foreground mb-2">Preview Langsung</p>
                 <div
-                  className="rounded-xl p-4 border border-white/10"
+                  className="rounded-xl overflow-hidden border border-white/10 text-xs"
                   style={{ backgroundColor: themeBg ? `hsl(${themeBg})` : undefined }}
                 >
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-6 h-6 rounded-md" style={{ backgroundColor: themePrimary ? `hsl(${themePrimary})` : undefined }} />
-                    <span className="text-sm font-bold" style={{ color: themePrimary ? `hsl(${themePrimary})` : undefined }}>
-                      DASHBOARD BOSJOKO
-                    </span>
+                  {/* Mini header bar */}
+                  <div className="flex items-center gap-2 px-4 py-2" style={{ backgroundColor: themePrimary ? `hsla(${themePrimary}/0.15)` : "rgba(255,255,255,0.05)" }}>
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: themePrimary ? `hsl(${themePrimary})` : undefined }} />
+                    <span className="font-bold text-[11px]" style={{ color: themePrimary ? `hsl(${themePrimary})` : undefined }}>DASHBOARD BOSJOKO</span>
                   </div>
-                  <div className="h-2 rounded-full w-3/4 opacity-30 bg-white" />
-                  <div className="h-2 rounded-full w-1/2 opacity-20 bg-white mt-1" />
+                  {/* Mini table header */}
+                  <div className="flex px-4 py-1.5 gap-4 border-b border-white/10" style={{ backgroundColor: themeBg ? `hsl(${themeBg})` : undefined, opacity: 0.8 }}>
+                    <span className="opacity-60 w-24">Nama Staff</span>
+                    <span className="opacity-60 w-20">Jobdesk</span>
+                    <span className="opacity-60 flex-1 text-right">Aksi</span>
+                  </div>
+                  {/* Mini table rows */}
+                  {[{ name: "Staff Alpha", job: "CS LINE" }, { name: "Staff Beta", job: "kasir" }].map((s, i) => (
+                    <div key={i} className="flex px-4 py-2 gap-4 items-center border-b border-white/5" style={{ backgroundColor: i % 2 === 0 ? "rgba(255,255,255,0.02)" : undefined }}>
+                      <span className="w-24 font-medium opacity-90">{s.name}</span>
+                      <span className="w-20 opacity-60">{s.job}</span>
+                      <div className="flex-1 flex justify-end">
+                        <div className="rounded px-2 py-0.5 text-[10px] font-semibold" style={{ backgroundColor: themePrimary ? `hsl(${themePrimary} / 0.2)` : undefined, color: themePrimary ? `hsl(${themePrimary})` : undefined }}>
+                          Mulai Izin
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
+                <p className="text-[11px] text-muted-foreground mt-1.5">Klik "Simpan Tema" untuk terapkan ke semua pengguna.</p>
               </div>
             )}
 

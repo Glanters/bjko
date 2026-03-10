@@ -103,17 +103,79 @@ export function hexToHsl(hex: string): string {
   return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 }
 
+function parseHsl(hsl: string): [number, number, number] {
+  const parts = hsl.trim().split(/\s+/);
+  const h = parseFloat(parts[0]);
+  const s = parseFloat(parts[1]);
+  const l = parseFloat(parts[2]);
+  return [h, s, l];
+}
+
+function clamp(val: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, val));
+}
+
+function hsl(h: number, s: number, l: number) {
+  return `${Math.round(h)} ${Math.round(clamp(s, 0, 100))}% ${Math.round(clamp(l, 0, 100))}%`;
+}
+
 export function applyCustomColors(bg: string | null | undefined, primary: string | null | undefined) {
   const root = document.documentElement;
+
   if (bg && bg.trim()) {
-    root.style.setProperty("--background", bg);
+    const [h, s, l] = parseHsl(bg);
+    const ls = clamp(s + 10, 0, 100);
+
+    root.style.setProperty("--background", hsl(h, s, l));
+    root.style.setProperty("--foreground", hsl(h, clamp(s - 20, 0, 30), clamp(l + 72, 0, 100)));
+
+    root.style.setProperty("--card", hsl(h, ls, clamp(l + 6, 0, 100)));
+    root.style.setProperty("--card-foreground", hsl(h, clamp(s - 20, 0, 30), clamp(l + 72, 0, 100)));
+
+    root.style.setProperty("--popover", hsl(h, s, l));
+    root.style.setProperty("--popover-foreground", hsl(h, clamp(s - 20, 0, 30), clamp(l + 72, 0, 100)));
+
+    root.style.setProperty("--secondary", hsl(h, ls, clamp(l + 12, 0, 100)));
+    root.style.setProperty("--secondary-foreground", hsl(h, clamp(s - 20, 0, 30), clamp(l + 72, 0, 100)));
+
+    root.style.setProperty("--muted", hsl(h, s, clamp(l + 8, 0, 100)));
+    root.style.setProperty("--muted-foreground", hsl(h, clamp(s - 10, 0, 60), clamp(l + 50, 0, 100)));
+
+    root.style.setProperty("--border", hsl(h, ls, clamp(l + 12, 0, 100)));
+    root.style.setProperty("--input", hsl(h, s, clamp(l + 4, 0, 100)));
+    root.style.setProperty("--ring", primary && primary.trim() ? primary : hsl(h, clamp(s + 50, 0, 100), clamp(l + 38, 0, 100)));
+
+    root.style.setProperty("--sidebar-background", hsl(h, ls, clamp(l + 6, 0, 100)));
+    root.style.setProperty("--sidebar-foreground", hsl(h, clamp(s - 20, 0, 30), clamp(l + 72, 0, 100)));
+    root.style.setProperty("--sidebar-border", hsl(h, ls, clamp(l + 12, 0, 100)));
   } else {
-    root.style.removeProperty("--background");
+    const vars = [
+      "--background","--foreground","--card","--card-foreground","--popover","--popover-foreground",
+      "--secondary","--secondary-foreground","--muted","--muted-foreground",
+      "--border","--input","--ring","--sidebar-background","--sidebar-foreground","--sidebar-border"
+    ];
+    vars.forEach(v => root.style.removeProperty(v));
   }
+
   if (primary && primary.trim()) {
     root.style.setProperty("--primary", primary);
+    root.style.setProperty("--accent", primary);
+
+    const bg2 = bg && bg.trim() ? bg : "211 43% 12%";
+    const [bh, bs, bl] = parseHsl(bg2);
+    root.style.setProperty("--primary-foreground", hsl(bh, bs, bl));
+    root.style.setProperty("--accent-foreground", hsl(bh, bs, bl));
+    root.style.setProperty("--sidebar-primary", primary);
+    root.style.setProperty("--sidebar-primary-foreground", hsl(bh, bs, bl));
+    root.style.setProperty("--sidebar-accent", primary);
+    root.style.setProperty("--sidebar-accent-foreground", hsl(bh, bs, bl));
+    root.style.setProperty("--ring", primary);
   } else {
-    root.style.removeProperty("--primary");
+    const vars2 = [
+      "--primary","--primary-foreground","--accent","--accent-foreground",
+      "--sidebar-primary","--sidebar-primary-foreground","--sidebar-accent","--sidebar-accent-foreground"
+    ];
+    vars2.forEach(v => root.style.removeProperty(v));
   }
 }
 
