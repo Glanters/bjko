@@ -154,10 +154,10 @@ export default function Jobdesk() {
                 <div className="flex items-center gap-3 mb-1">
                   <Briefcase className="w-6 h-6 text-primary" />
                   <h1 className="text-3xl font-display font-black tracking-wider text-primary uppercase">
-                    JABATAN
+                    JOBDESK
                   </h1>
                 </div>
-                <p className="text-muted-foreground text-sm">Daftar staff per shift & jabatan</p>
+                <p className="text-muted-foreground text-sm">Daftar staff per shift & jobdesk</p>
               </div>
               <div className="flex items-center gap-3">
                 {canAdd && (
@@ -180,7 +180,7 @@ export default function Jobdesk() {
                     data-testid="button-manage-jobdesks"
                   >
                     <Settings2 className="w-3.5 h-3.5 mr-1.5" />
-                    Kelola Jabatan
+                    Kelola Jobdesk
                     {showManage ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />}
                   </Button>
                 )}
@@ -194,11 +194,11 @@ export default function Jobdesk() {
             <div className="mx-6 mt-4 p-4 rounded-2xl border border-primary/20 bg-primary/5">
               <div className="flex items-center gap-2 mb-3">
                 <Settings2 className="w-4 h-4 text-primary" />
-                <span className="text-sm font-bold text-primary uppercase tracking-wider">Daftar Master Jabatan</span>
+                <span className="text-sm font-bold text-primary uppercase tracking-wider">Daftar Master Jobdesk</span>
                 <span className="text-xs text-muted-foreground ml-1">— klik X untuk hapus dari daftar</span>
               </div>
               {allJobdesks.length === 0 ? (
-                <p className="text-xs text-muted-foreground">Belum ada jabatan terdaftar.</p>
+                <p className="text-xs text-muted-foreground">Belum ada jobdesk terdaftar.</p>
               ) : (
                 <div className="flex flex-wrap gap-2">
                   {allJobdesks.map(j => (
@@ -230,7 +230,7 @@ export default function Jobdesk() {
                         <button
                           onClick={() => setConfirmDeleteJobdesk(j)}
                           className="text-primary/50 hover:text-red-400 transition-colors ml-0.5"
-                          title={`Hapus jabatan "${j}"`}
+                          title={`Hapus jobdesk "${j}"`}
                           data-testid={`button-delete-chip-${j}`}
                         >
                           <X className="w-3.5 h-3.5" />
@@ -241,7 +241,7 @@ export default function Jobdesk() {
                 </div>
               )}
               <p className="text-[11px] text-muted-foreground/60 mt-3">
-                Jabatan yang dihapus dari daftar tidak lagi muncul sebagai pilihan, namun tidak mengubah data staff yang sudah terlanjur di-assign.
+                Jobdesk yang dihapus dari daftar tidak lagi muncul sebagai pilihan, namun tidak mengubah data staff yang sudah terlanjur di-assign.
               </p>
             </div>
           )}
@@ -272,7 +272,7 @@ export default function Jobdesk() {
                 <div className="flex items-center gap-2">
                   <span className="text-primary text-sm">✦</span>
                   <span className="font-bold text-primary uppercase tracking-wider text-sm">
-                    JABATAN {activeShift}
+                    JOBDESK {activeShift}
                   </span>
                   {canEdit && (
                     <span className="ml-2 text-xs text-primary/60 bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
@@ -296,7 +296,7 @@ export default function Jobdesk() {
               <div className={`grid ${showActionCol ? "grid-cols-[1fr_130px_1fr_80px]" : "grid-cols-[1fr_130px_1fr]"} px-6 py-3 border-b border-white/10 bg-primary/5`}>
                 <span className="text-xs font-bold text-primary/70 uppercase tracking-widest">Nama Staff</span>
                 <span className="text-xs font-bold text-primary/70 uppercase tracking-widest">Shift</span>
-                <span className="text-xs font-bold text-primary/70 uppercase tracking-widest">Jabatan</span>
+                <span className="text-xs font-bold text-primary/70 uppercase tracking-widest">Jobdesk</span>
                 {showActionCol && (
                   <span className="text-xs font-bold text-primary/70 uppercase tracking-widest text-right">Aksi</span>
                 )}
@@ -460,12 +460,12 @@ export default function Jobdesk() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Jabatan</label>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Jobdesk</label>
               {addNewJobdeskMode ? (
                 <div className="flex gap-2">
                   <Input
                     autoFocus
-                    placeholder="Ketik jabatan baru..."
+                    placeholder="Ketik jobdesk baru..."
                     value={addNewJobdeskText}
                     onChange={e => setAddNewJobdeskText(e.target.value)}
                     className="bg-background/50 border-white/10 focus-visible:ring-primary/30"
@@ -495,7 +495,7 @@ export default function Jobdesk() {
                     ))}
                     <div className="border-t border-white/10 my-1" />
                     <SelectItem value="__new__" className="text-primary">
-                      <span className="flex items-center gap-1"><Plus className="w-3 h-3" /> Jabatan Baru</span>
+                      <span className="flex items-center gap-1"><Plus className="w-3 h-3" /> Jobdesk Baru</span>
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -561,12 +561,12 @@ export default function Jobdesk() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Jabatan</label>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Jobdesk</label>
                   {editNewJobdeskMode ? (
                     <div className="flex gap-2">
                       <Input
                         autoFocus
-                        placeholder="Ketik jabatan baru..."
+                        placeholder="Ketik jobdesk baru..."
                         value={editNewJobdeskText}
                         onChange={e => setEditNewJobdeskText(e.target.value)}
                         className="bg-background/50 border-white/10 focus-visible:ring-primary/30"
@@ -596,7 +596,7 @@ export default function Jobdesk() {
                         ))}
                         <div className="border-t border-white/10 my-1" />
                         <SelectItem value="__new__" className="text-primary">
-                          <span className="flex items-center gap-1"><Plus className="w-3 h-3" /> Jabatan Baru</span>
+                          <span className="flex items-center gap-1"><Plus className="w-3 h-3" /> Jobdesk Baru</span>
                         </SelectItem>
                       </SelectContent>
                     </Select>

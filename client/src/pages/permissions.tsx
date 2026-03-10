@@ -99,7 +99,7 @@ function PermissionRoleRow({ role, perm, allJobdesks, onSave, onDelete }: {
             data-testid={`checkbox-can-edit-jobdesk-${role}`}
           />
           <label htmlFor={`can-edit-jobdesk-${role}`} className="text-sm font-medium cursor-pointer">
-            Dapat Edit Jabatan Staff
+            Dapat Edit Jobdesk Staff
           </label>
         </div>
         <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
@@ -161,7 +161,7 @@ function PermissionRoleRow({ role, perm, allJobdesks, onSave, onDelete }: {
       {/* Allowed Jobdesks — multi-select dropdown */}
       {allJobdesks.length > 0 && (
         <div>
-          <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">Jabatan yang Diizinkan</p>
+          <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">Jobdesk yang Diizinkan</p>
           <Popover>
             <PopoverTrigger asChild>
               <button
@@ -171,7 +171,7 @@ function PermissionRoleRow({ role, perm, allJobdesks, onSave, onDelete }: {
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   <Briefcase className="w-3.5 h-3.5 text-primary/60 shrink-0" />
                   {jobdesks.length === 0 ? (
-                    <span className="text-xs text-muted-foreground">Pilih jabatan yang diizinkan...</span>
+                    <span className="text-xs text-muted-foreground">Pilih jobdesk yang diizinkan...</span>
                   ) : (
                     <div className="flex gap-1.5 flex-wrap">
                       {jobdesks.map(j => (
@@ -194,7 +194,7 @@ function PermissionRoleRow({ role, perm, allJobdesks, onSave, onDelete }: {
               data-testid={`popover-jobdesk-${role}`}
             >
               <p className="text-[10px] font-bold text-primary/70 uppercase tracking-widest px-2 pb-2 border-b border-white/10 mb-1">
-                Pilih Jabatan
+                Pilih Jobdesk
               </p>
               <div className="max-h-52 overflow-y-auto space-y-0.5 pr-1">
                 {allJobdesks.map(j => {

@@ -80,8 +80,8 @@ function QuickNav() {
       testId: "quick-izin-staff",
     },
     {
-      title: "Jabatan Staff",
-      desc: "Lihat daftar jabatan per shift PAGI / SORE / MALAM",
+      title: "Jobdesk Staff",
+      desc: "Lihat daftar jobdesk per shift PAGI / SORE / MALAM",
       icon: <Briefcase className="w-7 h-7" />,
       href: "/jobdesk",
       color: "text-yellow-400",
