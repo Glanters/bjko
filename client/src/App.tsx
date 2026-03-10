@@ -22,7 +22,7 @@ import Permissions from "@/pages/permissions";
 import StaffCuti from "@/pages/staff-cuti";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
-import { NavigationProgress, PageTransition } from "@/components/layout/page-transition";
+import { PageTransition } from "@/components/layout/page-transition";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { user, isLoading } = useAuth();
@@ -135,7 +135,6 @@ function App() {
         <ThemeApplier />
         <TooltipProvider>
           <div className="dark">
-            <NavigationProgress />
             <Toaster />
             <Router />
           </div>
