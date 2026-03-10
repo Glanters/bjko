@@ -225,6 +225,15 @@ export const api = {
         403: errorSchemas.forbidden,
         404: errorSchemas.notFound,
       }
+    },
+    bulkDeleteAll: {
+      method: 'DELETE' as const,
+      path: '/api/staff/bulk-all' as const,
+      responses: {
+        200: z.object({ message: z.string(), deleted: z.number() }),
+        401: errorSchemas.unauthorized,
+        403: errorSchemas.forbidden,
+      }
     }
   },
   whitelist: {

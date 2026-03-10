@@ -25,6 +25,7 @@ export default function Settings() {
   const [showBulkPassConfirm, setShowBulkPassConfirm] = useState<boolean>(false);
   const [showBulkPass, setShowBulkPass] = useState<boolean>(false);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState<boolean>(false);
+  const [showBulkDeleteStaffConfirm, setShowBulkDeleteStaffConfirm] = useState<boolean>(false);
   const [passwordEditingId, setPasswordEditingId] = useState<number | null>(null);
   const [newPassword, setNewPassword] = useState<string>("");
   const [usernameEditingId, setUsernameEditingId] = useState<number | null>(null);
@@ -148,6 +149,19 @@ export default function Settings() {
     onError: (error: any) => {
       const message = error?.message || "Gagal memperbarui username";
       toast({ title: "Error", description: message, variant: "destructive" });
+    },
+  });
+
+  const bulkDeleteAllStaffMutation = useMutation({
+    mutationFn: () =>
+      apiRequest("DELETE", api.staff.bulkDeleteAll.path).then(r => r.json()),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: [api.staff.list.path] });
+      toast({ title: "Berhasil", description: data.message });
+      setShowBulkDeleteStaffConfirm(false);
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Gagal menghapus semua data staff", variant: "destructive" });
     },
   });
 
@@ -571,6 +585,59 @@ export default function Settings() {
                 </Table>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Manajemen Data Staff</CardTitle>
+            <CardDescription>Kelola data staff yang tampil di dashboard utama</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="p-4 rounded-lg border border-rose-700/40 bg-rose-700/5">
+              <div className="flex items-center gap-2 mb-2">
+                <UserX className="w-4 h-4 text-rose-500" />
+                <p className="text-sm font-semibold text-rose-500">Hapus Semua Data Staff</p>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">
+                Menghapus <strong>semua nama staff</strong> dari tampilan dashboard. Data riwayat izin terkait juga akan terhapus. Tindakan ini tidak dapat dibatalkan.
+              </p>
+              <div className="flex gap-2 items-center flex-wrap">
+                {!showBulkDeleteStaffConfirm ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-rose-700/50 text-rose-500 hover:bg-rose-700/10"
+                    onClick={() => setShowBulkDeleteStaffConfirm(true)}
+                    data-testid="button-bulk-delete-staff-start"
+                  >
+                    <Trash2 className="w-3 h-3 mr-1" />
+                    Hapus Semua Staff
+                  </Button>
+                ) : (
+                  <>
+                    <span className="text-xs text-rose-400 font-medium">Yakin ingin menghapus SEMUA data staff dari dashboard?</span>
+                    <Button
+                      size="sm"
+                      className="bg-rose-600 hover:bg-rose-700 text-white"
+                      onClick={() => bulkDeleteAllStaffMutation.mutate()}
+                      disabled={bulkDeleteAllStaffMutation.isPending}
+                      data-testid="button-bulk-delete-staff-confirm"
+                    >
+                      {bulkDeleteAllStaffMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Ya, Hapus Semua"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowBulkDeleteStaffConfirm(false)}
+                      data-testid="button-bulk-delete-staff-cancel"
+                    >
+                      Batal
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
           </CardContent>
         </Card>
 

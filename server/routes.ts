@@ -535,6 +535,23 @@ export async function registerRoutes(
     }
   });
 
+  app.delete(api.staff.bulkDeleteAll.path, async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const user = await storage.getUser(req.session.userId);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: "Forbidden: Only admins can bulk delete staff" });
+    }
+    try {
+      const deleted = await storage.bulkDeleteAllStaff();
+      await logAudit(req.session.userId!, "BULK_DELETE_STAFF", `Semua data staff dihapus (${deleted} staff)`);
+      res.json({ message: `Berhasil menghapus ${deleted} data staff`, deleted });
+    } catch (err) {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.delete(api.staff.delete.path, async (req, res) => {
     if (!req.session.userId) {
       return res.status(401).json({ message: "Unauthorized" });
