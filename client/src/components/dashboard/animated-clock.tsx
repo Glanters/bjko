@@ -1,7 +1,44 @@
 import { useState, useEffect } from "react";
 
+function useThemeColors() {
+  const [colors, setColors] = useState({
+    primary: "#3b82f6",
+    primaryHsl: "210 95% 50%",
+    bg: "#0a0f1e",
+    card: "#0d1b2a",
+    muted: "rgba(148,163,184,0.6)",
+  });
+
+  useEffect(() => {
+    const update = () => {
+      const root = document.documentElement;
+      const style = getComputedStyle(root);
+      const primaryHsl = style.getPropertyValue("--primary").trim() || "210 95% 50%";
+      const bgHsl = style.getPropertyValue("--background").trim() || "211 43% 12%";
+      const cardHsl = style.getPropertyValue("--card").trim() || "211 53% 18%";
+      const mutedHsl = style.getPropertyValue("--muted-foreground").trim() || "210 30% 65%";
+      setColors({
+        primary: `hsl(${primaryHsl})`,
+        primaryHsl,
+        bg: `hsl(${bgHsl})`,
+        card: `hsl(${cardHsl})`,
+        muted: `hsl(${mutedHsl})`,
+      });
+    };
+
+    update();
+
+    const observer = new MutationObserver(update);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["style", "class"] });
+    return () => observer.disconnect();
+  }, []);
+
+  return colors;
+}
+
 export function AnimatedClock() {
   const [time, setTime] = useState(new Date());
+  const { primary, primaryHsl, bg, card, muted } = useThemeColors();
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -69,34 +106,36 @@ export function AnimatedClock() {
 
   const romanNumerals = ["XII", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI"];
 
+  const primaryRgba = (opacity: number) => `hsl(${primaryHsl} / ${opacity})`;
+
   return (
     <div
       className="relative rounded-2xl overflow-hidden"
       style={{
-        background: "linear-gradient(135deg, #0a0f1e 0%, #0d1b2a 50%, #0a0f1e 100%)",
-        border: "1px solid rgba(59,130,246,0.2)",
-        boxShadow: "0 0 40px rgba(59,130,246,0.08), inset 0 1px 0 rgba(255,255,255,0.05)",
+        background: `linear-gradient(135deg, ${bg} 0%, ${card} 50%, ${bg} 100%)`,
+        border: `1px solid ${primaryRgba(0.2)}`,
+        boxShadow: `0 0 40px ${primaryRgba(0.08)}, inset 0 1px 0 rgba(255,255,255,0.05)`,
       }}
       data-testid="widget-clock"
     >
       <div className="absolute inset-0 pointer-events-none">
         <div
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%)" }}
+          style={{ background: `radial-gradient(circle, ${primaryRgba(0.06)} 0%, transparent 70%)` }}
         />
       </div>
 
       <div className="relative z-10 p-6 flex flex-col items-center gap-4">
-        <div className="relative" style={{ filter: "drop-shadow(0 0 20px rgba(59,130,246,0.3))" }}>
+        <div className="relative" style={{ filter: `drop-shadow(0 0 20px ${primaryRgba(0.3)})` }}>
           <svg width="200" height="200" viewBox="0 0 200 200">
             <defs>
               <radialGradient id="faceGrad" cx="40%" cy="35%" r="65%">
-                <stop offset="0%" stopColor="#1a2744" />
-                <stop offset="100%" stopColor="#050d1a" />
+                <stop offset="0%" stopColor={card} />
+                <stop offset="100%" stopColor={bg} />
               </radialGradient>
               <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.9" />
-                <stop offset="100%" stopColor="#1d4ed8" stopOpacity="1" />
+                <stop offset="0%" stopColor={primary} stopOpacity="0.9" />
+                <stop offset="100%" stopColor={primary} stopOpacity="1" />
               </radialGradient>
               <linearGradient id="hourGrad" x1="0%" y1="0%" x2="0%" y2="100%">
                 <stop offset="0%" stopColor="#e2e8f0" />
@@ -124,16 +163,16 @@ export function AnimatedClock() {
             </defs>
 
             {/* Outer decorative rings */}
-            <circle cx={cx} cy={cy} r={r + 9} fill="none" stroke="rgba(59,130,246,0.06)" strokeWidth="1" />
-            <circle cx={cx} cy={cy} r={r + 6} fill="none" stroke="rgba(59,130,246,0.12)" strokeWidth="0.5" />
-            <circle cx={cx} cy={cy} r={r + 3} fill="none" stroke="rgba(59,130,246,0.2)" strokeWidth="1" />
+            <circle cx={cx} cy={cy} r={r + 9} fill="none" stroke={primaryRgba(0.06)} strokeWidth="1" />
+            <circle cx={cx} cy={cy} r={r + 6} fill="none" stroke={primaryRgba(0.12)} strokeWidth="0.5" />
+            <circle cx={cx} cy={cy} r={r + 3} fill="none" stroke={primaryRgba(0.2)} strokeWidth="1" />
 
             {/* Clock face */}
             <circle cx={cx} cy={cy} r={r} fill="url(#faceGrad)" />
-            <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(59,130,246,0.35)" strokeWidth="1.5" />
+            <circle cx={cx} cy={cy} r={r} fill="none" stroke={primaryRgba(0.35)} strokeWidth="1.5" />
 
             {/* Inner subtle ring */}
-            <circle cx={cx} cy={cy} r={r - 8} fill="none" stroke="rgba(59,130,246,0.08)" strokeWidth="0.5" />
+            <circle cx={cx} cy={cy} r={r - 8} fill="none" stroke={primaryRgba(0.08)} strokeWidth="0.5" />
 
             {/* Tick marks */}
             {hourMarkers.map((m, i) => (
@@ -143,7 +182,7 @@ export function AnimatedClock() {
                 x2={m.x2} y2={m.y2}
                 stroke={
                   m.isQuarter
-                    ? "rgba(59,130,246,0.9)"
+                    ? primaryRgba(0.9)
                     : m.isHour
                     ? "rgba(148,163,184,0.7)"
                     : "rgba(71,85,105,0.5)"
@@ -165,7 +204,7 @@ export function AnimatedClock() {
                   y={cy + dist * Math.sin(rad)}
                   textAnchor="middle"
                   dominantBaseline="central"
-                  fill="rgba(148,163,184,0.6)"
+                  fill={muted}
                   fontSize="8"
                   fontFamily="monospace"
                   fontWeight="600"
@@ -207,7 +246,7 @@ export function AnimatedClock() {
 
             {/* Center decorative circles */}
             <circle cx={cx} cy={cy} r="8" fill="url(#centerGlow)" filter="url(#neonGlow)" />
-            <circle cx={cx} cy={cy} r="5" fill="#1d4ed8" />
+            <circle cx={cx} cy={cy} r="5" fill={primary} />
             <circle cx={cx} cy={cy} r="2.5" fill="white" opacity="0.9" />
           </svg>
         </div>
@@ -220,7 +259,7 @@ export function AnimatedClock() {
               style={{
                 fontSize: "2.4rem",
                 color: "#e2e8f0",
-                textShadow: "0 0 20px rgba(59,130,246,0.5), 0 0 40px rgba(59,130,246,0.2)",
+                textShadow: `0 0 20px ${primaryRgba(0.5)}, 0 0 40px ${primaryRgba(0.2)}`,
                 fontVariantNumeric: "tabular-nums",
               }}
               data-testid="text-clock-time"
@@ -229,18 +268,18 @@ export function AnimatedClock() {
             </span>
             <span
               className="font-mono font-bold text-sm tracking-widest"
-              style={{ color: "#3b82f6", textShadow: "0 0 10px rgba(59,130,246,0.8)" }}
+              style={{ color: primary, textShadow: `0 0 10px ${primaryRgba(0.8)}` }}
             >
               {period}
             </span>
           </div>
 
           <div className="flex items-center justify-center gap-2">
-            <div className="h-px flex-1" style={{ background: "linear-gradient(to right, transparent, rgba(59,130,246,0.3))" }} />
-            <span className="text-xs tracking-widest uppercase" style={{ color: "rgba(148,163,184,0.7)" }} data-testid="text-clock-date">
+            <div className="h-px flex-1" style={{ background: `linear-gradient(to right, transparent, ${primaryRgba(0.3)})` }} />
+            <span className="text-xs tracking-widest uppercase" style={{ color: muted }} data-testid="text-clock-date">
               {dayName}, {dateStr}
             </span>
-            <div className="h-px flex-1" style={{ background: "linear-gradient(to left, transparent, rgba(59,130,246,0.3))" }} />
+            <div className="h-px flex-1" style={{ background: `linear-gradient(to left, transparent, ${primaryRgba(0.3)})` }} />
           </div>
         </div>
       </div>

@@ -182,7 +182,7 @@ export function applyCustomColors(bg: string | null | undefined, primary: string
 export function ThemeApplier() {
   const { data } = useQuery<{ bg: string | null; primary: string | null }>({
     queryKey: ["/api/theme-settings"],
-    staleTime: 30000,
+    staleTime: 0,
   });
 
   useEffect(() => {
