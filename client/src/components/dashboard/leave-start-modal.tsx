@@ -29,22 +29,28 @@ export function LeaveStartModal({ open, leave, staff, onOpenChange }: LeaveStart
   useEffect(() => {
     if (!open || !leave) return;
 
-    // Reset timer when modal opens
-    setTimeRemaining(leaveDurationSeconds);
+    // Calculate remaining time from actual startTime instead of resetting to full duration
+    const startMs = new Date(leave.startTime).getTime();
+    const endMs = startMs + leaveDurationSeconds * 1000;
+    const remaining = Math.max(0, Math.floor((endMs - Date.now()) / 1000));
+    setTimeRemaining(remaining);
     setClockInTime(null);
 
     const interval = setInterval(() => {
-      setTimeRemaining((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
+      const r = Math.max(0, Math.floor((endMs - Date.now()) / 1000));
+      setTimeRemaining(r);
+      if (r <= 0) clearInterval(interval);
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [open, leave]);
+  }, [open, leave, leaveDurationSeconds]);
+
+  // Auto-close 2 seconds after successful clock-in
+  useEffect(() => {
+    if (!clockInTime) return;
+    const timer = setTimeout(() => onOpenChange(false), 2000);
+    return () => clearTimeout(timer);
+  }, [clockInTime]);
 
   if (!leave || !staff) return null;
 
@@ -62,16 +68,27 @@ export function LeaveStartModal({ open, leave, staff, onOpenChange }: LeaveStart
     });
   };
 
-  const handleClose = () => {
-    onOpenChange(false);
-  };
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] glass-panel border-white/10 rounded-2xl">
+    <Dialog
+      open={open}
+      onOpenChange={(val) => {
+        // Block any close attempt until staff has checked in
+        if (!val && !clockInTime) return;
+        onOpenChange(val);
+      }}
+    >
+      <DialogContent
+        className="sm:max-w-[425px] glass-panel border-white/10 rounded-2xl [&>button]:hidden"
+        onEscapeKeyDown={(e) => {
+          if (!clockInTime) e.preventDefault();
+        }}
+        onInteractOutside={(e) => {
+          if (!clockInTime) e.preventDefault();
+        }}
+      >
         <DialogHeader>
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-500/30 to-emerald-500/30 flex items-center justify-center border border-teal-500/30">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-500/30 to-emerald-500/30 flex items-center justify-center border border-teal-500/30 text-lg font-bold text-teal-300">
               {staff.name.charAt(0).toUpperCase()}
             </div>
             <div>
@@ -122,12 +139,12 @@ export function LeaveStartModal({ open, leave, staff, onOpenChange }: LeaveStart
             </div>
           </div>
 
-          {/* Clock In Status */}
+          {/* Clock In Status / Button */}
           {clockInTime ? (
             <div className="space-y-2 p-4 rounded-lg bg-green-500/10 border border-green-500/30">
               <div className="flex items-center gap-2">
                 <CheckCircle className="w-5 h-5 text-green-500" />
-                <span className="text-sm font-medium text-green-400">Sudah Check In</span>
+                <span className="text-sm font-medium text-green-400">Sudah Check In — Menutup otomatis...</span>
               </div>
               <p className="text-xs text-muted-foreground">
                 Jam masuk: {format(clockInTime, "HH:mm:ss")}
@@ -136,7 +153,7 @@ export function LeaveStartModal({ open, leave, staff, onOpenChange }: LeaveStart
           ) : (
             <Button
               onClick={handleClockIn}
-              disabled={isClockingIn || isTimeUp}
+              disabled={isClockingIn}
               className="w-full h-11 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-white font-semibold shadow-lg shadow-teal-500/25 hover:shadow-teal-500/40"
               data-testid="button-clock-in-modal"
             >
@@ -144,15 +161,6 @@ export function LeaveStartModal({ open, leave, staff, onOpenChange }: LeaveStart
               {isClockingIn ? "Memproses..." : "Check In Sekarang"}
             </Button>
           )}
-
-          <Button
-            variant="outline"
-            onClick={handleClose}
-            className="w-full"
-            data-testid="button-close-modal"
-          >
-            Tutup
-          </Button>
         </div>
       </DialogContent>
     </Dialog>
