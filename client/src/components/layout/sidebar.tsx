@@ -4,39 +4,21 @@ import { useAuth } from "@/hooks/use-auth";
 import {
   LayoutDashboard, ChevronDown, ChevronRight,
   Coffee, Briefcase, UserMinus, History,
-  Settings, BarChart2, Shield, Database, Settings2, ShieldCheck,
+  Settings, BarChart2, Shield, Database, Settings2, ShieldCheck, ClipboardList,
 } from "lucide-react";
 import bosjokoLogo from "@assets/image_1773044190239.png";
-
-interface SidebarItem {
-  label: string;
-  icon: React.ReactNode;
-  href?: string;
-  children?: { label: string; href: string; icon: React.ReactNode }[];
-}
 
 export function Sidebar() {
   const [location, navigate] = useLocation();
   const { user } = useAuth();
-  const [openMenu, setOpenMenu] = useState<string | null>("staff-menu");
+  const [staffMenuOpen, setStaffMenuOpen] = useState(
+    ["/izin", "/jobdesk", "/history"].includes(location)
+  );
 
   if (!user) return null;
 
-  const staffMenu: SidebarItem = {
-    label: "Staff & Izin",
-    icon: <Briefcase className="w-4 h-4" />,
-    children: [
-      { label: "Izin Staff", href: "/", icon: <Coffee className="w-4 h-4" /> },
-      { label: "Jobdesk Staff", href: "/?view=jobdesk", icon: <Briefcase className="w-4 h-4" /> },
-      { label: "Staff Cuti", href: "/history", icon: <UserMinus className="w-4 h-4" /> },
-    ],
-  };
-
-  const handleToggle = (key: string) => {
-    setOpenMenu(prev => prev === key ? null : key);
-  };
-
-  const isActive = (href: string) => location === href.split("?")[0];
+  const isActive = (href: string) => location === href;
+  const isStaffMenuActive = ["/izin", "/jobdesk", "/history"].includes(location);
 
   return (
     <aside className="hidden md:flex flex-col w-56 shrink-0 border-r border-white/5 bg-background/95 backdrop-blur-xl h-screen sticky top-0 overflow-y-auto">
@@ -53,11 +35,11 @@ export function Sidebar() {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {/* Dashboard */}
+        {/* Dashboard (Home) */}
         <button
           onClick={() => navigate("/")}
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-            location === "/"
+            isActive("/")
               ? "bg-primary/20 text-primary border border-primary/20"
               : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
           }`}
@@ -70,9 +52,9 @@ export function Sidebar() {
         {/* Staff & Izin Dropdown */}
         <div>
           <button
-            onClick={() => handleToggle("staff-menu")}
+            onClick={() => setStaffMenuOpen(prev => !prev)}
             className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-              openMenu === "staff-menu"
+              isStaffMenuActive || staffMenuOpen
                 ? "bg-white/5 text-foreground"
                 : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
             }`}
@@ -82,31 +64,31 @@ export function Sidebar() {
               <Briefcase className="w-4 h-4 shrink-0" />
               Staff & Izin
             </span>
-            {openMenu === "staff-menu" ? (
+            {staffMenuOpen ? (
               <ChevronDown className="w-3.5 h-3.5 shrink-0" />
             ) : (
               <ChevronRight className="w-3.5 h-3.5 shrink-0" />
             )}
           </button>
 
-          {openMenu === "staff-menu" && (
+          {staffMenuOpen && (
             <div className="mt-1 ml-3 pl-3 border-l border-white/10 space-y-0.5">
               <button
-                onClick={() => navigate("/")}
+                onClick={() => navigate("/izin")}
                 className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-all ${
-                  location === "/"
+                  isActive("/izin")
                     ? "bg-primary/15 text-primary"
                     : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
                 }`}
                 data-testid="sidebar-izin-staff"
               >
-                <Coffee className="w-3.5 h-3.5 shrink-0" />
+                <ClipboardList className="w-3.5 h-3.5 shrink-0" />
                 Izin Staff
               </button>
               <button
                 onClick={() => navigate("/jobdesk")}
                 className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-all ${
-                  location === "/jobdesk"
+                  isActive("/jobdesk")
                     ? "bg-primary/15 text-primary"
                     : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
                 }`}
@@ -118,7 +100,7 @@ export function Sidebar() {
               <button
                 onClick={() => navigate("/history")}
                 className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-all ${
-                  location === "/history"
+                  isActive("/history")
                     ? "bg-primary/15 text-primary"
                     : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
                 }`}
@@ -131,11 +113,11 @@ export function Sidebar() {
           )}
         </div>
 
-        {/* Riwayat */}
+        {/* Riwayat Izin */}
         <button
           onClick={() => navigate("/history")}
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-            location === "/history"
+            isActive("/history")
               ? "bg-primary/20 text-primary border border-primary/20"
               : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
           }`}
@@ -154,7 +136,7 @@ export function Sidebar() {
             <button
               onClick={() => navigate("/analytics")}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                location === "/analytics"
+                isActive("/analytics")
                   ? "bg-primary/20 text-primary border border-primary/20"
                   : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
               }`}
@@ -166,7 +148,7 @@ export function Sidebar() {
             <button
               onClick={() => navigate("/audit-log")}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                location === "/audit-log"
+                isActive("/audit-log")
                   ? "bg-primary/20 text-primary border border-primary/20"
                   : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
               }`}
@@ -178,7 +160,7 @@ export function Sidebar() {
             <button
               onClick={() => navigate("/leave-rules")}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                location === "/leave-rules"
+                isActive("/leave-rules")
                   ? "bg-primary/20 text-primary border border-primary/20"
                   : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
               }`}
@@ -190,7 +172,7 @@ export function Sidebar() {
             <button
               onClick={() => navigate("/backup")}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                location === "/backup"
+                isActive("/backup")
                   ? "bg-primary/20 text-primary border border-primary/20"
                   : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
               }`}
@@ -202,7 +184,7 @@ export function Sidebar() {
             <button
               onClick={() => navigate("/permissions")}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                location === "/permissions"
+                isActive("/permissions")
                   ? "bg-primary/20 text-primary border border-primary/20"
                   : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
               }`}
@@ -214,7 +196,7 @@ export function Sidebar() {
             <button
               onClick={() => navigate("/settings")}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                location === "/settings"
+                isActive("/settings")
                   ? "bg-primary/20 text-primary border border-primary/20"
                   : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
               }`}
