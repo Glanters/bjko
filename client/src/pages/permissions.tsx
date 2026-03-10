@@ -161,7 +161,7 @@ function PermissionRoleRow({ role, perm, allJobdesks, onSave, onDelete }: {
       {/* Allowed Jobdesks — multi-select dropdown */}
       {allJobdesks.length > 0 && (
         <div>
-          <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">Jobdesk yang Diizinkan</p>
+          <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">Jabatan yang Diizinkan</p>
           <Popover>
             <PopoverTrigger asChild>
               <button
