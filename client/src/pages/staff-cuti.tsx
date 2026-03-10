@@ -50,11 +50,11 @@ export default function StaffCuti() {
   const isAdmin = user?.role === "admin";
   const isCsLine = useMemo(() => {
     if (!staffList || !user) return false;
-    return staffList.some(s => s.name === user.username && s.jobdesk === "CS LINE");
+    return staffList.some(s => s.name.toLowerCase() === user.username.toLowerCase() && s.jobdesk?.toUpperCase() === "CS LINE");
   }, [staffList, user]);
   const isKapten = useMemo(() => {
     if (!staffList || !user) return false;
-    return staffList.some(s => s.name === user.username && s.role?.toLowerCase() === "kapten");
+    return staffList.some(s => s.name.toLowerCase() === user.username.toLowerCase() && s.jobdesk?.toUpperCase() === "KAPTEN");
   }, [staffList, user]);
 
   const canEdit = isAdmin || isCsLine || isKapten;

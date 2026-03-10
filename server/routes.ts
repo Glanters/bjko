@@ -810,14 +810,14 @@ export async function registerRoutes(
     const u = await storage.getUser(userId);
     if (!u || u.role !== 'agent') return false;
     const staffList = await storage.getStaff();
-    return staffList.some(s => s.name === u.username && s.jobdesk === "CS LINE");
+    return staffList.some(s => s.name.toLowerCase() === u.username.toLowerCase() && s.jobdesk?.toUpperCase() === "CS LINE");
   };
 
   const isKapten = async (userId: number): Promise<boolean> => {
     const u = await storage.getUser(userId);
     if (!u) return false;
     const staffList = await storage.getStaff();
-    return staffList.some(s => s.name === u.username && s.role?.toLowerCase() === "kapten");
+    return staffList.some(s => s.name.toLowerCase() === u.username.toLowerCase() && s.jobdesk?.toUpperCase() === "KAPTEN");
   };
 
   // PATCH /api/staff/:id - Update staff fields (name requires canEditName, jobdesk/shift requires canEditJobdesk)

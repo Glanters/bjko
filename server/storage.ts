@@ -1,6 +1,6 @@
 import { users, staff, leaves, auditLogs, settings, staffPermissions, type User, type InsertUser, type Staff, type InsertStaff, type Leave, type InsertLeave, type AuditLog, type InsertAuditLog, type Setting, type StaffPermission, type InsertStaffPermission } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -226,7 +226,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPermissionByRole(role: string): Promise<StaffPermission | undefined> {
-    const [perm] = await db.select().from(staffPermissions).where(eq(staffPermissions.role, role));
+    const [perm] = await db.select().from(staffPermissions)
+      .where(sql`lower(${staffPermissions.role}) = lower(${role})`);
     return perm;
   }
 
@@ -245,7 +246,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deletePermission(role: string): Promise<boolean> {
-    const result = await db.delete(staffPermissions).where(eq(staffPermissions.role, role));
+    const result = await db.delete(staffPermissions)
+      .where(sql`lower(${staffPermissions.role}) = lower(${role})`);
     return !!result;
   }
 }

@@ -247,7 +247,7 @@ export default function Permissions() {
 
   const saveMutation = useMutation({
     mutationFn: ({ role, data }: { role: string; data: any }) =>
-      apiRequest("POST", `/api/permissions/${role}`, data),
+      apiRequest("POST", `/api/permissions/${encodeURIComponent(role)}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/permissions"] });
       toast({ title: "Izin disimpan" });
@@ -256,7 +256,7 @@ export default function Permissions() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (role: string) => apiRequest("DELETE", `/api/permissions/${role}`),
+    mutationFn: (role: string) => apiRequest("DELETE", `/api/permissions/${encodeURIComponent(role)}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/permissions"] });
       toast({ title: "Izin dihapus" });
