@@ -8,7 +8,7 @@ import { AnimatedClock } from "@/components/dashboard/animated-clock";
 import { useStaff } from "@/hooks/use-staff";
 import { useLeaves } from "@/hooks/use-leaves";
 import { Badge } from "@/components/ui/badge";
-import { Users, Coffee, UserCheck, ShieldCheck, Activity } from "lucide-react";
+import { Users, Coffee, UserCheck, Activity } from "lucide-react";
 
 function WelcomeBanner() {
   const { user } = useAuth();
@@ -39,7 +39,6 @@ function StatsCards() {
 
   const totalStaff = staffList?.length ?? 0;
   const agentCount = staffList?.filter(s => s.role === "agent").length ?? 0;
-  const adminCount = staffList?.filter(s => s.role === "admin").length ?? 0;
 
   const localMidnight = new Date();
   localMidnight.setHours(0, 0, 0, 0);
@@ -49,47 +48,36 @@ function StatsCards() {
   ).length ?? 0;
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-3 gap-4 mb-6">
       {/* Total Users */}
-      <div className="glass-panel rounded-2xl border border-white/10 p-5 flex flex-col items-center justify-center text-center">
-        <div className="w-12 h-12 rounded-xl bg-primary/20 border border-primary/20 flex items-center justify-center mb-2">
-          <Users className="w-6 h-6 text-primary" />
+      <div className="glass-panel rounded-2xl border border-white/10 p-4 flex flex-col items-center justify-center text-center">
+        <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/20 flex items-center justify-center mb-2">
+          <Users className="w-5 h-5 text-primary" />
         </div>
         <p className="text-xs font-semibold text-muted-foreground">Total Users</p>
-        <p className="text-3xl font-bold text-gradient mt-1">{totalStaff}</p>
-        <p className="text-xs text-muted-foreground mt-0.5">{totalStaff} Users</p>
+        <p className="text-2xl font-bold text-gradient mt-1">{totalStaff}</p>
+        <p className="text-[11px] text-muted-foreground mt-0.5">{totalStaff} Users</p>
       </div>
 
       {/* Agent */}
-      <div className="glass-panel rounded-2xl border border-blue-500/20 p-5 flex flex-col items-center justify-center text-center">
-        <div className="w-12 h-12 rounded-xl bg-blue-500/20 border border-blue-500/20 flex items-center justify-center mb-2">
-          <UserCheck className="w-6 h-6 text-blue-400" />
+      <div className="glass-panel rounded-2xl border border-blue-500/20 p-4 flex flex-col items-center justify-center text-center">
+        <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/20 flex items-center justify-center mb-2">
+          <UserCheck className="w-5 h-5 text-blue-400" />
         </div>
         <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Agent</p>
-        <p className="text-3xl font-bold text-blue-400 mt-1">{agentCount}</p>
+        <p className="text-2xl font-bold text-blue-400 mt-1">{agentCount}</p>
         <p className="text-[11px] text-muted-foreground mt-0.5">{agentCount} Users</p>
         <p className="text-[10px] text-muted-foreground">Kategori Role Aktif</p>
       </div>
 
-      {/* Admin */}
-      <div className="glass-panel rounded-2xl border border-purple-500/20 p-5 flex flex-col items-center justify-center text-center">
-        <div className="w-12 h-12 rounded-xl bg-purple-500/20 border border-purple-500/20 flex items-center justify-center mb-2">
-          <ShieldCheck className="w-6 h-6 text-purple-400" />
-        </div>
-        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Admin</p>
-        <p className="text-3xl font-bold text-purple-400 mt-1">{adminCount}</p>
-        <p className="text-[11px] text-muted-foreground mt-0.5">{adminCount} Users</p>
-        <p className="text-[10px] text-muted-foreground">Kategori Role Aktif</p>
-      </div>
-
       {/* Sedang Cuti */}
-      <div className="glass-panel rounded-2xl border border-amber-500/20 p-5 flex flex-col items-center justify-center text-center">
-        <div className="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/20 flex items-center justify-center mb-2">
-          <Coffee className="w-6 h-6 text-amber-400" />
+      <div className="glass-panel rounded-2xl border border-amber-500/20 p-4 flex flex-col items-center justify-center text-center">
+        <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/20 flex items-center justify-center mb-2">
+          <Coffee className="w-5 h-5 text-amber-400" />
         </div>
         <p className="text-xs font-semibold text-muted-foreground">Sedang Cuti</p>
-        <p className="text-3xl font-bold text-amber-400 mt-1">{sedangCuti}</p>
-        <p className="text-xs text-muted-foreground mt-0.5">{sedangCuti} Users</p>
+        <p className="text-2xl font-bold text-amber-400 mt-1">{sedangCuti}</p>
+        <p className="text-[11px] text-muted-foreground mt-0.5">{sedangCuti} Users</p>
       </div>
     </div>
   );
