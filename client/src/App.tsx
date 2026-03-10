@@ -7,7 +7,6 @@ import { ThemeProvider, ThemeApplier } from "@/components/theme-provider";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/login";
 import Home from "@/pages/home";
-import Dashboard from "@/pages/dashboard";
 import Izin from "@/pages/izin";
 import Settings from "@/pages/settings";
 import History from "@/pages/history";

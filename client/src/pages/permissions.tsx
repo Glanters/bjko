@@ -301,7 +301,7 @@ export default function Permissions() {
             <div className="space-y-4">
               {uniqueNonAdminRoles.map(role => (
                 <PermissionRoleRow
-                  key={role}
+                  key={`${role}-${getPermForRole(role)?.id ?? 'new'}`}
                   role={role}
                   perm={getPermForRole(role)}
                   allJobdesks={allJobdesks}
