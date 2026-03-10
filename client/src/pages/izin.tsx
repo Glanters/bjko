@@ -30,8 +30,9 @@ export default function Izin() {
                 Izin Staff
               </h2>
               <p className="text-sm text-muted-foreground mt-1">
-                Monitor dan kelola izin staff secara real-time ·{" "}
+                Selamat datang,{" "}
                 <span className="text-foreground font-semibold uppercase">{user.username}</span>
+                {" · "}Pantau aktivitas staff secara real-time.
               </p>
             </div>
             <AddStaffDialog />
