@@ -22,6 +22,7 @@ import Permissions from "@/pages/permissions";
 import StaffCuti from "@/pages/staff-cuti";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
+import { NavigationProgress, PageTransition } from "@/components/layout/page-transition";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { user, isLoading } = useAuth();
@@ -77,51 +78,53 @@ function AuthRoute({ component: Component }: { component: React.ComponentType })
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/login">
-        {() => <AuthRoute component={Login} />}
-      </Route>
-      <Route path="/">
-        {() => <ProtectedRoute component={Home} />}
-      </Route>
-      <Route path="/izin">
-        {() => <ProtectedRoute component={Izin} />}
-      </Route>
-      <Route path="/history">
-        {() => <ProtectedRoute component={History} />}
-      </Route>
-      <Route path="/settings">
-        {() => <AdminRoute component={Settings} />}
-      </Route>
-      <Route path="/analytics">
-        {() => <AdminRoute component={Analytics} />}
-      </Route>
-      <Route path="/audit-log">
-        {() => <AdminRoute component={AuditLog} />}
-      </Route>
-      <Route path="/backup">
-        {() => <AdminRoute component={Backup} />}
-      </Route>
-      <Route path="/leave-rules">
-        {() => <AdminRoute component={LeaveRules} />}
-      </Route>
-      <Route path="/profile">
-        {() => <ProtectedRoute component={Profile} />}
-      </Route>
-      <Route path="/welcome">
-        {() => <ProtectedRoute component={Welcome} />}
-      </Route>
-      <Route path="/jobdesk">
-        {() => <ProtectedRoute component={Jobdesk} />}
-      </Route>
-      <Route path="/permissions">
-        {() => <AdminRoute component={Permissions} />}
-      </Route>
-      <Route path="/staff-cuti">
-        {() => <ProtectedRoute component={StaffCuti} />}
-      </Route>
-      <Route component={NotFound} />
-    </Switch>
+    <PageTransition>
+      <Switch>
+        <Route path="/login">
+          {() => <AuthRoute component={Login} />}
+        </Route>
+        <Route path="/">
+          {() => <ProtectedRoute component={Home} />}
+        </Route>
+        <Route path="/izin">
+          {() => <ProtectedRoute component={Izin} />}
+        </Route>
+        <Route path="/history">
+          {() => <ProtectedRoute component={History} />}
+        </Route>
+        <Route path="/settings">
+          {() => <AdminRoute component={Settings} />}
+        </Route>
+        <Route path="/analytics">
+          {() => <AdminRoute component={Analytics} />}
+        </Route>
+        <Route path="/audit-log">
+          {() => <AdminRoute component={AuditLog} />}
+        </Route>
+        <Route path="/backup">
+          {() => <AdminRoute component={Backup} />}
+        </Route>
+        <Route path="/leave-rules">
+          {() => <AdminRoute component={LeaveRules} />}
+        </Route>
+        <Route path="/profile">
+          {() => <ProtectedRoute component={Profile} />}
+        </Route>
+        <Route path="/welcome">
+          {() => <ProtectedRoute component={Welcome} />}
+        </Route>
+        <Route path="/jobdesk">
+          {() => <ProtectedRoute component={Jobdesk} />}
+        </Route>
+        <Route path="/permissions">
+          {() => <AdminRoute component={Permissions} />}
+        </Route>
+        <Route path="/staff-cuti">
+          {() => <ProtectedRoute component={StaffCuti} />}
+        </Route>
+        <Route component={NotFound} />
+      </Switch>
+    </PageTransition>
   );
 }
 
@@ -132,6 +135,7 @@ function App() {
         <ThemeApplier />
         <TooltipProvider>
           <div className="dark">
+            <NavigationProgress />
             <Toaster />
             <Router />
           </div>
