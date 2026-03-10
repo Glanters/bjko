@@ -797,21 +797,28 @@ export async function registerRoutes(
     return staffList.some(s => s.name === u.username && s.role?.toLowerCase() === "kapten");
   };
 
-  // PATCH /api/staff/:id - Update staff name, jobdesk, and shift (admin or canEditJobdesk)
+  // PATCH /api/staff/:id - Update staff fields (name requires canEditName, jobdesk/shift requires canEditJobdesk)
   app.patch("/api/staff/:id", async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
     const user = await storage.getUser(req.session.userId);
     if (!user) return res.status(401).json({ message: "Unauthorized" });
     const perm = await storage.getPermissionByRole(user.role);
-    if (user.role !== 'admin' && !perm?.canEditJobdesk) return res.status(403).json({ message: "Forbidden: Tidak ada izin edit staff" });
+    const isAdmin = user.role === 'admin';
+    const canChangeJobdesk = isAdmin || !!perm?.canEditJobdesk;
+    const canChangeName = isAdmin || !!perm?.canEditName;
+    if (!canChangeJobdesk && !canChangeName) return res.status(403).json({ message: "Forbidden: Tidak ada izin edit staff" });
     try {
       const staffId = parseInt(req.params.id);
+      const allStaff = await storage.getStaff();
+      const existing = allStaff.find(s => s.id === staffId);
+      if (!existing) return res.status(404).json({ message: "Staff tidak ditemukan" });
       const { name, jobdesk, shift } = req.body;
-      if (!name || !jobdesk) return res.status(400).json({ message: "Nama dan jobdesk wajib diisi" });
       const VALID_SHIFTS = ["PAGI", "SORE", "MALAM"];
-      const updatedShift = VALID_SHIFTS.includes(shift) ? shift : "PAGI";
-      const updated = await storage.updateStaffFull(staffId, name.trim(), jobdesk.trim(), updatedShift);
-      await logAudit(req.session.userId, "UPDATE_STAFF", `Staff #${staffId} diupdate: ${name} / ${jobdesk} / ${updatedShift}`);
+      const finalName = canChangeName && name ? name.trim() : existing.name;
+      const finalJobdesk = canChangeJobdesk && jobdesk ? jobdesk.trim() : existing.jobdesk;
+      const finalShift = canChangeJobdesk && shift ? (VALID_SHIFTS.includes(shift) ? shift : existing.shift) : existing.shift;
+      const updated = await storage.updateStaffFull(staffId, finalName, finalJobdesk, finalShift);
+      await logAudit(req.session.userId, "UPDATE_STAFF", `Staff #${staffId} diupdate: ${finalName} / ${finalJobdesk} / ${finalShift}`);
       res.json(updated);
     } catch {
       res.status(500).json({ message: "Internal server error" });

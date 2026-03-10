@@ -68,7 +68,9 @@ export default function Jobdesk() {
   const today = format(new Date(), "EEEE, dd MMM yyyy", { locale: localeId });
 
   const isAdmin = user?.role === "admin";
-  const canEdit = isAdmin || !!myPerm?.canEditJobdesk;
+  const canEditJobdeskPerm = isAdmin || !!myPerm?.canEditJobdesk;
+  const canEditNamePerm = isAdmin || !!myPerm?.canEditName;
+  const canEdit = canEditJobdeskPerm || canEditNamePerm;
   const canAdd = isAdmin || !!myPerm?.canAddStaff;
   const canDelete = isAdmin || !!myPerm?.canDeleteStaff;
 
@@ -122,8 +124,9 @@ export default function Jobdesk() {
     if (!editId) return;
     const nameVal = editName.trim();
     const jobdeskVal = editNewJobdeskMode ? editNewJobdeskText.trim() : editJobdesk;
-    if (!nameVal || !jobdeskVal) return;
-    if (editNewJobdeskMode && !allJobdesks.includes(jobdeskVal)) {
+    if (canEditNamePerm && !nameVal) return;
+    if (canEditJobdeskPerm && !jobdeskVal) return;
+    if (canEditJobdeskPerm && editNewJobdeskMode && !allJobdesks.includes(jobdeskVal)) {
       addToMaster(jobdeskVal);
     }
     updateStaff({ id: editId, name: nameVal, jobdesk: jobdeskVal, shift: editShift }, {
@@ -315,8 +318,8 @@ export default function Jobdesk() {
                   >
                     <span className="font-bold text-foreground uppercase tracking-wide text-sm">{s.name}</span>
 
-                    {/* Shift cell — inline dropdown for canEdit users */}
-                    {canEdit ? (
+                    {/* Shift cell — inline dropdown for canEditJobdeskPerm users */}
+                    {canEditJobdeskPerm ? (
                       <Select
                         value={s.shift}
                         onValueChange={(newShift) => {
@@ -530,71 +533,77 @@ export default function Jobdesk() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nama Staff</label>
-              <Input
-                placeholder="Masukkan nama staff..."
-                value={editName}
-                onChange={e => setEditName(e.target.value)}
-                className="bg-background/50 border-white/10 focus-visible:ring-primary/30"
-                data-testid="input-edit-name"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Shift</label>
-              <Select value={editShift} onValueChange={(v) => setEditShift(v as Shift)}>
-                <SelectTrigger className="bg-background/50 border-white/10" data-testid="select-edit-shift">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {SHIFTS.map(s => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Jabatan</label>
-              {editNewJobdeskMode ? (
-                <div className="flex gap-2">
-                  <Input
-                    autoFocus
-                    placeholder="Ketik jabatan baru..."
-                    value={editNewJobdeskText}
-                    onChange={e => setEditNewJobdeskText(e.target.value)}
-                    className="bg-background/50 border-white/10 focus-visible:ring-primary/30"
-                    data-testid="input-edit-new-jobdesk"
-                  />
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => { setEditNewJobdeskMode(false); setEditNewJobdeskText(""); }}
-                    className="shrink-0"
-                    data-testid="button-cancel-new-jobdesk-edit"
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
+            {canEditNamePerm && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nama Staff</label>
+                <Input
+                  placeholder="Masukkan nama staff..."
+                  value={editName}
+                  onChange={e => setEditName(e.target.value)}
+                  className="bg-background/50 border-white/10 focus-visible:ring-primary/30"
+                  data-testid="input-edit-name"
+                />
+              </div>
+            )}
+            {canEditJobdeskPerm && (
+              <>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Shift</label>
+                  <Select value={editShift} onValueChange={(v) => setEditShift(v as Shift)}>
+                    <SelectTrigger className="bg-background/50 border-white/10" data-testid="select-edit-shift">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SHIFTS.map(s => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              ) : (
-                <Select value={editJobdesk} onValueChange={(v) => {
-                  if (v === "__new__") { setEditNewJobdeskMode(true); setEditNewJobdeskText(""); }
-                  else setEditJobdesk(v);
-                }}>
-                  <SelectTrigger className="bg-background/50 border-white/10" data-testid="select-edit-jobdesk">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {allJobdesks.map(j => (
-                      <SelectItem key={j} value={j}>{j}</SelectItem>
-                    ))}
-                    <div className="border-t border-white/10 my-1" />
-                    <SelectItem value="__new__" className="text-primary">
-                      <span className="flex items-center gap-1"><Plus className="w-3 h-3" /> Jabatan Baru</span>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Jabatan</label>
+                  {editNewJobdeskMode ? (
+                    <div className="flex gap-2">
+                      <Input
+                        autoFocus
+                        placeholder="Ketik jabatan baru..."
+                        value={editNewJobdeskText}
+                        onChange={e => setEditNewJobdeskText(e.target.value)}
+                        className="bg-background/50 border-white/10 focus-visible:ring-primary/30"
+                        data-testid="input-edit-new-jobdesk"
+                      />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => { setEditNewJobdeskMode(false); setEditNewJobdeskText(""); }}
+                        className="shrink-0"
+                        data-testid="button-cancel-new-jobdesk-edit"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Select value={editJobdesk} onValueChange={(v) => {
+                      if (v === "__new__") { setEditNewJobdeskMode(true); setEditNewJobdeskText(""); }
+                      else setEditJobdesk(v);
+                    }}>
+                      <SelectTrigger className="bg-background/50 border-white/10" data-testid="select-edit-jobdesk">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allJobdesks.map(j => (
+                          <SelectItem key={j} value={j}>{j}</SelectItem>
+                        ))}
+                        <div className="border-t border-white/10 my-1" />
+                        <SelectItem value="__new__" className="text-primary">
+                          <span className="flex items-center gap-1"><Plus className="w-3 h-3" /> Jabatan Baru</span>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              </>
+            )}
           </div>
           <DialogFooter className="gap-2">
             <Button
@@ -607,7 +616,7 @@ export default function Jobdesk() {
             </Button>
             <Button
               onClick={handleEdit}
-              disabled={isSaving || !editName.trim() || !(editNewJobdeskMode ? editNewJobdeskText.trim() : editJobdesk)}
+              disabled={isSaving || (canEditNamePerm && !editName.trim()) || (canEditJobdeskPerm && !(editNewJobdeskMode ? editNewJobdeskText.trim() : editJobdesk))}
               className="bg-primary hover:bg-primary/80"
               data-testid="button-confirm-edit-staff"
             >
