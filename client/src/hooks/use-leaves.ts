@@ -38,7 +38,15 @@ export function useCreateLeave() {
       const data = await res.json();
       return api.leaves.create.responses[201].parse(data);
     },
-    onSuccess: () => {
+    onSuccess: (newLeave) => {
+      // Immediately insert new leave into cache so counter updates instantly
+      queryClient.setQueryData([api.leaves.list.path], (old: Leave[] | undefined) => {
+        if (!old) return [newLeave];
+        // Avoid duplicate if polling already got it
+        if (old.some(l => l.id === newLeave.id)) return old;
+        return [...old, newLeave];
+      });
+      // Also invalidate to ensure full consistency from server
       queryClient.invalidateQueries({ queryKey: [api.leaves.list.path] });
       toast({
         title: "Izin Dimulai",

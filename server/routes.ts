@@ -696,11 +696,11 @@ export async function registerRoutes(
     res.json(agents.map(u => ({ id: u.id, username: u.username, role: u.role })));
   });
 
-  // GET /api/settings
+  // GET /api/settings — all authenticated users can READ settings (only admin can WRITE via POST)
   app.get("/api/settings", async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
     const user = await storage.getUser(req.session.userId);
-    if (!user || user.role !== 'admin') return res.status(403).json({ message: "Forbidden" });
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
     const allSettings = await storage.getAllSettings();
     const obj: Record<string, string> = {};
     for (const s of allSettings) obj[s.key] = s.value;

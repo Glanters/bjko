@@ -20,6 +20,7 @@ import { StaffSearch } from "./staff-search";
 import { EditStaffDialog } from "./edit-staff-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useDeleteStaff } from "@/hooks/use-delete-staff";
+import { useMaxLeaves } from "@/hooks/use-leave-settings";
 import type { Staff, Leave } from "@shared/schema";
 
 export function StaffTable() {
@@ -35,6 +36,7 @@ export function StaffTable() {
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const { mutate: deleteStaff, isPending: isDeletingStaff } = useDeleteStaff();
+  const maxLeaves = useMaxLeaves();
 
   if (isStaffLoading || isLeavesLoading) {
     return (
@@ -52,11 +54,11 @@ export function StaffTable() {
   const todaysLeaves = leaves.filter(l => new Date(l.startTime) >= localMidnight);
 
   const handleLeave = (staffId: number, currentLeavesCount: number, staff: Staff) => {
-    if (currentLeavesCount >= 4) {
+    if (currentLeavesCount >= maxLeaves) {
       toast({
         variant: "destructive",
         title: "Limit Tercapai",
-        description: "Staff ini sudah mencapai batas maksimal 4x izin hari ini.",
+        description: `Staff ini sudah mencapai batas maksimal ${maxLeaves}x izin hari ini.`,
       });
       return;
     }
@@ -130,7 +132,7 @@ export function StaffTable() {
   const StaffRow = ({ staff }: { staff: Staff }) => {
     const staffLeavesToday = todaysLeaves.filter(l => l.staffId === staff.id);
     const leavesCount = staffLeavesToday.length;
-    const isLimitReached = leavesCount >= 4;
+    const isLimitReached = leavesCount >= maxLeaves;
     const hasActiveLeave = staffLeavesToday.some(l => !l.clockInTime);
     // Only truly disabled during pending or limit — for active leave we handle via onClick toast
     const isButtonDisabled = isPending || isLimitReached;
@@ -156,7 +158,7 @@ export function StaffTable() {
               ? 'bg-destructive/20 text-destructive border border-destructive/30' 
               : 'bg-primary/10 text-primary border border-primary/20'
           }`}>
-            {leavesCount}/4
+            {leavesCount}/{maxLeaves}
           </span>
         </TableCell>
         <TableCell className="text-center">

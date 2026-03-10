@@ -15,6 +15,12 @@ export function useLeaveDuration() {
   return raw ? parseInt(raw) : 900;
 }
 
+export function useMaxLeaves() {
+  const { data: settings } = useLeaveSettings();
+  const raw = settings?.max_leaves_per_day;
+  return raw ? parseInt(raw) : 4;
+}
+
 export function useUpdateLeaveSetting() {
   const { toast } = useToast();
   return useMutation({
