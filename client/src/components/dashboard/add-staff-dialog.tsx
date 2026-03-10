@@ -30,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Users } from "lucide-react";
+import { Plus, Users, Check } from "lucide-react";
 
 type InsertStaffForm = z.infer<typeof api.staff.create.input>;
 
@@ -40,6 +40,7 @@ export function AddStaffDialog() {
   const { jobdesks, isLoading: jobdesksLoading } = useUniqueJobdesks();
   const [isNewJobdesk, setIsNewJobdesk] = useState(false);
   const [newJobdeskValue, setNewJobdeskValue] = useState("");
+  const [extraJobdesks, setExtraJobdesks] = useState<string[]>([]);
 
   const form = useForm<InsertStaffForm>({
     resolver: zodResolver(api.staff.create.input),
@@ -64,6 +65,7 @@ export function AddStaffDialog() {
   const handleJobdeskChange = (value: string) => {
     if (value === "new") {
       setIsNewJobdesk(true);
+      setNewJobdeskValue("");
       form.setValue("jobdesk", "");
     } else {
       setIsNewJobdesk(false);
@@ -71,8 +73,28 @@ export function AddStaffDialog() {
     }
   };
 
+  const handleConfirmNewJobdesk = () => {
+    const trimmed = newJobdeskValue.trim();
+    if (!trimmed) return;
+    if (!extraJobdesks.includes(trimmed) && !jobdesks.includes(trimmed)) {
+      setExtraJobdesks(prev => [...prev, trimmed]);
+    }
+    form.setValue("jobdesk", trimmed);
+    setIsNewJobdesk(false);
+    setNewJobdeskValue("");
+  };
+
+  const allJobdesks = [...new Set([...jobdesks, ...extraJobdesks])].sort();
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(val) => {
+      setOpen(val);
+      if (!val) {
+        form.reset();
+        setIsNewJobdesk(false);
+        setNewJobdeskValue("");
+      }
+    }}>
       <DialogTrigger asChild>
         <Button className="bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40 transition-all rounded-xl">
           <Plus className="w-4 h-4 mr-2" />
@@ -116,18 +138,53 @@ export function AddStaffDialog() {
                 <FormItem>
                   <FormLabel className="text-foreground/80">Jobdesk</FormLabel>
                   {isNewJobdesk ? (
-                    <FormControl>
-                      <Input 
-                        placeholder="Masukkan jobdesk baru" 
-                        className="bg-background/50 border-white/10 focus-visible:ring-primary/30 rounded-xl h-11" 
-                        value={newJobdeskValue}
-                        onChange={(e) => {
-                          setNewJobdeskValue(e.target.value);
-                          field.onChange(e.target.value);
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <FormControl>
+                          <Input 
+                            placeholder="Masukkan jobdesk baru" 
+                            className="bg-background/50 border-white/10 focus-visible:ring-primary/30 rounded-xl h-11" 
+                            value={newJobdeskValue}
+                            onChange={(e) => {
+                              setNewJobdeskValue(e.target.value);
+                              field.onChange(e.target.value);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleConfirmNewJobdesk();
+                              }
+                            }}
+                            autoFocus
+                            data-testid="input-new-jobdesk"
+                          />
+                        </FormControl>
+                        <Button
+                          type="button"
+                          onClick={handleConfirmNewJobdesk}
+                          disabled={!newJobdeskValue.trim()}
+                          className="h-11 px-3 rounded-xl bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary shrink-0"
+                          data-testid="button-confirm-new-jobdesk"
+                        >
+                          <Check className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Tekan Enter atau klik ✓ untuk menyimpan jobdesk</p>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setIsNewJobdesk(false);
+                          setNewJobdeskValue("");
+                          form.setValue("jobdesk", "");
                         }}
-                        data-testid="input-new-jobdesk"
-                      />
-                    </FormControl>
+                        className="h-8 text-muted-foreground"
+                        data-testid="button-cancel-new-jobdesk"
+                      >
+                        ← Kembali ke pilihan
+                      </Button>
+                    </div>
                   ) : (
                     <Select 
                       value={field.value} 
@@ -140,9 +197,9 @@ export function AddStaffDialog() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {jobdesks.length > 0 && (
+                        {allJobdesks.length > 0 && (
                           <>
-                            {jobdesks.map((jobdesk) => (
+                            {allJobdesks.map((jobdesk) => (
                               <SelectItem key={jobdesk} value={jobdesk} data-testid={`jobdesk-option-${jobdesk}`}>
                                 {jobdesk}
                               </SelectItem>
@@ -155,22 +212,6 @@ export function AddStaffDialog() {
                         </SelectItem>
                       </SelectContent>
                     </Select>
-                  )}
-                  {isNewJobdesk && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setIsNewJobdesk(false);
-                        setNewJobdeskValue("");
-                        form.setValue("jobdesk", "");
-                      }}
-                      className="mt-2 h-8"
-                      data-testid="button-cancel-new-jobdesk"
-                    >
-                      ← Kembali ke pilihan
-                    </Button>
                   )}
                   <FormMessage />
                 </FormItem>

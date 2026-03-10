@@ -1,19 +1,21 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import type { Staff } from "@shared/schema";
 
 export function useUniqueJobdesks() {
-  const [jobdesks, setJobdesks] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const query = useQuery({
+    queryKey: ["/api/staff"],
+    queryFn: () =>
+      fetch("/api/staff", { credentials: "include" })
+        .then(r => r.json())
+        .then((staffList: Staff[]) => {
+          const unique = [...new Set(staffList.map(s => s.jobdesk))];
+          return unique.sort();
+        }),
+    staleTime: 0,
+  });
 
-  useEffect(() => {
-    fetch("/api/staff", { credentials: "include" })
-      .then(r => r.json())
-      .then((staffList: Staff[]) => {
-        const unique = [...new Set(staffList.map(s => s.jobdesk))];
-        setJobdesks(unique.sort());
-      })
-      .finally(() => setIsLoading(false));
-  }, []);
-
-  return { jobdesks, isLoading };
+  return {
+    jobdesks: query.data ?? [],
+    isLoading: query.isLoading,
+  };
 }
