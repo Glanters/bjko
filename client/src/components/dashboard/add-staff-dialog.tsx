@@ -37,7 +37,7 @@ import type { StaffPermission } from "@shared/schema";
 
 const staffFormSchema = z.object({
   name: z.string().min(1, "Nama wajib diisi"),
-  jobdesk: z.string().min(1, "Jobdesk wajib dipilih"),
+  jobdesk: z.string().min(1, "Jabatan wajib dipilih"),
   role: z.string().default("agent"),
   shift: z.string().default("PAGI"),
 });
@@ -314,7 +314,7 @@ export function AddStaffDialog() {
                       <div className="flex gap-2">
                         <FormControl>
                           <Input
-                            placeholder="Masukkan jobdesk baru"
+                            placeholder="Masukkan jabatan baru"
                             className="bg-background/50 border-white/10 focus-visible:ring-primary/30 rounded-xl h-11"
                             value={newJobdeskValue}
                             onChange={(e) => {
@@ -341,7 +341,7 @@ export function AddStaffDialog() {
                           <Check className="w-4 h-4" />
                         </Button>
                       </div>
-                      <p className="text-xs text-muted-foreground">Tekan Enter atau klik ✓ untuk menyimpan jobdesk</p>
+                      <p className="text-xs text-muted-foreground">Tekan Enter atau klik ✓ untuk menyimpan jabatan</p>
                       <Button
                         type="button"
                         variant="ghost"
@@ -368,7 +368,7 @@ export function AddStaffDialog() {
                           className="bg-background/50 border-white/10 focus:ring-primary/30 rounded-xl h-11"
                           data-testid="select-jobdesk"
                         >
-                          <SelectValue placeholder="Pilih atau buat jobdesk baru" />
+                          <SelectValue placeholder="Pilih atau buat jabatan baru" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -384,7 +384,7 @@ export function AddStaffDialog() {
                         )}
                         {isAdmin && (
                           <SelectItem value="new" className="text-primary" data-testid="jobdesk-option-new">
-                            + Tambah Jobdesk Baru
+                            + Tambah Jabatan Baru
                           </SelectItem>
                         )}
                       </SelectContent>

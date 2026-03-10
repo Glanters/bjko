@@ -180,7 +180,7 @@ export default function StaffCuti() {
               {/* Column headers */}
               <div className={`grid ${canEdit ? "grid-cols-4" : "grid-cols-3"} px-6 py-3 border-b border-white/10 bg-primary/5`}>
                 <span className="text-xs font-bold text-primary/70 uppercase tracking-widest">Nama Staff</span>
-                <span className="text-xs font-bold text-primary/70 uppercase tracking-widest">Jobdesk</span>
+                <span className="text-xs font-bold text-primary/70 uppercase tracking-widest">Jabatan</span>
                 <span className="text-xs font-bold text-primary/70 uppercase tracking-widest">Status Cuti</span>
                 {canEdit && (
                   <span className="text-xs font-bold text-primary/70 uppercase tracking-widest text-right">Aksi</span>

@@ -53,7 +53,7 @@ export function EditStaffDialog({ staff }: EditStaffDialogProps) {
       <DialogContent className="sm:max-w-[400px] glass-panel border-white/10">
         <DialogHeader>
           <DialogTitle>Edit Data Staff</DialogTitle>
-          <DialogDescription>Ubah nama atau jobdesk staff ini</DialogDescription>
+          <DialogDescription>Ubah nama atau jabatan staff ini</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">
@@ -67,10 +67,10 @@ export function EditStaffDialog({ staff }: EditStaffDialogProps) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="edit-jobdesk">Jobdesk</Label>
+            <Label htmlFor="edit-jobdesk">Jabatan</Label>
             <Select value={jobdesk} onValueChange={setJobdesk}>
               <SelectTrigger data-testid="select-edit-jobdesk">
-                <SelectValue placeholder="Pilih jobdesk" />
+                <SelectValue placeholder="Pilih jabatan" />
               </SelectTrigger>
               <SelectContent>
                 {JOBDESK_OPTIONS.map(j => (

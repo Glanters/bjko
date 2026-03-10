@@ -188,10 +188,10 @@ export default function LeaveRules() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="w-5 h-5 text-purple-400" />
-                  Limit Bersamaan Per Jobdesk
+                  Limit Bersamaan Per Jabatan
                 </CardTitle>
                 <CardDescription>
-                  Atur maksimal staff yang boleh izin bersamaan per jobdesk (format: JOBDESK=angka, satu per baris)
+                  Atur maksimal staff yang boleh izin bersamaan per jabatan (format: JABATAN=angka, satu per baris)
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">

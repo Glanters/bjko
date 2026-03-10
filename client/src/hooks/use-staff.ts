@@ -92,10 +92,10 @@ export function useUpdateStaffJobdesk() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.staff.list.path] });
-      toast({ title: "Berhasil", description: "Jobdesk staff berhasil diperbarui." });
+      toast({ title: "Berhasil", description: "Jabatan staff berhasil diperbarui." });
     },
     onError: () => {
-      toast({ variant: "destructive", title: "Gagal", description: "Gagal memperbarui jobdesk." });
+      toast({ variant: "destructive", title: "Gagal", description: "Gagal memperbarui jabatan." });
     },
   });
 }

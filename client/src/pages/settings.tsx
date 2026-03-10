@@ -384,7 +384,7 @@ export default function Settings() {
                   {/* Mini table header */}
                   <div className="flex px-4 py-1.5 gap-4 border-b border-white/10" style={{ backgroundColor: themeBg ? `hsl(${themeBg})` : undefined, opacity: 0.8 }}>
                     <span className="opacity-60 w-24">Nama Staff</span>
-                    <span className="opacity-60 w-20">Jobdesk</span>
+                    <span className="opacity-60 w-20">Jabatan</span>
                     <span className="opacity-60 flex-1 text-right">Aksi</span>
                   </div>
                   {/* Mini table rows */}
@@ -917,8 +917,8 @@ export default function Settings() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Limit Staff Per Jobdesk</CardTitle>
-            <CardDescription>Atur maksimal staff yang bisa keluar bersamaan per jobdesk</CardDescription>
+            <CardTitle>Limit Staff Per Jabatan</CardTitle>
+            <CardDescription>Atur maksimal staff yang bisa keluar bersamaan per jabatan</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {editingJobdeskLimits ? (
@@ -926,7 +926,7 @@ export default function Settings() {
                 <Textarea
                   value={jobdeskLimitsText}
                   onChange={(e) => setJobdeskLimitsText(e.target.value)}
-                  placeholder="CONTOH JOBDESK=2&#10;CS=2&#10;MARKETING=3"
+                  placeholder="CONTOH JABATAN=2&#10;CS=2&#10;MARKETING=3"
                   className="font-mono"
                   rows={6}
                 />
@@ -989,7 +989,7 @@ export default function Settings() {
                 <li>Update username dan password untuk setiap user</li>
                 <li>Update IP address yang diizinkan per user</li>
                 <li>Whitelist IP untuk login (opsional)</li>
-                <li>Limit staff per jobdesk yang bisa keluar bersamaan</li>
+                <li>Limit staff per jabatan yang bisa keluar bersamaan</li>
                 <li>Jika IP tidak sesuai → login ditolak dengan pesan "IP tidak sesuai"</li>
               </ul>
             </div>

@@ -121,7 +121,7 @@ export function Sidebar() {
                     data-testid="sidebar-jobdesk-staff"
                   >
                     <Briefcase className="w-3.5 h-3.5 shrink-0" />
-                    Jobdesk Staff
+                    Jabatan Staff
                   </button>
                   <button
                     onClick={() => navigate("/staff-cuti")}

@@ -154,7 +154,7 @@ export default function Analytics() {
               {/* Izin per Jobdesk (Today) */}
               <Card className="glass-panel border-0">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Izin Per Jobdesk (Hari Ini)</CardTitle>
+                  <CardTitle className="text-base">Izin Per Jabatan (Hari Ini)</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {jobdeskData.length > 0 ? (

@@ -298,7 +298,7 @@ export function StaffTable() {
                         <TableHeader className="bg-secondary/20 border-b border-white/5">
                           <TableRow className="hover:bg-transparent">
                             <TableHead className="font-display py-3 text-sm">Nama Staff</TableHead>
-                            <TableHead className="font-display py-3 text-sm">Jobdesk</TableHead>
+                            <TableHead className="font-display py-3 text-sm">Jabatan</TableHead>
                             <TableHead className="font-display py-3 text-center text-sm">Total Hari Ini</TableHead>
                             <TableHead className="font-display py-3 text-center text-sm">Timer Izin</TableHead>
                             <TableHead className="font-display py-3 text-right pr-6 text-sm">Aksi</TableHead>

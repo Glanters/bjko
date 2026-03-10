@@ -21,7 +21,7 @@ export function useUpdateJobdeskLimits() {
       queryClient.invalidateQueries({ queryKey: [api.jobdeskLimits.get.path] });
       toast({
         title: "Berhasil",
-        description: "Limit staff jobdesk telah diperbarui",
+        description: "Limit staff jabatan telah diperbarui",
       });
     },
     onError: (error: any) => {

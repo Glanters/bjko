@@ -23,8 +23,8 @@ export function useDeleteJobdeskFromMaster() {
     mutationFn: (name: string) => apiRequest("DELETE", `${KEY}/${encodeURIComponent(name)}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [KEY] });
-      toast({ title: "Jobdesk dihapus dari daftar" });
+      toast({ title: "Jabatan dihapus dari daftar" });
     },
-    onError: () => toast({ variant: "destructive", title: "Gagal menghapus jobdesk" }),
+    onError: () => toast({ variant: "destructive", title: "Gagal menghapus jabatan" }),
   });
 }

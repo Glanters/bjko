@@ -123,7 +123,7 @@ export default function Backup() {
               <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 text-sm text-muted-foreground">
                 <p className="font-medium text-foreground mb-1">Yang termasuk dalam backup:</p>
                 <ul className="list-disc list-inside space-y-1">
-                  <li>Data seluruh staff (nama, jobdesk)</li>
+                  <li>Data seluruh staff (nama, jabatan)</li>
                   <li>Riwayat izin (semua tanggal)</li>
                   <li>Pengaturan sistem (aturan izin)</li>
                   <li>Daftar user (tanpa password)</li>
