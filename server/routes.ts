@@ -674,6 +674,51 @@ export async function registerRoutes(
     }
   });
 
+  // --- Jobdesk Master List ---
+  const JOBDESK_LIST_KEY = "jobdesk_master_list";
+
+  const getJobdeskList = async (): Promise<string[]> => {
+    const val = await storage.getSetting(JOBDESK_LIST_KEY);
+    if (!val) return [];
+    try { return JSON.parse(val); } catch { return []; }
+  };
+
+  const saveJobdeskList = async (list: string[]) => {
+    await storage.setSetting(JOBDESK_LIST_KEY, JSON.stringify([...new Set(list)]));
+  };
+
+  app.get("/api/jobdeskList", async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
+    const list = await getJobdeskList();
+    res.json({ jobdesks: list });
+  });
+
+  app.post("/api/jobdeskList", async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
+    const user = await storage.getUser(req.session.userId);
+    if (!user || user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
+    const { name } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ message: "Nama jobdesk wajib diisi" });
+    const list = await getJobdeskList();
+    if (!list.includes(name.trim())) {
+      list.push(name.trim());
+      await saveJobdeskList(list);
+    }
+    res.json({ jobdesks: list });
+  });
+
+  app.delete("/api/jobdeskList/:name", async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
+    const user = await storage.getUser(req.session.userId);
+    if (!user || user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
+    const name = decodeURIComponent(req.params.name);
+    const list = await getJobdeskList();
+    const updated = list.filter(j => j !== name);
+    await saveJobdeskList(updated);
+    await logAudit(req.session.userId, "DELETE_JOBDESK", `Jobdesk dihapus dari master: ${name}`);
+    res.json({ jobdesks: updated });
+  });
+
   // Helper to log audit actions
   const logAudit = async (userId: number, action: string, detail: string) => {
     try {

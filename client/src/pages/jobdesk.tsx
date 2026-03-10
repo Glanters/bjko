@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useStaff, useUpdateStaffJobdesk, useDeleteStaff } from "@/hooks/use-staff";
 import { useUniqueJobdesks } from "@/hooks/use-unique-jobdesks";
+import { useJobdeskMasterList, useAddJobdeskToMaster, useDeleteJobdeskFromMaster } from "@/hooks/use-jobdesk-list";
 import { useAuth } from "@/hooks/use-auth";
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -15,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Briefcase, Pencil, Check, X, Plus, Trash2 } from "lucide-react";
+import { Search, Briefcase, Pencil, Check, X, Plus, Trash2, Settings2, ChevronDown, ChevronUp } from "lucide-react";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 
@@ -25,10 +26,13 @@ type Shift = typeof SHIFTS[number];
 export default function Jobdesk() {
   const { user } = useAuth();
   const { data: staffList } = useStaff();
-  const { jobdesks } = useUniqueJobdesks();
+  const { jobdesks: staffJobdesks } = useUniqueJobdesks();
   const { mutate: updateJobdesk, isPending: isSaving } = useUpdateStaffJobdesk();
   const { mutate: deleteStaff, isPending: isDeleting } = useDeleteStaff();
   const { data: myPerm } = useQuery<StaffPermission>({ queryKey: ["/api/permissions/me"] });
+  const { data: masterData } = useJobdeskMasterList();
+  const { mutate: addToMaster } = useAddJobdeskToMaster();
+  const { mutate: deleteFromMaster, isPending: isDeletingJobdesk } = useDeleteJobdeskFromMaster();
 
   const [activeShift, setActiveShift] = useState<Shift>("PAGI");
   const [search, setSearch] = useState("");
@@ -36,17 +40,20 @@ export default function Jobdesk() {
   const [editJobdesk, setEditJobdesk] = useState("");
   const [isNewJobdeskMode, setIsNewJobdeskMode] = useState(false);
   const [newJobdeskText, setNewJobdeskText] = useState("");
-  const [extraJobdesks, setExtraJobdesks] = useState<string[]>([]);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [showManage, setShowManage] = useState(false);
+  const [confirmDeleteJobdesk, setConfirmDeleteJobdesk] = useState<string | null>(null);
 
   const today = format(new Date(), "EEEE, dd MMM yyyy", { locale: localeId });
 
   const isAdmin = user?.role === "admin";
   const canEdit = isAdmin || !!myPerm?.canEditJobdesk;
 
+  const masterList = masterData?.jobdesks ?? [];
+
   const allJobdesks = useMemo(
-    () => [...new Set([...jobdesks, ...extraJobdesks])].sort(),
-    [jobdesks, extraJobdesks]
+    () => [...new Set([...masterList, ...staffJobdesks])].filter(Boolean).sort(),
+    [masterList, staffJobdesks]
   );
 
   const filtered = (staffList ?? []).filter(s => {
@@ -72,8 +79,8 @@ export default function Jobdesk() {
   function saveEdit(id: number) {
     const jobdeskToSave = isNewJobdeskMode ? newJobdeskText.trim() : editJobdesk;
     if (!jobdeskToSave) return;
-    if (isNewJobdeskMode && !extraJobdesks.includes(jobdeskToSave) && !jobdesks.includes(jobdeskToSave)) {
-      setExtraJobdesks(prev => [...prev, jobdeskToSave]);
+    if (isNewJobdeskMode && !allJobdesks.includes(jobdeskToSave)) {
+      addToMaster(jobdeskToSave);
     }
     updateJobdesk({ id, jobdesk: jobdeskToSave }, {
       onSuccess: () => cancelEdit(),
@@ -103,9 +110,81 @@ export default function Jobdesk() {
                 </div>
                 <p className="text-muted-foreground text-sm">Daftar staff per shift & jobdesk</p>
               </div>
-              <p className="text-primary/80 font-semibold text-sm" data-testid="text-date">{today}</p>
+              <div className="flex items-center gap-3">
+                {isAdmin && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setShowManage(prev => !prev)}
+                    className="h-8 px-3 rounded-lg border border-white/10 text-muted-foreground hover:text-primary hover:border-primary/30 text-xs"
+                    data-testid="button-manage-jobdesks"
+                  >
+                    <Settings2 className="w-3.5 h-3.5 mr-1.5" />
+                    Kelola Jobdesk
+                    {showManage ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />}
+                  </Button>
+                )}
+                <p className="text-primary/80 font-semibold text-sm" data-testid="text-date">{today}</p>
+              </div>
             </div>
           </div>
+
+          {/* Manage Jobdesk Panel (admin only) */}
+          {isAdmin && showManage && (
+            <div className="mx-6 mt-4 p-4 rounded-2xl border border-primary/20 bg-primary/5">
+              <div className="flex items-center gap-2 mb-3">
+                <Settings2 className="w-4 h-4 text-primary" />
+                <span className="text-sm font-bold text-primary uppercase tracking-wider">Daftar Master Jobdesk</span>
+                <span className="text-xs text-muted-foreground ml-1">— klik X untuk hapus dari daftar</span>
+              </div>
+              {allJobdesks.length === 0 ? (
+                <p className="text-xs text-muted-foreground">Belum ada jobdesk terdaftar.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {allJobdesks.map(j => (
+                    <div
+                      key={j}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/10 text-sm font-medium text-primary"
+                      data-testid={`chip-jobdesk-${j}`}
+                    >
+                      <span>{j}</span>
+                      {confirmDeleteJobdesk === j ? (
+                        <>
+                          <button
+                            onClick={() => { deleteFromMaster(j); setConfirmDeleteJobdesk(null); }}
+                            disabled={isDeletingJobdesk}
+                            className="text-red-400 hover:text-red-300 text-xs font-bold ml-1"
+                            data-testid={`button-confirm-delete-chip-${j}`}
+                          >
+                            Hapus
+                          </button>
+                          <button
+                            onClick={() => setConfirmDeleteJobdesk(null)}
+                            className="text-muted-foreground hover:text-foreground"
+                            data-testid={`button-cancel-delete-chip-${j}`}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmDeleteJobdesk(j)}
+                          className="text-primary/50 hover:text-red-400 transition-colors ml-0.5"
+                          title={`Hapus jobdesk "${j}"`}
+                          data-testid={`button-delete-chip-${j}`}
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="text-[11px] text-muted-foreground/60 mt-3">
+                Jobdesk yang dihapus dari daftar tidak lagi muncul sebagai pilihan, namun tidak mengubah data staff yang sudah terlanjur di-assign.
+              </p>
+            </div>
+          )}
 
           <div className="px-6 py-6 space-y-6">
             {/* Shift Tabs */}
@@ -154,10 +233,10 @@ export default function Jobdesk() {
               </div>
 
               {/* Column headers */}
-              <div className={`grid ${canEdit ? "grid-cols-3" : "grid-cols-2"} px-6 py-3 border-b border-white/10 bg-primary/5`}>
+              <div className={`grid ${canEdit || isAdmin ? "grid-cols-3" : "grid-cols-2"} px-6 py-3 border-b border-white/10 bg-primary/5`}>
                 <span className="text-xs font-bold text-primary/70 uppercase tracking-widest">Nama Staff</span>
                 <span className="text-xs font-bold text-primary/70 uppercase tracking-widest">Jobdesk</span>
-                {canEdit && (
+                {(canEdit || isAdmin) && (
                   <span className="text-xs font-bold text-primary/70 uppercase tracking-widest text-right">Aksi</span>
                 )}
               </div>
@@ -171,14 +250,14 @@ export default function Jobdesk() {
                 filtered.map((s, i) => (
                   <div
                     key={s.id}
-                    className={`grid ${canEdit ? "grid-cols-3" : "grid-cols-2"} items-center px-6 py-3 border-b border-white/5 hover:bg-primary/5 transition-colors ${
+                    className={`grid ${canEdit || isAdmin ? "grid-cols-3" : "grid-cols-2"} items-center px-6 py-3 border-b border-white/5 hover:bg-primary/5 transition-colors ${
                       i % 2 === 0 ? "bg-background/20" : "bg-background/10"
                     }`}
                     data-testid={`row-jobdesk-${s.id}`}
                   >
                     <span className="font-bold text-foreground uppercase tracking-wide text-sm">{s.name}</span>
 
-                    {/* Jobdesk column — editable when in edit mode */}
+                    {/* Jobdesk column */}
                     <div className="flex items-center gap-2">
                       {editingId === s.id ? (
                         isNewJobdeskMode ? (
@@ -220,7 +299,7 @@ export default function Jobdesk() {
                     </div>
 
                     {/* Action column */}
-                    {canEdit && (
+                    {(canEdit || isAdmin) && (
                       <div className="flex items-center justify-end gap-1">
                         {editingId === s.id ? (
                           <>
