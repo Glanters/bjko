@@ -48,7 +48,7 @@ export default function Login() {
               System Login
             </h1>
             <p className="text-muted-foreground text-sm">
-              Dashboard Monitoring Izin Staff
+              Dashboard Operasional BOSJOKO
             </p>
           </div>
 
