@@ -368,7 +368,7 @@ export function AddStaffDialog() {
                           className="bg-background/50 border-white/10 focus:ring-primary/30 rounded-xl h-11"
                           data-testid="select-jobdesk"
                         >
-                          <SelectValue placeholder="Pilih atau buat jobdesk baru" />
+                          <SelectValue placeholder="Pilih atau buat jabatan baru" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
