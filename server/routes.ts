@@ -50,6 +50,7 @@ export async function registerRoutes(
       }
 
       req.session.userId = user.id;
+      await storage.createAuditLog({ action: "LOGIN", username: user.username, detail: `Login dari IP ${clientIp}` });
       res.json({ user });
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -104,7 +105,7 @@ export async function registerRoutes(
           allowedIp: "*"
         });
       }
-      
+      await logAudit(req.session.userId!, "ADD_STAFF", `Staff baru ditambahkan: ${input.name} (${input.jobdesk})`);
       res.status(201).json(newStaff);
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -175,6 +176,7 @@ export async function registerRoutes(
         staffId: input.staffId,
         date: today
       });
+      await logAudit(req.session.userId!, "START_LEAVE", `Staff ${staffRecord?.name || input.staffId} mulai izin`);
       res.status(201).json(newLeave);
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -215,6 +217,9 @@ export async function registerRoutes(
       }
 
       const updatedLeave = await storage.updateLeaveClockIn(leaveId, new Date());
+      const staffList2 = await storage.getStaff();
+      const staffRec = staffList2.find(s => s.id === leaveRecord.staffId);
+      await logAudit(req.session.userId!, "CLOCK_IN", `Staff ${staffRec?.name || leaveRecord.staffId} kembali dari izin`);
       res.json(updatedLeave);
     } catch (err) {
       console.error("Clock-in error:", err);
@@ -368,6 +373,7 @@ export async function registerRoutes(
     try {
       const input = api.users.bulkUpdateIp.input.parse(req.body);
       const updated = await storage.bulkUpdateAgentIp(input.allowedIp);
+      await logAudit(req.session.userId!, "BULK_UPDATE_IP", `IP semua agent diset ke: ${input.allowedIp} (${updated} user)`);
       res.json({ message: `Berhasil memperbarui IP untuk ${updated} pengguna`, updated });
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -388,6 +394,7 @@ export async function registerRoutes(
     try {
       const input = api.users.bulkUpdatePassword.input.parse(req.body);
       const updated = await storage.bulkUpdateAgentPassword(input.password);
+      await logAudit(req.session.userId!, "BULK_UPDATE_PASSWORD", `Password semua agent diperbarui (${updated} user)`);
       res.json({ message: `Berhasil memperbarui password untuk ${updated} pengguna`, updated });
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -408,14 +415,23 @@ export async function registerRoutes(
     try {
       const input = api.users.updatePassword.input.parse(req.body);
       const userId = parseInt(req.params.id);
-      if (user.role !== 'admin' && user.id !== userId) {
+      const csLine = await isCsLine(req.session.userId);
+
+      // Allow: admin (any), self (any), or CS LINE changing an agent password
+      if (user.role !== 'admin' && user.id !== userId && !csLine) {
         return res.status(403).json({ message: "Forbidden: Anda hanya dapat mengubah password milik sendiri" });
       }
       const targetUser = await storage.getUser(userId);
       if (!targetUser) {
         return res.status(404).json({ message: "User not found" });
       }
+      // CS LINE cannot change admin passwords
+      if (csLine && user.role !== 'admin' && targetUser.role === 'admin') {
+        return res.status(403).json({ message: "CS LINE tidak dapat mengubah password admin" });
+      }
       const updatedUser = await storage.updateUserPassword(userId, input.password);
+      const who = user.id === userId ? "sendiri" : `user ${targetUser.username}`;
+      await logAudit(req.session.userId, "CHANGE_PASSWORD", `Password ${who} diubah`);
       res.json(updatedUser);
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -495,6 +511,7 @@ export async function registerRoutes(
         return res.status(404).json({ message: "User not found" });
       }
       await storage.deleteUser(userId);
+      await logAudit(req.session.userId!, "DELETE_USER", `User dihapus: ${targetUser.username}`);
       res.json({ message: "User berhasil dihapus" });
     } catch (err) {
       res.status(500).json({ message: "Internal server error" });
@@ -518,6 +535,7 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Staff not found" });
       }
       await storage.deleteStaff(staffId);
+      await logAudit(req.session.userId!, "DELETE_STAFF", `Staff dihapus: ${staff.name} (${staff.jobdesk})`);
       res.json({ message: "Staff berhasil dihapus" });
     } catch (err) {
       res.status(500).json({ message: "Internal server error" });
@@ -630,6 +648,14 @@ export async function registerRoutes(
     } catch {}
   };
 
+  // Helper: check if a user is a CS LINE agent
+  const isCsLine = async (userId: number): Promise<boolean> => {
+    const u = await storage.getUser(userId);
+    if (!u || u.role !== 'agent') return false;
+    const staffList = await storage.getStaff();
+    return staffList.some(s => s.name === u.username && s.jobdesk === "CS LINE");
+  };
+
   // PATCH /api/staff/:id - Update staff name and jobdesk
   app.patch("/api/staff/:id", async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
@@ -647,13 +673,27 @@ export async function registerRoutes(
     }
   });
 
-  // GET /api/audit-logs
+  // GET /api/audit-logs — admin or CS LINE
   app.get("/api/audit-logs", async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
     const user = await storage.getUser(req.session.userId);
-    if (!user || user.role !== 'admin') return res.status(403).json({ message: "Forbidden" });
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+    const csLine = await isCsLine(req.session.userId);
+    if (user.role !== 'admin' && !csLine) return res.status(403).json({ message: "Forbidden" });
     const logs = await storage.getAuditLogs();
     res.json(logs);
+  });
+
+  // GET /api/users/agents — admin or CS LINE
+  app.get("/api/users/agents", async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
+    const user = await storage.getUser(req.session.userId);
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+    const csLine = await isCsLine(req.session.userId);
+    if (user.role !== 'admin' && !csLine) return res.status(403).json({ message: "Forbidden" });
+    const allUsers = await storage.getUsers();
+    const agents = allUsers.filter(u => u.role === 'agent');
+    res.json(agents.map(u => ({ id: u.id, username: u.username, role: u.role })));
   });
 
   // GET /api/settings
