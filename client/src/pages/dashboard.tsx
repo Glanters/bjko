@@ -49,45 +49,45 @@ function StatsCards() {
   ).length ?? 0;
 
   return (
-    <div className="space-y-4 mb-6">
-      {/* Total Users — top center */}
-      <div className="glass-panel rounded-2xl border border-white/10 p-6 flex flex-col items-center justify-center text-center">
-        <div className="w-14 h-14 rounded-xl bg-primary/20 border border-primary/20 flex items-center justify-center mb-3">
-          <Users className="w-7 h-7 text-primary" />
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      {/* Total Users */}
+      <div className="glass-panel rounded-2xl border border-white/10 p-5 flex flex-col items-center justify-center text-center">
+        <div className="w-12 h-12 rounded-xl bg-primary/20 border border-primary/20 flex items-center justify-center mb-2">
+          <Users className="w-6 h-6 text-primary" />
         </div>
-        <p className="text-sm font-semibold text-foreground">Total Users</p>
+        <p className="text-xs font-semibold text-muted-foreground">Total Users</p>
         <p className="text-3xl font-bold text-gradient mt-1">{totalStaff}</p>
         <p className="text-xs text-muted-foreground mt-0.5">{totalStaff} Users</p>
       </div>
 
-      {/* Agent + Admin side by side */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="glass-panel rounded-2xl border border-blue-500/20 p-5 flex flex-col items-center justify-center text-center">
-          <div className="w-12 h-12 rounded-xl bg-blue-500/20 border border-blue-500/20 flex items-center justify-center mb-2">
-            <UserCheck className="w-6 h-6 text-blue-400" />
-          </div>
-          <p className="text-sm font-bold text-foreground uppercase tracking-wide">Agent</p>
-          <p className="text-2xl font-bold text-blue-400 mt-1">{agentCount}</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">{agentCount} Users</p>
-          <p className="text-[10px] text-muted-foreground">Kategori Role Aktif</p>
+      {/* Agent */}
+      <div className="glass-panel rounded-2xl border border-blue-500/20 p-5 flex flex-col items-center justify-center text-center">
+        <div className="w-12 h-12 rounded-xl bg-blue-500/20 border border-blue-500/20 flex items-center justify-center mb-2">
+          <UserCheck className="w-6 h-6 text-blue-400" />
         </div>
-        <div className="glass-panel rounded-2xl border border-purple-500/20 p-5 flex flex-col items-center justify-center text-center">
-          <div className="w-12 h-12 rounded-xl bg-purple-500/20 border border-purple-500/20 flex items-center justify-center mb-2">
-            <ShieldCheck className="w-6 h-6 text-purple-400" />
-          </div>
-          <p className="text-sm font-bold text-foreground uppercase tracking-wide">Admin</p>
-          <p className="text-2xl font-bold text-purple-400 mt-1">{adminCount}</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">{adminCount} Users</p>
-          <p className="text-[10px] text-muted-foreground">Kategori Role Aktif</p>
+        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Agent</p>
+        <p className="text-3xl font-bold text-blue-400 mt-1">{agentCount}</p>
+        <p className="text-[11px] text-muted-foreground mt-0.5">{agentCount} Users</p>
+        <p className="text-[10px] text-muted-foreground">Kategori Role Aktif</p>
+      </div>
+
+      {/* Admin */}
+      <div className="glass-panel rounded-2xl border border-purple-500/20 p-5 flex flex-col items-center justify-center text-center">
+        <div className="w-12 h-12 rounded-xl bg-purple-500/20 border border-purple-500/20 flex items-center justify-center mb-2">
+          <ShieldCheck className="w-6 h-6 text-purple-400" />
         </div>
+        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Admin</p>
+        <p className="text-3xl font-bold text-purple-400 mt-1">{adminCount}</p>
+        <p className="text-[11px] text-muted-foreground mt-0.5">{adminCount} Users</p>
+        <p className="text-[10px] text-muted-foreground">Kategori Role Aktif</p>
       </div>
 
       {/* Sedang Cuti */}
-      <div className="glass-panel rounded-2xl border border-amber-500/20 p-6 flex flex-col items-center justify-center text-center">
-        <div className="w-14 h-14 rounded-xl bg-amber-500/20 border border-amber-500/20 flex items-center justify-center mb-3">
-          <Coffee className="w-7 h-7 text-amber-400" />
+      <div className="glass-panel rounded-2xl border border-amber-500/20 p-5 flex flex-col items-center justify-center text-center">
+        <div className="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/20 flex items-center justify-center mb-2">
+          <Coffee className="w-6 h-6 text-amber-400" />
         </div>
-        <p className="text-sm font-semibold text-foreground">Sedang Cuti</p>
+        <p className="text-xs font-semibold text-muted-foreground">Sedang Cuti</p>
         <p className="text-3xl font-bold text-amber-400 mt-1">{sedangCuti}</p>
         <p className="text-xs text-muted-foreground mt-0.5">{sedangCuti} Users</p>
       </div>
@@ -134,28 +134,21 @@ export default function Dashboard() {
           {/* Welcome banner */}
           <WelcomeBanner />
 
-          {/* Main grid: stats left, table + panel right */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Stats column */}
-            <div className="lg:col-span-1">
-              <StatsCards />
-            </div>
+          {/* Stats cards — full width at top */}
+          <StatsCards />
 
-            {/* Staff table + clock */}
-            <div className="lg:col-span-3 space-y-6">
-              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                <div className="xl:col-span-2">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-display text-lg font-semibold">Daftar Staff Aktif</h3>
-                  </div>
-                  <StaffTable />
-                </div>
-                <div className="xl:col-span-1">
-                  <div className="sticky top-6 flex flex-col gap-4">
-                    <AnimatedClock />
-                    <CurrentLeavePanel />
-                  </div>
-                </div>
+          {/* Staff table + clock panel */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-display text-lg font-semibold">Daftar Staff Aktif</h3>
+              </div>
+              <StaffTable />
+            </div>
+            <div className="lg:col-span-1">
+              <div className="sticky top-6 flex flex-col gap-4">
+                <AnimatedClock />
+                <CurrentLeavePanel />
               </div>
             </div>
           </div>
