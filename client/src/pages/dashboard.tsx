@@ -2,7 +2,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { Header } from "@/components/layout/header";
 import { AddStaffDialog } from "@/components/dashboard/add-staff-dialog";
 import { StaffTable } from "@/components/dashboard/staff-table";
-import { LeaveChart } from "@/components/dashboard/leave-chart";
 import { CurrentLeavePanel } from "@/components/dashboard/current-leave-panel";
 import { AnimatedClock } from "@/components/dashboard/animated-clock";
 import { Activity } from "lucide-react";
@@ -48,7 +47,6 @@ export default function Dashboard() {
             <div className="sticky top-24 flex flex-col gap-4">
               <AnimatedClock />
               <CurrentLeavePanel />
-              <LeaveChart />
             </div>
           </div>
         </div>

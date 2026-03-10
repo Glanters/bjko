@@ -38,11 +38,14 @@ export function CurrentLeavePanel() {
 
   if (!staffList || !leaves) return null;
 
-  const todayString = format(new Date(), "yyyy-MM-dd");
+  // Use local midnight as boundary instead of date string comparison
+  // This avoids UTC vs local timezone mismatch between server and client
+  const localMidnight = new Date();
+  localMidnight.setHours(0, 0, 0, 0);
 
-  // Staff currently on leave = today's leaves where clockInTime is null
+  // Staff currently on leave = started today (local time) where clockInTime is null
   const activeLeaves = leaves
-    .filter(l => l.date === todayString && !l.clockInTime)
+    .filter(l => !l.clockInTime && new Date(l.startTime) >= localMidnight)
     .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
 
   const staffMap = Object.fromEntries(staffList.map(s => [s.id, s]));
