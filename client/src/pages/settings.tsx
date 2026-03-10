@@ -935,7 +935,7 @@ export default function Settings() {
                     {Object.entries(limitsQuery.data.limits).map(([jobdesk, limit]) => (
                       <div key={jobdesk} className="flex justify-between text-sm py-1">
                         <span className="font-medium">{jobdesk}</span>
-                        <span className="text-muted-foreground">Max {limit} staff bersamaan</span>
+                        <span className="text-muted-foreground">Max {String(limit)} staff bersamaan</span>
                       </div>
                     ))}
                   </div>

@@ -139,8 +139,8 @@ export function AddStaffDialog() {
   };
 
   const baseJobdesks = allowedJobdesks !== null ? allowedJobdesks : jobdesks;
-  const allJobdesks = [...new Set([...baseJobdesks, ...extraJobdesks])].sort();
-  const allRoles = [...new Set([...roles, ...extraRoles])].sort();
+  const allJobdesks = Array.from(new Set([...baseJobdesks, ...extraJobdesks])).sort();
+  const allRoles = Array.from(new Set([...roles, ...extraRoles])).sort();
 
   if (!canAdd) {
     return (

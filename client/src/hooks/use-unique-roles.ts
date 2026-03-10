@@ -4,7 +4,7 @@ export function useUniqueRoles() {
   const { data: staffList, isLoading } = useStaff();
 
   const roles = staffList
-    ? [...new Set(["agent", ...staffList.map(s => s.role).filter(Boolean)])].sort()
+    ? Array.from(new Set(["agent", ...staffList.map(s => s.role).filter(Boolean)])).sort()
     : ["agent"];
 
   return { roles, isLoading };

@@ -52,7 +52,7 @@ export default function Jobdesk() {
   const masterList = masterData?.jobdesks ?? [];
 
   const allJobdesks = useMemo(
-    () => [...new Set([...masterList, ...staffJobdesks])].filter(Boolean).sort(),
+    () => Array.from(new Set([...masterList, ...staffJobdesks])).filter(Boolean).sort(),
     [masterList, staffJobdesks]
   );
 

@@ -72,7 +72,7 @@ export default function History() {
 
   if (!user) return null;
 
-  const calculateStatus = (startTime: string, clockInTime: string | null) => {
+  const calculateStatus = (startTime: Date | string, clockInTime: Date | string | null) => {
     if (!clockInTime) return "BELUM CHECK IN";
     const start = new Date(startTime);
     const clockIn = new Date(clockInTime);
@@ -81,7 +81,7 @@ export default function History() {
     return diffMinutes <= 15 ? "TEPAT WAKTU" : "TERLAMBAT";
   };
 
-  const calculateDuration = (startTime: string, clockInTime: string | null) => {
+  const calculateDuration = (startTime: Date | string, clockInTime: Date | string | null) => {
     if (!clockInTime) return "-";
     const start = new Date(startTime);
     const clockIn = new Date(clockInTime);

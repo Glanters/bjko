@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, UserCheck, AlertTriangle } from "lucide-react";
 import { useLeaveDuration } from "@/hooks/use-leave-settings";
 
-function LiveTimer({ startTime, durationSeconds }: { startTime: string; durationSeconds: number }) {
+function LiveTimer({ startTime, durationSeconds }: { startTime: Date | string; durationSeconds: number }) {
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {

@@ -139,7 +139,7 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(leaves);
   }
 
-  async createLeave(insertLeave: InsertLeave): Promise<Leave> {
+  async createLeave(insertLeave: InsertLeave & { date: string }): Promise<Leave> {
     const [leave] = await db.insert(leaves).values(insertLeave).returning();
     return leave;
   }

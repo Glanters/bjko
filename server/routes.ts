@@ -717,7 +717,7 @@ export async function registerRoutes(
   };
 
   const saveJobdeskList = async (list: string[]) => {
-    await storage.setSetting(JOBDESK_LIST_KEY, JSON.stringify([...new Set(list)]));
+    await storage.setSetting(JOBDESK_LIST_KEY, JSON.stringify(Array.from(new Set(list))));
   };
 
   app.get("/api/jobdeskList", async (req, res) => {
