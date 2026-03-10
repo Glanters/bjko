@@ -49,6 +49,8 @@ export const staffPermissions = pgTable("staff_permissions", {
   allowedJobdesks: text("allowed_jobdesks").notNull().default(""),
   canEditJobdesk: boolean("can_edit_jobdesk").notNull().default(false),
   canDeleteStaff: boolean("can_delete_staff").notNull().default(false),
+  canEditName: boolean("can_edit_name").notNull().default(false),
+  canEditPassword: boolean("can_edit_password").notNull().default(false),
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });

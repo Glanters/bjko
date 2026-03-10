@@ -311,6 +311,8 @@ export const api = {
         allowedJobdesks: z.string(),
         canEditJobdesk: z.boolean().optional(),
         canDeleteStaff: z.boolean().optional(),
+        canEditName: z.boolean().optional(),
+        canEditPassword: z.boolean().optional(),
       }),
       responses: {
         200: z.custom<typeof staffPermissions.$inferSelect>(),

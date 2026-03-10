@@ -13,7 +13,7 @@ Key features:
 - Audit log for all admin actions
 - Backup and restore of all data as JSON
 - Configurable leave duration and max leaves per day
-- Per-agent permissions for adding, editing, and deleting staff (canAddStaff, canEditJobdesk, canDeleteStaff)
+- Per-agent permissions for adding, editing, and deleting staff (canAddStaff, canEditJobdesk, canDeleteStaff, canEditName, canEditPassword)
 - Admin and permitted users can Add/Edit/Delete staff directly from Jobdesk page via modal dialogs
 - Staff edit supports full update: name, shift, and jobdesk all editable in one modal
 

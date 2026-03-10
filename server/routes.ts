@@ -439,10 +439,15 @@ export async function registerRoutes(
       const input = api.users.updatePassword.input.parse(req.body);
       const userId = parseInt(req.params.id);
       const csLine = await isCsLine(req.session.userId);
+      const perm = await storage.getPermissionByRole(user.role);
 
-      // Allow: admin (any), self (any), or CS LINE changing an agent password
-      if (user.role !== 'admin' && user.id !== userId && !csLine) {
+      // Allow: admin (any), self with canEditPassword or no restriction, or CS LINE changing an agent password
+      const isSelf = user.id === userId;
+      if (user.role !== 'admin' && !isSelf && !csLine) {
         return res.status(403).json({ message: "Forbidden: Anda hanya dapat mengubah password milik sendiri" });
+      }
+      if (user.role !== 'admin' && isSelf && !csLine && !perm?.canEditPassword) {
+        return res.status(403).json({ message: "Forbidden: Anda tidak memiliki izin mengubah password" });
       }
       const targetUser = await storage.getUser(userId);
       if (!targetUser) {
@@ -469,17 +474,26 @@ export async function registerRoutes(
       return res.status(401).json({ message: "Unauthorized" });
     }
     const user = await storage.getUser(req.session.userId);
-    if (!user || user.role !== 'admin') {
-      return res.status(403).json({ message: "Forbidden: Only admins can update usernames" });
-    }
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
     try {
       const input = api.users.updateUsername.input.parse(req.body);
       const userId = parseInt(req.params.id);
+      const isSelf = user.id === userId;
+      const perm = await storage.getPermissionByRole(user.role);
+
+      // Admins can change anyone; agents can only change their own if canEditName is granted
+      if (user.role !== 'admin' && !isSelf) {
+        return res.status(403).json({ message: "Forbidden: Anda hanya dapat mengubah nama sendiri" });
+      }
+      if (user.role !== 'admin' && isSelf && !perm?.canEditName) {
+        return res.status(403).json({ message: "Forbidden: Anda tidak memiliki izin mengubah nama" });
+      }
       const targetUser = await storage.getUser(userId);
       if (!targetUser) {
         return res.status(404).json({ message: "User not found" });
       }
       const updatedUser = await storage.updateUserUsername(userId, input.username);
+      await logAudit(req.session.userId!, "CHANGE_USERNAME", `Username diubah: ${targetUser.username} → ${input.username}`);
       res.json(updatedUser);
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -1033,8 +1047,8 @@ export async function registerRoutes(
       if (!reqUser || reqUser.role !== 'admin') return res.status(403).json({ message: "Forbidden" });
       const role = req.params.role;
       if (!role) return res.status(400).json({ message: "Role tidak valid" });
-      const { canAddStaff, allowedShifts, allowedJobdesks, canEditJobdesk, canDeleteStaff } = req.body;
-      const perm = await storage.upsertPermission({ role, canAddStaff: !!canAddStaff, allowedShifts: allowedShifts ?? '', allowedJobdesks: allowedJobdesks ?? '', canEditJobdesk: !!canEditJobdesk, canDeleteStaff: !!canDeleteStaff });
+      const { canAddStaff, allowedShifts, allowedJobdesks, canEditJobdesk, canDeleteStaff, canEditName, canEditPassword } = req.body;
+      const perm = await storage.upsertPermission({ role, canAddStaff: !!canAddStaff, allowedShifts: allowedShifts ?? '', allowedJobdesks: allowedJobdesks ?? '', canEditJobdesk: !!canEditJobdesk, canDeleteStaff: !!canDeleteStaff, canEditName: !!canEditName, canEditPassword: !!canEditPassword });
       await logAudit(req.session.userId, "PERMISSION_UPDATE", `Izin edit diperbarui untuk role: ${role}`);
       res.json(perm);
     } catch { res.status(500).json({ message: "Internal server error" }); }

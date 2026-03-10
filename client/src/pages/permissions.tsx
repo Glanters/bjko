@@ -25,12 +25,14 @@ function PermissionRoleRow({ role, perm, allJobdesks, onSave, onDelete }: {
   role: string;
   perm: StaffPermission | undefined;
   allJobdesks: string[];
-  onSave: (role: string, data: { canAddStaff: boolean; allowedShifts: string; allowedJobdesks: string; canEditJobdesk: boolean; canDeleteStaff: boolean }) => void;
+  onSave: (role: string, data: { canAddStaff: boolean; allowedShifts: string; allowedJobdesks: string; canEditJobdesk: boolean; canDeleteStaff: boolean; canEditName: boolean; canEditPassword: boolean }) => void;
   onDelete: (role: string) => void;
 }) {
   const [canAdd, setCanAdd] = useState(perm?.canAddStaff ?? false);
   const [canEditJobdesk, setCanEditJobdesk] = useState(perm?.canEditJobdesk ?? false);
   const [canDelete, setCanDelete] = useState(perm?.canDeleteStaff ?? false);
+  const [canEditName, setCanEditName] = useState(perm?.canEditName ?? false);
+  const [canEditPassword, setCanEditPassword] = useState(perm?.canEditPassword ?? false);
   const [shifts, setShifts] = useState<string[]>(parseList(perm?.allowedShifts ?? ""));
   const [jobdesks, setJobdesks] = useState<string[]>(parseList(perm?.allowedJobdesks ?? ""));
 
@@ -54,7 +56,7 @@ function PermissionRoleRow({ role, perm, allJobdesks, onSave, onDelete }: {
         <div className="flex items-center gap-2">
           <Button
             size="sm"
-            onClick={() => onSave(role, { canAddStaff: canAdd, allowedShifts: toList(shifts), allowedJobdesks: toList(jobdesks), canEditJobdesk, canDeleteStaff: canDelete })}
+            onClick={() => onSave(role, { canAddStaff: canAdd, allowedShifts: toList(shifts), allowedJobdesks: toList(jobdesks), canEditJobdesk, canDeleteStaff: canDelete, canEditName, canEditPassword })}
             className="h-8 rounded-lg bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary text-xs"
             data-testid={`button-save-perm-${role}`}
           >
@@ -108,6 +110,28 @@ function PermissionRoleRow({ role, perm, allJobdesks, onSave, onDelete }: {
           />
           <label htmlFor={`can-delete-${role}`} className="text-sm font-medium cursor-pointer">
             Dapat Hapus Staff
+          </label>
+        </div>
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
+          <Checkbox
+            id={`can-edit-name-${role}`}
+            checked={canEditName}
+            onCheckedChange={(v) => setCanEditName(!!v)}
+            data-testid={`checkbox-can-edit-name-${role}`}
+          />
+          <label htmlFor={`can-edit-name-${role}`} className="text-sm font-medium cursor-pointer">
+            Dapat Mengubah Nama Akun Sendiri
+          </label>
+        </div>
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
+          <Checkbox
+            id={`can-edit-password-${role}`}
+            checked={canEditPassword}
+            onCheckedChange={(v) => setCanEditPassword(!!v)}
+            data-testid={`checkbox-can-edit-password-${role}`}
+          />
+          <label htmlFor={`can-edit-password-${role}`} className="text-sm font-medium cursor-pointer">
+            Dapat Mengubah Password Sendiri
           </label>
         </div>
       </div>

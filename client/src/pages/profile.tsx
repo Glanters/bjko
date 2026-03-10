@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Header } from "@/components/layout/header";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { api } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useState, useRef } from "react";
-import { Camera, Trash2, ShieldCheck, Upload, Eye, EyeOff, KeyRound } from "lucide-react";
+import { Camera, Trash2, ShieldCheck, Upload, Eye, EyeOff, KeyRound, UserPen } from "lucide-react";
+import type { StaffPermission } from "@shared/schema";
 
 export default function Profile() {
   const { user } = useAuth();
@@ -20,6 +21,16 @@ export default function Profile() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showNewPass, setShowNewPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
+  const [newUsername, setNewUsername] = useState("");
+
+  const { data: myPerm } = useQuery<StaffPermission | null>({
+    queryKey: ["/api/permissions/me"],
+    enabled: !!user && user.role !== "admin",
+  });
+
+  const isAdmin = user?.role === "admin";
+  const canEditPassword = isAdmin || !!myPerm?.canEditPassword;
+  const canEditName = isAdmin || !!myPerm?.canEditName;
 
   const updateAvatarMutation = useMutation({
     mutationFn: (avatarUrl: string) =>
@@ -47,6 +58,19 @@ export default function Profile() {
     },
   });
 
+  const updateUsernameMutation = useMutation({
+    mutationFn: (username: string) =>
+      apiRequest("PATCH", api.users.updateUsername.path.replace(":id", String(user!.id)), { username }).then(r => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.auth.me.path] });
+      toast({ title: "Berhasil", description: "Nama akun berhasil diperbarui" });
+      setNewUsername("");
+    },
+    onError: (err: any) => {
+      toast({ title: "Gagal", description: err?.message || "Gagal memperbarui nama akun", variant: "destructive" });
+    },
+  });
+
   const handleSavePassword = () => {
     if (newPassword.length < 6) {
       toast({ title: "Error", description: "Password minimal 6 karakter", variant: "destructive" });
@@ -57,6 +81,15 @@ export default function Profile() {
       return;
     }
     updatePasswordMutation.mutate(newPassword);
+  };
+
+  const handleSaveUsername = () => {
+    const val = newUsername.trim();
+    if (!val || val.length < 1) {
+      toast({ title: "Error", description: "Nama akun tidak boleh kosong", variant: "destructive" });
+      return;
+    }
+    updateUsernameMutation.mutate(val);
   };
 
   if (!user) return null;
@@ -112,7 +145,7 @@ export default function Profile() {
       <main className="flex-1 container mx-auto px-4 py-8 relative z-10 max-w-lg">
         <div className="mb-8">
           <h2 className="text-3xl font-display font-bold text-gradient">Profil Saya</h2>
-          <p className="text-muted-foreground mt-2">Edit foto profil akun Anda</p>
+          <p className="text-muted-foreground mt-2">Kelola akun dan foto profil Anda</p>
         </div>
 
         {/* Profile Card */}
@@ -224,69 +257,129 @@ export default function Profile() {
             ) : null}
           </div>
         </div>
+
+        {/* Change Name Card */}
+        {canEditName ? (
+          <div className="glass-panel rounded-2xl p-8 border border-white/5 mt-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-9 h-9 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                <UserPen className="w-4 h-4 text-blue-400" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-base">Ubah Nama Akun</h3>
+                <p className="text-xs text-muted-foreground">Nama saat ini: <span className="font-medium text-foreground">{user.username}</span></p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Input
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
+                placeholder="Nama akun baru"
+                className="bg-white/5 border-white/10"
+                data-testid="input-new-username"
+              />
+              <Button
+                onClick={handleSaveUsername}
+                disabled={updateUsernameMutation.isPending || !newUsername.trim()}
+                className="w-full bg-blue-500/80 hover:bg-blue-500 text-white"
+                data-testid="button-save-username"
+              >
+                {updateUsernameMutation.isPending ? "Menyimpan..." : "Simpan Nama"}
+              </Button>
+            </div>
+          </div>
+        ) : !isAdmin && (
+          <div className="glass-panel rounded-2xl p-5 border border-white/5 mt-6 opacity-50">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center">
+                <UserPen className="w-4 h-4 text-muted-foreground" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-base text-muted-foreground">Ubah Nama Akun</h3>
+                <p className="text-xs text-muted-foreground">Tidak memiliki izin — hubungi admin</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Change Password Card */}
-        <div className="glass-panel rounded-2xl p-8 border border-white/5 mt-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center">
-              <KeyRound className="w-4 h-4 text-primary" />
+        {canEditPassword ? (
+          <div className="glass-panel rounded-2xl p-8 border border-white/5 mt-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center">
+                <KeyRound className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-base">Ganti Password</h3>
+                <p className="text-xs text-muted-foreground">Password minimal 6 karakter</p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-semibold text-base">Ganti Password</h3>
-              <p className="text-xs text-muted-foreground">Password minimal 6 karakter</p>
+
+            <div className="space-y-3">
+              <div className="relative">
+                <Input
+                  type={showNewPass ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Password baru"
+                  className="pr-10 bg-white/5 border-white/10"
+                  data-testid="input-new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPass(!showNewPass)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+
+              <div className="relative">
+                <Input
+                  type={showConfirmPass ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Konfirmasi password baru"
+                  className="pr-10 bg-white/5 border-white/10"
+                  data-testid="input-confirm-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPass(!showConfirmPass)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showConfirmPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+
+              {newPassword && confirmPassword && newPassword !== confirmPassword && (
+                <p className="text-xs text-red-400">Password tidak cocok</p>
+              )}
+
+              <Button
+                onClick={handleSavePassword}
+                disabled={updatePasswordMutation.isPending || !newPassword || !confirmPassword}
+                className="w-full bg-primary/80 hover:bg-primary"
+                data-testid="button-save-password"
+              >
+                {updatePasswordMutation.isPending ? "Menyimpan..." : "Simpan Password"}
+              </Button>
             </div>
           </div>
-
-          <div className="space-y-3">
-            <div className="relative">
-              <Input
-                type={showNewPass ? "text" : "password"}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Password baru"
-                className="pr-10 bg-white/5 border-white/10"
-                data-testid="input-new-password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowNewPass(!showNewPass)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {showNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
+        ) : !isAdmin && (
+          <div className="glass-panel rounded-2xl p-5 border border-white/5 mt-6 opacity-50">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center">
+                <KeyRound className="w-4 h-4 text-muted-foreground" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-base text-muted-foreground">Ganti Password</h3>
+                <p className="text-xs text-muted-foreground">Tidak memiliki izin — hubungi admin</p>
+              </div>
             </div>
-
-            <div className="relative">
-              <Input
-                type={showConfirmPass ? "text" : "password"}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Konfirmasi password baru"
-                className="pr-10 bg-white/5 border-white/10"
-                data-testid="input-confirm-password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPass(!showConfirmPass)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {showConfirmPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-
-            {newPassword && confirmPassword && newPassword !== confirmPassword && (
-              <p className="text-xs text-red-400">Password tidak cocok</p>
-            )}
-
-            <Button
-              onClick={handleSavePassword}
-              disabled={updatePasswordMutation.isPending || !newPassword || !confirmPassword}
-              className="w-full bg-primary/80 hover:bg-primary"
-              data-testid="button-save-password"
-            >
-              {updatePasswordMutation.isPending ? "Menyimpan..." : "Simpan Password"}
-            </Button>
           </div>
-        </div>
+        )}
       </main>
     </div>
   );

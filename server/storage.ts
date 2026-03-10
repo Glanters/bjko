@@ -234,7 +234,7 @@ export class DatabaseStorage implements IStorage {
     const existing = await this.getPermissionByRole(perm.role);
     if (existing) {
       const [row] = await db.update(staffPermissions)
-        .set({ canAddStaff: perm.canAddStaff, allowedShifts: perm.allowedShifts, allowedJobdesks: perm.allowedJobdesks, canEditJobdesk: perm.canEditJobdesk ?? false, canDeleteStaff: perm.canDeleteStaff ?? false })
+        .set({ canAddStaff: perm.canAddStaff, allowedShifts: perm.allowedShifts, allowedJobdesks: perm.allowedJobdesks, canEditJobdesk: perm.canEditJobdesk ?? false, canDeleteStaff: perm.canDeleteStaff ?? false, canEditName: perm.canEditName ?? false, canEditPassword: perm.canEditPassword ?? false })
         .where(eq(staffPermissions.role, perm.role))
         .returning();
       return row;
