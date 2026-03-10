@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useCreateStaff } from "@/hooks/use-staff";
 import { useUniqueJobdesks } from "@/hooks/use-unique-jobdesks";
+import { useUniqueRoles } from "@/hooks/use-unique-roles";
 import {
   Dialog,
   DialogContent,
@@ -34,8 +35,6 @@ import {
 import { Plus, Users, Check, Lock, ShieldCheck } from "lucide-react";
 import type { StaffPermission } from "@shared/schema";
 
-const STAFF_ROLES = ["agent", "admin", "supervisor", "leader"] as const;
-
 const staffFormSchema = z.object({
   name: z.string().min(1, "Nama wajib diisi"),
   jobdesk: z.string().min(1, "Jobdesk wajib dipilih"),
@@ -50,9 +49,15 @@ export function AddStaffDialog() {
   const [open, setOpen] = useState(false);
   const { mutate: createStaff, isPending } = useCreateStaff();
   const { jobdesks, isLoading: jobdesksLoading } = useUniqueJobdesks();
+  const { roles, isLoading: rolesLoading } = useUniqueRoles();
+
   const [isNewJobdesk, setIsNewJobdesk] = useState(false);
   const [newJobdeskValue, setNewJobdeskValue] = useState("");
   const [extraJobdesks, setExtraJobdesks] = useState<string[]>([]);
+
+  const [isNewRole, setIsNewRole] = useState(false);
+  const [newRoleValue, setNewRoleValue] = useState("");
+  const [extraRoles, setExtraRoles] = useState<string[]>([]);
 
   const { data: myPerm } = useQuery<StaffPermission | null>({
     queryKey: ["/api/permissions/me"],
@@ -83,6 +88,8 @@ export function AddStaffDialog() {
         setOpen(false);
         setIsNewJobdesk(false);
         setNewJobdeskValue("");
+        setIsNewRole(false);
+        setNewRoleValue("");
       },
     });
   }
@@ -109,8 +116,31 @@ export function AddStaffDialog() {
     setNewJobdeskValue("");
   };
 
+  const handleRoleChange = (value: string) => {
+    if (value === "new") {
+      setIsNewRole(true);
+      setNewRoleValue("");
+      form.setValue("role", "");
+    } else {
+      setIsNewRole(false);
+      form.setValue("role", value);
+    }
+  };
+
+  const handleConfirmNewRole = () => {
+    const trimmed = newRoleValue.trim().toLowerCase();
+    if (!trimmed) return;
+    if (!extraRoles.includes(trimmed) && !roles.includes(trimmed)) {
+      setExtraRoles(prev => [...prev, trimmed]);
+    }
+    form.setValue("role", trimmed);
+    setIsNewRole(false);
+    setNewRoleValue("");
+  };
+
   const baseJobdesks = allowedJobdesks !== null ? allowedJobdesks : jobdesks;
   const allJobdesks = [...new Set([...baseJobdesks, ...extraJobdesks])].sort();
+  const allRoles = [...new Set([...roles, ...extraRoles])].sort();
 
   if (!canAdd) {
     return (
@@ -128,6 +158,8 @@ export function AddStaffDialog() {
         form.reset();
         setIsNewJobdesk(false);
         setNewJobdeskValue("");
+        setIsNewRole(false);
+        setNewRoleValue("");
       }
     }}>
       <DialogTrigger asChild>
@@ -168,7 +200,7 @@ export function AddStaffDialog() {
               )}
             />
 
-            {/* Role Staff — admin only */}
+            {/* Role Staff */}
             {isAdmin ? (
               <FormField
                 control={form.control}
@@ -179,29 +211,86 @@ export function AddStaffDialog() {
                       <ShieldCheck className="w-4 h-4 text-primary" />
                       Role Staff
                     </FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger
-                          className="bg-background/50 border-white/10 focus:ring-primary/30 rounded-xl h-11"
-                          data-testid="select-role-staff"
+                    {isNewRole ? (
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <FormControl>
+                            <Input
+                              placeholder="Masukkan role baru"
+                              className="bg-background/50 border-white/10 focus-visible:ring-primary/30 rounded-xl h-11"
+                              value={newRoleValue}
+                              onChange={(e) => {
+                                setNewRoleValue(e.target.value);
+                                field.onChange(e.target.value);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  handleConfirmNewRole();
+                                }
+                              }}
+                              autoFocus
+                              data-testid="input-new-role"
+                            />
+                          </FormControl>
+                          <Button
+                            type="button"
+                            onClick={handleConfirmNewRole}
+                            disabled={!newRoleValue.trim()}
+                            className="h-11 px-3 rounded-xl bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary shrink-0"
+                            data-testid="button-confirm-new-role"
+                          >
+                            <Check className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Tekan Enter atau klik ✓ untuk menyimpan role</p>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setIsNewRole(false);
+                            setNewRoleValue("");
+                            form.setValue("role", "agent");
+                          }}
+                          className="h-8 text-muted-foreground"
+                          data-testid="button-cancel-new-role"
                         >
-                          <SelectValue placeholder="Pilih role staff" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {STAFF_ROLES.map(r => (
-                          <SelectItem key={r} value={r} data-testid={`role-option-${r}`}>
-                            {r.charAt(0).toUpperCase() + r.slice(1)}
+                          ← Kembali ke pilihan
+                        </Button>
+                      </div>
+                    ) : (
+                      <Select
+                        value={field.value}
+                        onValueChange={handleRoleChange}
+                        disabled={rolesLoading}
+                      >
+                        <FormControl>
+                          <SelectTrigger
+                            className="bg-background/50 border-white/10 focus:ring-primary/30 rounded-xl h-11"
+                            data-testid="select-role-staff"
+                          >
+                            <SelectValue placeholder="Pilih atau buat role baru" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {allRoles.map((r) => (
+                            <SelectItem key={r} value={r} data-testid={`role-option-${r}`}>
+                              {r.charAt(0).toUpperCase() + r.slice(1)}
+                            </SelectItem>
+                          ))}
+                          <div className="border-t border-white/10 my-2" />
+                          <SelectItem value="new" className="text-primary" data-testid="role-option-new">
+                            + Tambah Role Baru
                           </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                        </SelectContent>
+                      </Select>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
               />
             ) : (
-              /* Role Sistem — read-only for agent */
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground/80">Role Sistem</label>
                 <div
