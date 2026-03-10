@@ -26,7 +26,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+      <div className="w-full px-4 h-16 flex items-center justify-between gap-4">
         {/* Logo */}
         <div className="flex items-center gap-3 shrink-0">
           <div className="w-10 h-10 rounded-xl overflow-hidden border border-white/10 shrink-0">
