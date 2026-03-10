@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
 import { Loader2, Eye, EyeOff, Trash2, UserX, Palette, RotateCcw, Check } from "lucide-react";
+import { Header } from "@/components/layout/header";
 import { useJobdeskLimits, useUpdateJobdeskLimits } from "@/hooks/use-jobdesk-limits";
 import { useDeleteUser } from "@/hooks/use-delete-user";
 import { hslToHex, hexToHsl, applyCustomColors } from "@/components/theme-provider";
@@ -259,7 +260,13 @@ export default function Settings() {
   ];
 
   return (
-    <div className="flex-1 overflow-auto p-6">
+    <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/10 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-purple-500/10 blur-[120px] pointer-events-none" />
+
+      <Header />
+
+      <div className="flex-1 overflow-auto p-6 relative z-10">
       <div className="max-w-6xl mx-auto space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Pengaturan</h1>
@@ -988,6 +995,7 @@ export default function Settings() {
             </div>
           </CardContent>
         </Card>
+      </div>
       </div>
     </div>
   );
