@@ -46,7 +46,7 @@ export function Sidebar() {
           <img src={bosjokoLogo} alt="Logo" className="w-full h-full object-cover" />
         </div>
         <div className="min-w-0">
-          <p className="font-bold text-sm leading-tight text-gradient truncate">Dashboard IZIN</p>
+          <p className="font-bold text-sm leading-tight text-gradient truncate">Dashboard Operasional</p>
           <p className="text-[10px] text-muted-foreground font-medium">BOSJOKO</p>
         </div>
       </div>

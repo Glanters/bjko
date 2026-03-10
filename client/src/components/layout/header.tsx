@@ -34,7 +34,7 @@ export function Header() {
           </div>
           <div>
             <h1 className="font-display font-bold text-lg leading-tight text-gradient">
-              Dashboard IZIN Staff
+              Dashboard operasional BOSJOKO
             </h1>
             <p className="text-xs text-muted-foreground font-medium">BOSJOKO</p>
           </div>
