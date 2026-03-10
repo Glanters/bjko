@@ -690,6 +690,13 @@ export async function registerRoutes(
     return staffList.some(s => s.name === u.username && s.jobdesk === "CS LINE");
   };
 
+  const isKapten = async (userId: number): Promise<boolean> => {
+    const u = await storage.getUser(userId);
+    if (!u) return false;
+    const staffList = await storage.getStaff();
+    return staffList.some(s => s.name === u.username && s.role?.toLowerCase() === "kapten");
+  };
+
   // PATCH /api/staff/:id - Update staff name and jobdesk
   app.patch("/api/staff/:id", async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
@@ -701,6 +708,25 @@ export async function registerRoutes(
       if (!name || !jobdesk) return res.status(400).json({ message: "Nama dan jobdesk wajib diisi" });
       const updated = await storage.updateStaff(staffId, name.trim(), jobdesk.trim());
       await logAudit(req.session.userId, "UPDATE_STAFF", `Staff #${staffId} diupdate: ${name} / ${jobdesk}`);
+      res.json(updated);
+    } catch {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // PATCH /api/staff/:id/jobdesk - Update staff jobdesk only (admin or kapten)
+  app.patch("/api/staff/:id/jobdesk", async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
+    const user = await storage.getUser(req.session.userId);
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+    const kapten = await isKapten(req.session.userId);
+    if (user.role !== 'admin' && !kapten) return res.status(403).json({ message: "Forbidden" });
+    try {
+      const staffId = parseInt(req.params.id);
+      const { jobdesk } = req.body;
+      if (!jobdesk) return res.status(400).json({ message: "Jobdesk wajib diisi" });
+      const updated = await storage.updateStaffJobdesk(staffId, jobdesk.trim());
+      await logAudit(req.session.userId, "UPDATE_STAFF_JOBDESK", `Jobdesk staff #${staffId} diubah ke: ${jobdesk}`);
       res.json(updated);
     } catch {
       res.status(500).json({ message: "Internal server error" });

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 type InsertStaffInput = z.infer<typeof api.staff.create.input>;
 
@@ -53,6 +54,25 @@ export function useCreateStaff() {
         title: "Gagal",
         description: err.message,
       });
+    },
+  });
+}
+
+export function useUpdateStaffJobdesk() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, jobdesk }: { id: number; jobdesk: string }) => {
+      const res = await apiRequest("PATCH", `/api/staff/${id}/jobdesk`, { jobdesk });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.staff.list.path] });
+      toast({ title: "Berhasil", description: "Jobdesk staff berhasil diperbarui." });
+    },
+    onError: () => {
+      toast({ variant: "destructive", title: "Gagal", description: "Gagal memperbarui jobdesk." });
     },
   });
 }
