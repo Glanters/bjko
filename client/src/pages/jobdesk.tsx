@@ -26,7 +26,7 @@ export default function Jobdesk() {
   return (
     <div className="min-h-screen bg-background flex relative overflow-hidden">
       <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/10 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-yellow-500/5 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
 
       <Sidebar />
 
@@ -34,20 +34,19 @@ export default function Jobdesk() {
         <Header />
 
         <main className="flex-1 overflow-auto relative z-10">
-          {/* Hero header with gold theme */}
-          <div className="relative bg-gradient-to-br from-yellow-900/40 via-yellow-800/20 to-background border-b border-yellow-500/20 px-6 py-8">
-            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmNWM1MTgiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PHBhdGggZD0iTTM2IDM0djZoNnYtNmgtNnptMCAwdi02aC02djZoNnptNiAwaDZ2LTZoLTZ2NnoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-50 pointer-events-none" />
+          {/* Hero header */}
+          <div className="relative bg-gradient-to-br from-primary/20 via-primary/10 to-background border-b border-primary/20 px-6 py-8">
             <div className="flex items-end justify-between">
               <div>
                 <div className="flex items-center gap-3 mb-1">
-                  <Briefcase className="w-6 h-6 text-yellow-400" />
-                  <h1 className="text-3xl font-display font-black tracking-wider text-yellow-400 uppercase" style={{ textShadow: "0 0 30px rgba(245,197,24,0.5)" }}>
+                  <Briefcase className="w-6 h-6 text-primary" />
+                  <h1 className="text-3xl font-display font-black tracking-wider text-primary uppercase" style={{ textShadow: "0 0 30px rgba(var(--primary), 0.4)" }}>
                     JOBDESK
                   </h1>
                 </div>
-                <p className="text-yellow-200/60 text-sm">Daftar staff per shift & jobdesk</p>
+                <p className="text-muted-foreground text-sm">Daftar staff per shift & jobdesk</p>
               </div>
-              <p className="text-yellow-400/80 font-semibold text-sm" data-testid="text-date">{today}</p>
+              <p className="text-primary/80 font-semibold text-sm" data-testid="text-date">{today}</p>
             </div>
           </div>
 
@@ -60,8 +59,8 @@ export default function Jobdesk() {
                   onClick={() => setActiveShift(shift)}
                   className={`px-6 py-2.5 rounded-xl font-bold text-sm uppercase tracking-wider border transition-all ${
                     activeShift === shift
-                      ? "bg-yellow-500 text-black border-yellow-400 shadow-lg shadow-yellow-500/30"
-                      : "bg-background/50 text-yellow-200/60 border-yellow-500/20 hover:border-yellow-500/50 hover:text-yellow-200/80"
+                      ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/30"
+                      : "bg-background/50 text-muted-foreground border-white/10 hover:border-primary/50 hover:text-foreground"
                   }`}
                   data-testid={`tab-shift-${shift}`}
                 >
@@ -71,12 +70,12 @@ export default function Jobdesk() {
             </div>
 
             {/* Table */}
-            <div className="glass-panel rounded-2xl border border-yellow-500/20 overflow-hidden">
+            <div className="glass-panel rounded-2xl border border-white/10 overflow-hidden">
               {/* Table header */}
-              <div className="px-6 py-4 border-b border-yellow-500/10 flex items-center justify-between gap-4">
+              <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
-                  <span className="text-yellow-400 text-sm">☀</span>
-                  <span className="font-bold text-yellow-300 uppercase tracking-wider text-sm">
+                  <span className="text-primary text-sm">✦</span>
+                  <span className="font-bold text-primary uppercase tracking-wider text-sm">
                     JOBDESK {activeShift}
                   </span>
                 </div>
@@ -86,16 +85,16 @@ export default function Jobdesk() {
                     placeholder="Cari Nama Staff..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
-                    className="pl-9 bg-background/50 border-yellow-500/20 focus-visible:ring-yellow-500/30 text-sm h-9"
+                    className="pl-9 bg-background/50 border-white/10 focus-visible:ring-primary/30 text-sm h-9"
                     data-testid="input-search-jobdesk"
                   />
                 </div>
               </div>
 
               {/* Column headers */}
-              <div className="grid grid-cols-2 px-6 py-3 border-b border-yellow-500/10 bg-yellow-500/5">
-                <span className="text-xs font-bold text-yellow-400/70 uppercase tracking-widest">Nama Staff</span>
-                <span className="text-xs font-bold text-yellow-400/70 uppercase tracking-widest">Jobdesk</span>
+              <div className="grid grid-cols-2 px-6 py-3 border-b border-white/10 bg-primary/5">
+                <span className="text-xs font-bold text-primary/70 uppercase tracking-widest">Nama Staff</span>
+                <span className="text-xs font-bold text-primary/70 uppercase tracking-widest">Jobdesk</span>
               </div>
 
               {/* Rows */}
@@ -107,13 +106,13 @@ export default function Jobdesk() {
                 filtered.map((s, i) => (
                   <div
                     key={s.id}
-                    className={`grid grid-cols-2 px-6 py-4 border-b border-yellow-500/5 hover:bg-yellow-500/5 transition-colors ${
+                    className={`grid grid-cols-2 px-6 py-4 border-b border-white/5 hover:bg-primary/5 transition-colors ${
                       i % 2 === 0 ? "bg-background/20" : "bg-background/10"
                     }`}
                     data-testid={`row-jobdesk-${s.id}`}
                   >
                     <span className="font-bold text-foreground uppercase tracking-wide text-sm">{s.name}</span>
-                    <span className="text-yellow-200/70 font-medium text-sm">{s.jobdesk}</span>
+                    <span className="text-muted-foreground font-medium text-sm">{s.jobdesk}</span>
                   </div>
                 ))
               )}
