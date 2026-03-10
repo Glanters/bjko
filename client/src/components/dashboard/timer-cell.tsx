@@ -25,9 +25,10 @@ export function TimerCell({ leaves, staffId, canClockIn = false }: TimerCellProp
     return () => clearInterval(interval);
   }, []);
 
-  // Filter for today's leaves
-  const todayString = format(new Date(), "yyyy-MM-dd");
-  const todaysLeaves = leaves.filter(l => l.date === todayString);
+  // Filter for today's leaves using local midnight to avoid UTC/local timezone mismatch
+  const localMidnight = new Date();
+  localMidnight.setHours(0, 0, 0, 0);
+  const todaysLeaves = leaves.filter(l => new Date(l.startTime) >= localMidnight);
 
   if (todaysLeaves.length === 0) {
     return <span className="text-muted-foreground">-</span>;

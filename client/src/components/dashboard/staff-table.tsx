@@ -1,7 +1,6 @@
 import { useStaff } from "@/hooks/use-staff";
 import { useLeaves, useCreateLeave, useResetStaffLimit } from "@/hooks/use-leaves";
 import { useAuth } from "@/hooks/use-auth";
-import { format } from "date-fns";
 import { useState } from "react";
 import {
   Table,
@@ -47,8 +46,10 @@ export function StaffTable() {
 
   if (!staffList || !leaves) return null;
 
-  const todayString = format(new Date(), "yyyy-MM-dd");
-  const todaysLeaves = leaves.filter(l => l.date === todayString);
+  // Use local midnight to avoid UTC vs local timezone mismatch
+  const localMidnight = new Date();
+  localMidnight.setHours(0, 0, 0, 0);
+  const todaysLeaves = leaves.filter(l => new Date(l.startTime) >= localMidnight);
 
   const handleLeave = (staffId: number, currentLeavesCount: number, staff: Staff) => {
     if (currentLeavesCount >= 4) {
