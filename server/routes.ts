@@ -674,6 +674,39 @@ export async function registerRoutes(
     }
   });
 
+  // --- Theme Settings ---
+  app.get("/api/theme-settings", async (req, res) => {
+    try {
+      const bg = await storage.getSetting("theme_bg");
+      const primary = await storage.getSetting("theme_primary");
+      res.json({ bg: bg ?? null, primary: primary ?? null });
+    } catch { res.status(500).json({ message: "Internal server error" }); }
+  });
+
+  app.post("/api/theme-settings", async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
+    const user = await storage.getUser(req.session.userId);
+    if (!user || user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
+    try {
+      const { bg, primary } = req.body;
+      if (bg !== undefined) await storage.setSetting("theme_bg", bg);
+      if (primary !== undefined) await storage.setSetting("theme_primary", primary);
+      await logAudit(req.session.userId, "UPDATE_THEME", "Tema warna dashboard diperbarui");
+      res.json({ bg: bg ?? null, primary: primary ?? null });
+    } catch { res.status(500).json({ message: "Internal server error" }); }
+  });
+
+  app.delete("/api/theme-settings", async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
+    const user = await storage.getUser(req.session.userId);
+    if (!user || user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
+    try {
+      await storage.setSetting("theme_bg", "");
+      await storage.setSetting("theme_primary", "");
+      res.json({ message: "Tema direset ke default" });
+    } catch { res.status(500).json({ message: "Internal server error" }); }
+  });
+
   // --- Jobdesk Master List ---
   const JOBDESK_LIST_KEY = "jobdesk_master_list";
 

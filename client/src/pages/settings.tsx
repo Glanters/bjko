@@ -9,9 +9,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
-import { Loader2, Eye, EyeOff, Trash2, UserX } from "lucide-react";
+import { Loader2, Eye, EyeOff, Trash2, UserX, Palette, RotateCcw, Check } from "lucide-react";
 import { useJobdeskLimits, useUpdateJobdeskLimits } from "@/hooks/use-jobdesk-limits";
 import { useDeleteUser } from "@/hooks/use-delete-user";
+import { hslToHex, hexToHsl, applyCustomColors } from "@/components/theme-provider";
 
 export default function Settings() {
   const { user } = useAuth();
@@ -35,6 +36,8 @@ export default function Settings() {
   const [editingWhitelist, setEditingWhitelist] = useState<boolean>(false);
   const [jobdeskLimitsText, setJobdeskLimitsText] = useState<string>("");
   const [editingJobdeskLimits, setEditingJobdeskLimits] = useState<boolean>(false);
+  const [themeBg, setThemeBg] = useState<string>("");
+  const [themePrimary, setThemePrimary] = useState<string>("");
 
   const limitsQuery = useJobdeskLimits();
   const updateLimitsMutation = useUpdateJobdeskLimits();
@@ -71,6 +74,41 @@ export default function Settings() {
     queryKey: [api.whitelist.get.path],
     queryFn: () => apiRequest("GET", api.whitelist.get.path).then(r => r.json()),
     enabled: user?.role === "admin",
+  });
+
+  const themeQuery = useQuery<{ bg: string | null; primary: string | null }>({
+    queryKey: ["/api/theme-settings"],
+    enabled: user?.role === "admin",
+  });
+
+  useEffect(() => {
+    if (themeQuery.data) {
+      setThemeBg(themeQuery.data.bg ?? "");
+      setThemePrimary(themeQuery.data.primary ?? "");
+    }
+  }, [themeQuery.data]);
+
+  const saveThemeMutation = useMutation({
+    mutationFn: (data: { bg: string; primary: string }) =>
+      apiRequest("POST", "/api/theme-settings", data).then(r => r.json()),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/theme-settings"] });
+      applyCustomColors(data.bg, data.primary);
+      toast({ title: "Berhasil", description: "Tema dashboard diperbarui" });
+    },
+    onError: () => toast({ title: "Error", description: "Gagal menyimpan tema", variant: "destructive" }),
+  });
+
+  const resetThemeMutation = useMutation({
+    mutationFn: () => apiRequest("DELETE", "/api/theme-settings").then(r => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/theme-settings"] });
+      setThemeBg("");
+      setThemePrimary("");
+      applyCustomColors(null, null);
+      toast({ title: "Berhasil", description: "Tema direset ke default" });
+    },
+    onError: () => toast({ title: "Error", description: "Gagal reset tema", variant: "destructive" }),
   });
 
   const updateIpMutation = useMutation({
@@ -209,6 +247,17 @@ export default function Settings() {
 
   const whitelistIps = whitelistQuery.data?.ips || [];
 
+  const BG_PRESETS = [
+    { label: "Navy (Default)", bg: "211 43% 12%", primary: "210 95% 50%" },
+    { label: "Dark Indigo", bg: "240 40% 12%", primary: "250 90% 65%" },
+    { label: "Dark Teal", bg: "185 43% 10%", primary: "180 90% 45%" },
+    { label: "Dark Green", bg: "150 30% 10%", primary: "145 80% 40%" },
+    { label: "Dark Purple", bg: "270 30% 12%", primary: "280 85% 60%" },
+    { label: "Dark Red", bg: "0 30% 10%", primary: "5 85% 55%" },
+    { label: "Dark Amber", bg: "30 43% 10%", primary: "40 90% 55%" },
+    { label: "Charcoal", bg: "0 0% 10%", primary: "210 95% 55%" },
+  ];
+
   return (
     <div className="flex-1 overflow-auto p-6">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -216,6 +265,147 @@ export default function Settings() {
           <h1 className="text-3xl font-bold">Pengaturan</h1>
           <p className="text-muted-foreground">Kelola konfigurasi sistem, pengguna, dan whitelist IP</p>
         </div>
+
+        {/* Tema Dashboard */}
+        <Card className="border-primary/30 bg-primary/5">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Palette className="w-5 h-5 text-primary" />
+              <CardTitle className="text-primary">Tema Warna Dashboard</CardTitle>
+            </div>
+            <CardDescription>Ubah warna latar belakang dan warna aksen utama dashboard. Hanya admin yang dapat mengubah ini.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {/* Preset swatches */}
+            <div>
+              <p className="text-sm font-semibold text-foreground mb-3">Pilih Preset Tema</p>
+              <div className="grid grid-cols-4 gap-3">
+                {BG_PRESETS.map((preset) => {
+                  const bgHex = hslToHex(preset.bg);
+                  const accentHex = hslToHex(preset.primary);
+                  const isActive = themeBg === preset.bg && themePrimary === preset.primary;
+                  return (
+                    <button
+                      key={preset.label}
+                      onClick={() => { setThemeBg(preset.bg); setThemePrimary(preset.primary); }}
+                      className={`relative rounded-xl overflow-hidden border-2 transition-all hover:scale-105 ${
+                        isActive ? "border-white shadow-lg shadow-white/20" : "border-transparent"
+                      }`}
+                      title={preset.label}
+                      data-testid={`button-theme-preset-${preset.label.replace(/\s+/g, "-").toLowerCase()}`}
+                    >
+                      <div className="h-16 w-full" style={{ backgroundColor: bgHex }}>
+                        <div className="h-6 w-full" style={{ backgroundColor: accentHex, opacity: 0.7 }} />
+                        <div className="px-2 pt-1">
+                          <div className="h-1.5 rounded-full w-4/5" style={{ backgroundColor: accentHex }} />
+                          <div className="h-1 rounded-full w-3/5 mt-1 opacity-40" style={{ backgroundColor: "white" }} />
+                        </div>
+                      </div>
+                      {isActive && (
+                        <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-white flex items-center justify-center">
+                          <Check className="w-2.5 h-2.5 text-black" />
+                        </div>
+                      )}
+                      <div className="text-[10px] text-center py-1 font-medium text-muted-foreground">{preset.label}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Custom color pickers */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-semibold text-foreground mb-2">Warna Background (Custom)</p>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={themeBg ? hslToHex(themeBg) : "#1b2c3e"}
+                    onChange={e => setThemeBg(hexToHsl(e.target.value))}
+                    className="w-10 h-10 rounded-lg cursor-pointer border border-white/20"
+                    data-testid="input-color-bg"
+                  />
+                  <div className="flex-1">
+                    <Input
+                      value={themeBg}
+                      onChange={e => setThemeBg(e.target.value)}
+                      placeholder="H S% L% (misal: 211 43% 12%)"
+                      className="text-sm font-mono h-9"
+                      data-testid="input-hsl-bg"
+                    />
+                    <p className="text-[11px] text-muted-foreground mt-1">Format: H S% L%</p>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground mb-2">Warna Aksen/Primer (Custom)</p>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={themePrimary ? hslToHex(themePrimary) : "#0a7ff5"}
+                    onChange={e => setThemePrimary(hexToHsl(e.target.value))}
+                    className="w-10 h-10 rounded-lg cursor-pointer border border-white/20"
+                    data-testid="input-color-primary"
+                  />
+                  <div className="flex-1">
+                    <Input
+                      value={themePrimary}
+                      onChange={e => setThemePrimary(e.target.value)}
+                      placeholder="H S% L% (misal: 210 95% 50%)"
+                      className="text-sm font-mono h-9"
+                      data-testid="input-hsl-primary"
+                    />
+                    <p className="text-[11px] text-muted-foreground mt-1">Format: H S% L%</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Preview */}
+            {(themeBg || themePrimary) && (
+              <div>
+                <p className="text-sm font-semibold text-foreground mb-2">Preview</p>
+                <div
+                  className="rounded-xl p-4 border border-white/10"
+                  style={{ backgroundColor: themeBg ? `hsl(${themeBg})` : undefined }}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-6 h-6 rounded-md" style={{ backgroundColor: themePrimary ? `hsl(${themePrimary})` : undefined }} />
+                    <span className="text-sm font-bold" style={{ color: themePrimary ? `hsl(${themePrimary})` : undefined }}>
+                      DASHBOARD BOSJOKO
+                    </span>
+                  </div>
+                  <div className="h-2 rounded-full w-3/4 opacity-30 bg-white" />
+                  <div className="h-2 rounded-full w-1/2 opacity-20 bg-white mt-1" />
+                </div>
+              </div>
+            )}
+
+            {/* Buttons */}
+            <div className="flex items-center gap-3 pt-2">
+              <Button
+                onClick={() => saveThemeMutation.mutate({ bg: themeBg, primary: themePrimary })}
+                disabled={saveThemeMutation.isPending || (!themeBg && !themePrimary)}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                data-testid="button-save-theme"
+              >
+                {saveThemeMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
+                Simpan Tema
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => resetThemeMutation.mutate()}
+                disabled={resetThemeMutation.isPending}
+                className="border-white/20 text-muted-foreground hover:text-foreground"
+                data-testid="button-reset-theme"
+              >
+                {resetThemeMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RotateCcw className="w-4 h-4 mr-2" />}
+                Reset ke Default
+              </Button>
+              <p className="text-xs text-muted-foreground">Perubahan langsung terlihat oleh semua pengguna setelah disimpan.</p>
+            </div>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
