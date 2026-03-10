@@ -6,8 +6,9 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
-import { ShieldCheck, Layers, Trash2, Save } from "lucide-react";
+import { ShieldCheck, Layers, Trash2, Save, ChevronDown, Check, Briefcase } from "lucide-react";
 import type { User } from "@shared/schema";
 import type { StaffPermission } from "@shared/schema";
 
@@ -157,26 +158,81 @@ function PermissionRoleRow({ role, perm, allJobdesks, onSave, onDelete }: {
         </div>
       </div>
 
-      {/* Allowed Jobdesks */}
+      {/* Allowed Jobdesks — multi-select dropdown */}
       {allJobdesks.length > 0 && (
         <div>
           <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">Jobdesk yang Diizinkan</p>
-          <div className="flex gap-2 flex-wrap">
-            {allJobdesks.map(j => (
+          <Popover>
+            <PopoverTrigger asChild>
               <button
-                key={j}
-                onClick={() => toggleJobdesk(j)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
-                  jobdesks.includes(j)
-                    ? "bg-primary/20 border-primary/40 text-primary"
-                    : "bg-white/5 border-white/10 text-muted-foreground hover:border-white/20"
-                }`}
-                data-testid={`jobdesk-${j}-${role}`}
+                className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:border-primary/30 hover:bg-primary/5 transition-all text-left"
+                data-testid={`dropdown-jobdesk-${role}`}
               >
-                {j}
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <Briefcase className="w-3.5 h-3.5 text-primary/60 shrink-0" />
+                  {jobdesks.length === 0 ? (
+                    <span className="text-xs text-muted-foreground">Pilih jobdesk yang diizinkan...</span>
+                  ) : (
+                    <div className="flex gap-1.5 flex-wrap">
+                      {jobdesks.map(j => (
+                        <span
+                          key={j}
+                          className="inline-flex items-center px-2 py-0.5 rounded-md bg-primary/20 border border-primary/30 text-primary text-[11px] font-bold"
+                        >
+                          {j}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
               </button>
-            ))}
-          </div>
+            </PopoverTrigger>
+            <PopoverContent
+              className="w-64 p-2 bg-card border border-white/10 shadow-xl rounded-xl"
+              align="start"
+              data-testid={`popover-jobdesk-${role}`}
+            >
+              <p className="text-[10px] font-bold text-primary/70 uppercase tracking-widest px-2 pb-2 border-b border-white/10 mb-1">
+                Pilih Jobdesk
+              </p>
+              <div className="max-h-52 overflow-y-auto space-y-0.5 pr-1">
+                {allJobdesks.map(j => {
+                  const selected = jobdesks.includes(j);
+                  return (
+                    <button
+                      key={j}
+                      onClick={() => toggleJobdesk(j)}
+                      className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-all text-left ${
+                        selected
+                          ? "bg-primary/20 text-primary"
+                          : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                      }`}
+                      data-testid={`jobdesk-${j}-${role}`}
+                    >
+                      <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all ${
+                        selected ? "bg-primary border-primary" : "border-white/20 bg-white/5"
+                      }`}>
+                        {selected && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
+                      </span>
+                      {j}
+                    </button>
+                  );
+                })}
+              </div>
+              {jobdesks.length > 0 && (
+                <div className="border-t border-white/10 mt-1 pt-1">
+                  <button
+                    onClick={() => setJobdesks([])}
+                    className="w-full text-center text-[11px] text-red-400/70 hover:text-red-400 py-1 transition-colors"
+                    data-testid={`clear-jobdesks-${role}`}
+                  >
+                    Hapus semua pilihan
+                  </button>
+                </div>
+              )}
+            </PopoverContent>
+          </Popover>
         </div>
       )}
     </div>
