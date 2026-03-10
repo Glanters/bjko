@@ -1,21 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
-import type { Staff } from "@shared/schema";
+import { useStaff } from "./use-staff";
 
 export function useUniqueJobdesks() {
-  const query = useQuery({
-    queryKey: ["/api/staff"],
-    queryFn: () =>
-      fetch("/api/staff", { credentials: "include" })
-        .then(r => r.json())
-        .then((staffList: Staff[]) => {
-          const unique = [...new Set(staffList.map(s => s.jobdesk))];
-          return unique.sort();
-        }),
-    staleTime: 0,
-  });
+  const { data: staffList, isLoading } = useStaff();
 
-  return {
-    jobdesks: query.data ?? [],
-    isLoading: query.isLoading,
-  };
+  const jobdesks = staffList
+    ? [...new Set(staffList.map(s => s.jobdesk))].sort()
+    : [];
+
+  return { jobdesks, isLoading };
 }
