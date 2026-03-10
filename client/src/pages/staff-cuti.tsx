@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { UserX, Search, Pencil, Check, X, RefreshCw } from "lucide-react";
+import { UserX, Search, Pencil, Check, X } from "lucide-react";
 import type { Staff } from "@shared/schema";
 
 const CUTI_OPTIONS = ["Izin", "Sakit", "Cuti Tahunan", "Cuti Khusus", "Alpha"];
@@ -288,11 +288,12 @@ export default function StaffCuti() {
                                 variant="ghost"
                                 onClick={() => clearStatus(s.id)}
                                 disabled={isPending}
-                                className="h-7 px-2 rounded-lg text-muted-foreground hover:text-green-400 hover:bg-green-500/10 text-xs"
+                                className="h-7 px-2 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 text-xs"
                                 data-testid={`button-clear-cuti-${s.id}`}
-                                title="Reset ke Hadir"
+                                title="Hapus Status"
                               >
-                                <RefreshCw className="w-3 h-3" />
+                                <X className="w-3 h-3 mr-1" />
+                                Hapus
                               </Button>
                             )}
                           </div>
