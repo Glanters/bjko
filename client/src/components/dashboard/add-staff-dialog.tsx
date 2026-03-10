@@ -31,16 +31,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Users, Check, Lock } from "lucide-react";
+import { Plus, Users, Check, Lock, ShieldCheck } from "lucide-react";
 import type { StaffPermission } from "@shared/schema";
 
-const SHIFTS = ["PAGI", "SORE", "MALAM"];
+const STAFF_ROLES = ["agent", "admin", "supervisor", "leader"] as const;
 
 const staffFormSchema = z.object({
   name: z.string().min(1, "Nama wajib diisi"),
   jobdesk: z.string().min(1, "Jobdesk wajib dipilih"),
   role: z.string().default("agent"),
-  shift: z.string().min(1, "Shift wajib dipilih"),
+  shift: z.string().default("PAGI"),
 });
 
 type StaffForm = z.infer<typeof staffFormSchema>;
@@ -62,10 +62,6 @@ export function AddStaffDialog() {
   const isAdmin = user?.role === "admin";
   const canAdd = isAdmin || (myPerm?.canAddStaff === true);
 
-  const allowedShifts = isAdmin
-    ? SHIFTS
-    : (myPerm?.allowedShifts ? myPerm.allowedShifts.split(",").filter(Boolean) : []);
-
   const allowedJobdesks = isAdmin
     ? null
     : (myPerm?.allowedJobdesks ? myPerm.allowedJobdesks.split(",").filter(Boolean) : []);
@@ -76,7 +72,7 @@ export function AddStaffDialog() {
       name: "",
       jobdesk: "",
       role: "agent",
-      shift: allowedShifts[0] ?? "PAGI",
+      shift: "PAGI",
     },
   });
 
@@ -152,6 +148,7 @@ export function AddStaffDialog() {
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4">
+            {/* Nama Lengkap */}
             <FormField
               control={form.control}
               name="name"
@@ -171,32 +168,50 @@ export function AddStaffDialog() {
               )}
             />
 
-            {/* Shift */}
-            <FormField
-              control={form.control}
-              name="shift"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-foreground/80">Shift</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger className="bg-background/50 border-white/10 focus:ring-primary/30 rounded-xl h-11" data-testid="select-shift">
-                        <SelectValue placeholder="Pilih shift" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {allowedShifts.map(s => (
-                        <SelectItem key={s} value={s} data-testid={`shift-option-${s}`}>{s}</SelectItem>
-                      ))}
-                      {allowedShifts.length === 0 && (
-                        <SelectItem value="none" disabled>Tidak ada shift yang diizinkan</SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Role Staff — admin only */}
+            {isAdmin ? (
+              <FormField
+                control={form.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-foreground/80 flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-primary" />
+                      Role Staff
+                    </FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger
+                          className="bg-background/50 border-white/10 focus:ring-primary/30 rounded-xl h-11"
+                          data-testid="select-role-staff"
+                        >
+                          <SelectValue placeholder="Pilih role staff" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {STAFF_ROLES.map(r => (
+                          <SelectItem key={r} value={r} data-testid={`role-option-${r}`}>
+                            {r.charAt(0).toUpperCase() + r.slice(1)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ) : (
+              /* Role Sistem — read-only for agent */
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground/80">Role Sistem</label>
+                <div
+                  className="bg-background/30 border border-white/10 rounded-xl h-11 flex items-center px-3 text-sm text-muted-foreground cursor-not-allowed"
+                  data-testid="input-role-sistem"
+                >
+                  agent
+                </div>
+              </div>
+            )}
 
             {/* Jobdesk */}
             <FormField
@@ -260,7 +275,10 @@ export function AddStaffDialog() {
                       disabled={jobdesksLoading}
                     >
                       <FormControl>
-                        <SelectTrigger className="bg-background/50 border-white/10 focus:ring-primary/30 rounded-xl h-11" data-testid="select-jobdesk">
+                        <SelectTrigger
+                          className="bg-background/50 border-white/10 focus:ring-primary/30 rounded-xl h-11"
+                          data-testid="select-jobdesk"
+                        >
                           <SelectValue placeholder="Pilih atau buat jobdesk baru" />
                         </SelectTrigger>
                       </FormControl>
