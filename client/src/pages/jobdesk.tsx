@@ -1,9 +1,11 @@
 import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useStaff, useUpdateStaffJobdesk } from "@/hooks/use-staff";
 import { useUniqueJobdesks } from "@/hooks/use-unique-jobdesks";
 import { useAuth } from "@/hooks/use-auth";
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
+import type { StaffPermission } from "@shared/schema";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +27,7 @@ export default function Jobdesk() {
   const { data: staffList } = useStaff();
   const { jobdesks } = useUniqueJobdesks();
   const { mutate: updateJobdesk, isPending: isSaving } = useUpdateStaffJobdesk();
+  const { data: myPerm } = useQuery<StaffPermission>({ queryKey: ["/api/permissions/me"] });
 
   const [activeShift, setActiveShift] = useState<Shift>("PAGI");
   const [search, setSearch] = useState("");
@@ -37,12 +40,7 @@ export default function Jobdesk() {
   const today = format(new Date(), "EEEE, dd MMM yyyy", { locale: localeId });
 
   const isAdmin = user?.role === "admin";
-  const isKapten = useMemo(() => {
-    if (!staffList || !user) return false;
-    return staffList.some(s => s.name === user.username && s.role?.toLowerCase() === "kapten");
-  }, [staffList, user]);
-
-  const canEdit = isAdmin || isKapten;
+  const canEdit = isAdmin || !!myPerm?.canEditJobdesk;
 
   const allJobdesks = useMemo(
     () => [...new Set([...jobdesks, ...extraJobdesks])].sort(),

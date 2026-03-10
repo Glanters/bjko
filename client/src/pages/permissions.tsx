@@ -25,10 +25,11 @@ function toList(arr: string[]): string {
 function PermissionRow({ user, perm, onSave, onDelete }: {
   user: User;
   perm: StaffPermission | undefined;
-  onSave: (userId: number, data: { canAddStaff: boolean; allowedShifts: string; allowedJobdesks: string }) => void;
+  onSave: (userId: number, data: { canAddStaff: boolean; allowedShifts: string; allowedJobdesks: string; canEditJobdesk: boolean }) => void;
   onDelete: (userId: number) => void;
 }) {
   const [canAdd, setCanAdd] = useState(perm?.canAddStaff ?? false);
+  const [canEditJobdesk, setCanEditJobdesk] = useState(perm?.canEditJobdesk ?? false);
   const [shifts, setShifts] = useState<string[]>(parseList(perm?.allowedShifts ?? ""));
   const [jobdesks, setJobdesks] = useState<string[]>(parseList(perm?.allowedJobdesks ?? ""));
 
@@ -50,7 +51,7 @@ function PermissionRow({ user, perm, onSave, onDelete }: {
         <div className="flex items-center gap-2">
           <Button
             size="sm"
-            onClick={() => onSave(user.id, { canAddStaff: canAdd, allowedShifts: toList(shifts), allowedJobdesks: toList(jobdesks) })}
+            onClick={() => onSave(user.id, { canAddStaff: canAdd, allowedShifts: toList(shifts), allowedJobdesks: toList(jobdesks), canEditJobdesk })}
             className="h-8 rounded-lg bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary text-xs"
             data-testid={`button-save-perm-${user.id}`}
           >
@@ -71,17 +72,30 @@ function PermissionRow({ user, perm, onSave, onDelete }: {
         </div>
       </div>
 
-      {/* Can Add Staff */}
-      <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
-        <Checkbox
-          id={`can-add-${user.id}`}
-          checked={canAdd}
-          onCheckedChange={(v) => setCanAdd(!!v)}
-          data-testid={`checkbox-can-add-${user.id}`}
-        />
-        <label htmlFor={`can-add-${user.id}`} className="text-sm font-medium cursor-pointer">
-          Dapat Menambahkan Staff
-        </label>
+      {/* Permissions checkboxes */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
+          <Checkbox
+            id={`can-add-${user.id}`}
+            checked={canAdd}
+            onCheckedChange={(v) => setCanAdd(!!v)}
+            data-testid={`checkbox-can-add-${user.id}`}
+          />
+          <label htmlFor={`can-add-${user.id}`} className="text-sm font-medium cursor-pointer">
+            Dapat Menambahkan Staff
+          </label>
+        </div>
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
+          <Checkbox
+            id={`can-edit-jobdesk-${user.id}`}
+            checked={canEditJobdesk}
+            onCheckedChange={(v) => setCanEditJobdesk(!!v)}
+            data-testid={`checkbox-can-edit-jobdesk-${user.id}`}
+          />
+          <label htmlFor={`can-edit-jobdesk-${user.id}`} className="text-sm font-medium cursor-pointer">
+            Dapat Edit Jobdesk Staff
+          </label>
+        </div>
       </div>
 
       {/* Allowed Shifts */}

@@ -714,13 +714,13 @@ export async function registerRoutes(
     }
   });
 
-  // PATCH /api/staff/:id/jobdesk - Update staff jobdesk only (admin or kapten)
+  // PATCH /api/staff/:id/jobdesk - Update staff jobdesk only (admin or user with canEditJobdesk permission)
   app.patch("/api/staff/:id/jobdesk", async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
     const user = await storage.getUser(req.session.userId);
     if (!user) return res.status(401).json({ message: "Unauthorized" });
-    const kapten = await isKapten(req.session.userId);
-    if (user.role !== 'admin' && !kapten) return res.status(403).json({ message: "Forbidden" });
+    const perm = await storage.getPermissionByUserId(req.session.userId);
+    if (user.role !== 'admin' && !perm?.canEditJobdesk) return res.status(403).json({ message: "Forbidden" });
     try {
       const staffId = parseInt(req.params.id);
       const { jobdesk } = req.body;
@@ -941,8 +941,8 @@ export async function registerRoutes(
       if (!reqUser || reqUser.role !== 'admin') return res.status(403).json({ message: "Forbidden" });
       const userId = parseInt(req.params.userId);
       if (isNaN(userId)) return res.status(400).json({ message: "Invalid userId" });
-      const { canAddStaff, allowedShifts, allowedJobdesks } = req.body;
-      const perm = await storage.upsertPermission({ userId, canAddStaff: !!canAddStaff, allowedShifts: allowedShifts ?? '', allowedJobdesks: allowedJobdesks ?? '' });
+      const { canAddStaff, allowedShifts, allowedJobdesks, canEditJobdesk } = req.body;
+      const perm = await storage.upsertPermission({ userId, canAddStaff: !!canAddStaff, allowedShifts: allowedShifts ?? '', allowedJobdesks: allowedJobdesks ?? '', canEditJobdesk: !!canEditJobdesk });
       const targetUser = await storage.getUser(userId);
       await logAudit(req.session.userId, "PERMISSION_UPDATE", `Izin edit diperbarui untuk ${targetUser?.username ?? userId}`);
       res.json(perm);
