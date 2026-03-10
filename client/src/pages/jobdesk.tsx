@@ -290,8 +290,9 @@ export default function Jobdesk() {
               </div>
 
               {/* Column headers */}
-              <div className={`grid ${showActionCol ? "grid-cols-[1fr_1fr_80px]" : "grid-cols-2"} px-6 py-3 border-b border-white/10 bg-primary/5`}>
+              <div className={`grid ${showActionCol ? "grid-cols-[1fr_130px_1fr_80px]" : "grid-cols-[1fr_130px_1fr]"} px-6 py-3 border-b border-white/10 bg-primary/5`}>
                 <span className="text-xs font-bold text-primary/70 uppercase tracking-widest">Nama Staff</span>
+                <span className="text-xs font-bold text-primary/70 uppercase tracking-widest">Shift</span>
                 <span className="text-xs font-bold text-primary/70 uppercase tracking-widest">Jobdesk</span>
                 {showActionCol && (
                   <span className="text-xs font-bold text-primary/70 uppercase tracking-widest text-right">Aksi</span>
@@ -307,12 +308,53 @@ export default function Jobdesk() {
                 filtered.map((s, i) => (
                   <div
                     key={s.id}
-                    className={`grid ${showActionCol ? "grid-cols-[1fr_1fr_80px]" : "grid-cols-2"} items-center px-6 py-3 border-b border-white/5 hover:bg-primary/5 transition-colors ${
+                    className={`grid ${showActionCol ? "grid-cols-[1fr_130px_1fr_80px]" : "grid-cols-[1fr_130px_1fr]"} items-center px-6 py-3 border-b border-white/5 hover:bg-primary/5 transition-colors ${
                       i % 2 === 0 ? "bg-background/20" : "bg-background/10"
                     }`}
                     data-testid={`row-jobdesk-${s.id}`}
                   >
                     <span className="font-bold text-foreground uppercase tracking-wide text-sm">{s.name}</span>
+
+                    {/* Shift cell — inline dropdown for canEdit users */}
+                    {canEdit ? (
+                      <Select
+                        value={s.shift}
+                        onValueChange={(newShift) => {
+                          updateStaff({ id: s.id, name: s.name, jobdesk: s.jobdesk, shift: newShift });
+                        }}
+                      >
+                        <SelectTrigger
+                          className="h-7 w-[110px] text-xs font-bold border border-white/10 bg-white/5 px-2 hover:bg-primary/10 rounded-lg focus:ring-0 focus:ring-offset-0"
+                          data-testid={`select-shift-${s.id}`}
+                        >
+                          <span className={
+                            s.shift === "PAGI" ? "text-amber-400" :
+                            s.shift === "SORE" ? "text-orange-400" :
+                            "text-blue-400"
+                          }>{s.shift}</span>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SHIFTS.map(sh => (
+                            <SelectItem key={sh} value={sh} className="text-xs font-bold">
+                              <span className={`px-2 py-0.5 rounded-md ${
+                                sh === "PAGI" ? "text-amber-400" :
+                                sh === "SORE" ? "text-orange-400" :
+                                "text-blue-400"
+                              }`}>{sh}</span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <span className={`text-xs font-bold px-2 py-1 rounded-lg w-fit ${
+                        s.shift === "PAGI" ? "bg-amber-500/20 text-amber-400" :
+                        s.shift === "SORE" ? "bg-orange-500/20 text-orange-400" :
+                        "bg-blue-500/20 text-blue-400"
+                      }`}>
+                        {s.shift}
+                      </span>
+                    )}
+
                     <span className="text-muted-foreground font-medium text-sm">{s.jobdesk}</span>
 
                     {showActionCol && (
