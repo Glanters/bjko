@@ -197,7 +197,11 @@ export const api = {
     create: {
       method: 'POST' as const,
       path: '/api/staff' as const,
-      input: insertStaffSchema,
+      input: z.object({
+        name: z.string().min(1),
+        jobdesk: z.string().min(1),
+        shift: z.enum(["PAGI", "SORE", "MALAM"]).optional().default("PAGI"),
+      }),
       responses: {
         201: z.custom<typeof staff.$inferSelect>(),
         401: errorSchemas.unauthorized,
@@ -300,11 +304,13 @@ export const api = {
     },
     upsert: {
       method: 'POST' as const,
-      path: '/api/permissions/:userId' as const,
+      path: '/api/permissions/:role' as const,
       input: z.object({
         canAddStaff: z.boolean(),
         allowedShifts: z.string(),
         allowedJobdesks: z.string(),
+        canEditJobdesk: z.boolean().optional(),
+        canDeleteStaff: z.boolean().optional(),
       }),
       responses: {
         200: z.custom<typeof staffPermissions.$inferSelect>(),
@@ -314,7 +320,7 @@ export const api = {
     },
     delete: {
       method: 'DELETE' as const,
-      path: '/api/permissions/:userId' as const,
+      path: '/api/permissions/:role' as const,
       responses: {
         200: z.object({ message: z.string() }),
         401: errorSchemas.unauthorized,

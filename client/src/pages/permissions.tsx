@@ -164,7 +164,7 @@ export default function Permissions() {
 
   const { data: users } = useQuery<User[]>({ queryKey: ["/api/users"] });
   const { data: perms } = useQuery<StaffPermission[]>({ queryKey: ["/api/permissions"] });
-  const { data: masterData } = useQuery<{ jobdesks: string[] }>({ queryKey: ["/api/jobdesk-list"] });
+  const { data: masterData } = useQuery<{ jobdesks: string[] }>({ queryKey: ["/api/jobdeskList"] });
   const { data: staffData } = useQuery<Array<{ jobdesk: string }>>({ queryKey: ["/api/staff"] });
 
   const saveMutation = useMutation({
