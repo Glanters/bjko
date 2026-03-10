@@ -88,7 +88,7 @@ export async function registerRoutes(
     }
     const user = await storage.getUser(req.session.userId);
     if (!user) return res.status(401).json({ message: "Unauthorized" });
-    const perm = await storage.getPermissionByUserId(req.session.userId);
+    const perm = await storage.getPermissionByRole(user.role);
     if (user.role !== 'admin' && !perm?.canAddStaff) {
       return res.status(403).json({ message: "Forbidden: Anda tidak memiliki izin menambahkan staff" });
     }
@@ -564,7 +564,7 @@ export async function registerRoutes(
     }
     const user = await storage.getUser(req.session.userId);
     if (!user) return res.status(401).json({ message: "Unauthorized" });
-    const perm = await storage.getPermissionByUserId(req.session.userId);
+    const perm = await storage.getPermissionByRole(user.role);
     if (user.role !== 'admin' && !perm?.canDeleteStaff) {
       return res.status(403).json({ message: "Forbidden: Anda tidak memiliki izin menghapus staff" });
     }
@@ -788,7 +788,7 @@ export async function registerRoutes(
     if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
     const user = await storage.getUser(req.session.userId);
     if (!user) return res.status(401).json({ message: "Unauthorized" });
-    const perm = await storage.getPermissionByUserId(req.session.userId);
+    const perm = await storage.getPermissionByRole(user.role);
     if (user.role !== 'admin' && !perm?.canEditJobdesk) return res.status(403).json({ message: "Forbidden: Tidak ada izin edit staff" });
     try {
       const staffId = parseInt(req.params.id);
@@ -809,7 +809,7 @@ export async function registerRoutes(
     if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
     const user = await storage.getUser(req.session.userId);
     if (!user) return res.status(401).json({ message: "Unauthorized" });
-    const perm = await storage.getPermissionByUserId(req.session.userId);
+    const perm = await storage.getPermissionByRole(user.role);
     if (user.role !== 'admin' && !perm?.canEditJobdesk) return res.status(403).json({ message: "Forbidden" });
     try {
       const staffId = parseInt(req.params.id);
@@ -1019,36 +1019,36 @@ export async function registerRoutes(
   app.get('/api/permissions/me', async (req, res) => {
     try {
       if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
-      const perm = await storage.getPermissionByUserId(req.session.userId);
+      const user = await storage.getUser(req.session.userId);
+      if (!user) return res.status(401).json({ message: "Unauthorized" });
+      const perm = await storage.getPermissionByRole(user.role);
       res.json(perm ?? null);
     } catch { res.status(500).json({ message: "Internal server error" }); }
   });
 
-  app.post('/api/permissions/:userId', async (req, res) => {
+  app.post('/api/permissions/:role', async (req, res) => {
     try {
       if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
       const reqUser = await storage.getUser(req.session.userId);
       if (!reqUser || reqUser.role !== 'admin') return res.status(403).json({ message: "Forbidden" });
-      const userId = parseInt(req.params.userId);
-      if (isNaN(userId)) return res.status(400).json({ message: "Invalid userId" });
-      const { canAddStaff, allowedShifts, allowedJobdesks, canEditJobdesk } = req.body;
-      const perm = await storage.upsertPermission({ userId, canAddStaff: !!canAddStaff, allowedShifts: allowedShifts ?? '', allowedJobdesks: allowedJobdesks ?? '', canEditJobdesk: !!canEditJobdesk });
-      const targetUser = await storage.getUser(userId);
-      await logAudit(req.session.userId, "PERMISSION_UPDATE", `Izin edit diperbarui untuk ${targetUser?.username ?? userId}`);
+      const role = req.params.role;
+      if (!role) return res.status(400).json({ message: "Role tidak valid" });
+      const { canAddStaff, allowedShifts, allowedJobdesks, canEditJobdesk, canDeleteStaff } = req.body;
+      const perm = await storage.upsertPermission({ role, canAddStaff: !!canAddStaff, allowedShifts: allowedShifts ?? '', allowedJobdesks: allowedJobdesks ?? '', canEditJobdesk: !!canEditJobdesk, canDeleteStaff: !!canDeleteStaff });
+      await logAudit(req.session.userId, "PERMISSION_UPDATE", `Izin edit diperbarui untuk role: ${role}`);
       res.json(perm);
     } catch { res.status(500).json({ message: "Internal server error" }); }
   });
 
-  app.delete('/api/permissions/:userId', async (req, res) => {
+  app.delete('/api/permissions/:role', async (req, res) => {
     try {
       if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
       const reqUser = await storage.getUser(req.session.userId);
       if (!reqUser || reqUser.role !== 'admin') return res.status(403).json({ message: "Forbidden" });
-      const userId = parseInt(req.params.userId);
-      if (isNaN(userId)) return res.status(400).json({ message: "Invalid userId" });
-      await storage.deletePermission(userId);
-      const targetUser = await storage.getUser(userId);
-      await logAudit(req.session.userId, "PERMISSION_DELETE", `Izin edit dihapus untuk ${targetUser?.username ?? userId}`);
+      const role = req.params.role;
+      if (!role) return res.status(400).json({ message: "Role tidak valid" });
+      await storage.deletePermission(role);
+      await logAudit(req.session.userId, "PERMISSION_DELETE", `Izin edit dihapus untuk role: ${role}`);
       res.json({ message: "Izin dihapus" });
     } catch { res.status(500).json({ message: "Internal server error" }); }
   });

@@ -52,9 +52,9 @@ export interface IStorage {
   setSetting(key: string, value: string): Promise<Setting>;
   getAllSettings(): Promise<Setting[]>;
   getPermissions(): Promise<StaffPermission[]>;
-  getPermissionByUserId(userId: number): Promise<StaffPermission | undefined>;
+  getPermissionByRole(role: string): Promise<StaffPermission | undefined>;
   upsertPermission(perm: InsertStaffPermission): Promise<StaffPermission>;
-  deletePermission(userId: number): Promise<boolean>;
+  deletePermission(role: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -225,17 +225,17 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(staffPermissions);
   }
 
-  async getPermissionByUserId(userId: number): Promise<StaffPermission | undefined> {
-    const [perm] = await db.select().from(staffPermissions).where(eq(staffPermissions.userId, userId));
+  async getPermissionByRole(role: string): Promise<StaffPermission | undefined> {
+    const [perm] = await db.select().from(staffPermissions).where(eq(staffPermissions.role, role));
     return perm;
   }
 
   async upsertPermission(perm: InsertStaffPermission): Promise<StaffPermission> {
-    const existing = await this.getPermissionByUserId(perm.userId);
+    const existing = await this.getPermissionByRole(perm.role);
     if (existing) {
       const [row] = await db.update(staffPermissions)
         .set({ canAddStaff: perm.canAddStaff, allowedShifts: perm.allowedShifts, allowedJobdesks: perm.allowedJobdesks, canEditJobdesk: perm.canEditJobdesk ?? false, canDeleteStaff: perm.canDeleteStaff ?? false })
-        .where(eq(staffPermissions.userId, perm.userId))
+        .where(eq(staffPermissions.role, perm.role))
         .returning();
       return row;
     } else {
@@ -244,8 +244,8 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async deletePermission(userId: number): Promise<boolean> {
-    const result = await db.delete(staffPermissions).where(eq(staffPermissions.userId, userId));
+  async deletePermission(role: string): Promise<boolean> {
+    const result = await db.delete(staffPermissions).where(eq(staffPermissions.role, role));
     return !!result;
   }
 }

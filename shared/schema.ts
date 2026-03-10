@@ -43,7 +43,7 @@ export const settings = pgTable("settings", {
 
 export const staffPermissions = pgTable("staff_permissions", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().unique(),
+  role: text("role").notNull().unique(),
   canAddStaff: boolean("can_add_staff").notNull().default(false),
   allowedShifts: text("allowed_shifts").notNull().default(""),
   allowedJobdesks: text("allowed_jobdesks").notNull().default(""),
