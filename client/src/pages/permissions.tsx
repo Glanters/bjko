@@ -120,7 +120,7 @@ function PermissionRoleRow({ role, perm, allJobdesks, onSave, onDelete }: {
             data-testid={`checkbox-can-edit-name-${role}`}
           />
           <label htmlFor={`can-edit-name-${role}`} className="text-sm font-medium cursor-pointer">
-            Dapat Mengubah Nama Akun Sendiri
+            Dapat Mengubah User
           </label>
         </div>
         <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
@@ -131,7 +131,7 @@ function PermissionRoleRow({ role, perm, allJobdesks, onSave, onDelete }: {
             data-testid={`checkbox-can-edit-password-${role}`}
           />
           <label htmlFor={`can-edit-password-${role}`} className="text-sm font-medium cursor-pointer">
-            Dapat Mengubah Password Sendiri
+            Dapat Mengubah Password
           </label>
         </div>
       </div>
