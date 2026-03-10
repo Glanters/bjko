@@ -302,13 +302,13 @@ export function AddStaffDialog() {
               </div>
             )}
 
-            {/* Jobdesk */}
+            {/* Role */}
             <FormField
               control={form.control}
               name="jobdesk"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-foreground/80">Jobdesk</FormLabel>
+                  <FormLabel className="text-foreground/80">Role</FormLabel>
                   {isNewJobdesk ? (
                     <div className="space-y-2">
                       <div className="flex gap-2">
