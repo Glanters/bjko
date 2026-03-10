@@ -25,11 +25,12 @@ function toList(arr: string[]): string {
 function PermissionRow({ user, perm, onSave, onDelete }: {
   user: User;
   perm: StaffPermission | undefined;
-  onSave: (userId: number, data: { canAddStaff: boolean; allowedShifts: string; allowedJobdesks: string; canEditJobdesk: boolean }) => void;
+  onSave: (userId: number, data: { canAddStaff: boolean; allowedShifts: string; allowedJobdesks: string; canEditJobdesk: boolean; canDeleteStaff: boolean }) => void;
   onDelete: (userId: number) => void;
 }) {
   const [canAdd, setCanAdd] = useState(perm?.canAddStaff ?? false);
   const [canEditJobdesk, setCanEditJobdesk] = useState(perm?.canEditJobdesk ?? false);
+  const [canDelete, setCanDelete] = useState(perm?.canDeleteStaff ?? false);
   const [shifts, setShifts] = useState<string[]>(parseList(perm?.allowedShifts ?? ""));
   const [jobdesks, setJobdesks] = useState<string[]>(parseList(perm?.allowedJobdesks ?? ""));
 
@@ -51,7 +52,7 @@ function PermissionRow({ user, perm, onSave, onDelete }: {
         <div className="flex items-center gap-2">
           <Button
             size="sm"
-            onClick={() => onSave(user.id, { canAddStaff: canAdd, allowedShifts: toList(shifts), allowedJobdesks: toList(jobdesks), canEditJobdesk })}
+            onClick={() => onSave(user.id, { canAddStaff: canAdd, allowedShifts: toList(shifts), allowedJobdesks: toList(jobdesks), canEditJobdesk, canDeleteStaff: canDelete })}
             className="h-8 rounded-lg bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary text-xs"
             data-testid={`button-save-perm-${user.id}`}
           >
@@ -94,6 +95,17 @@ function PermissionRow({ user, perm, onSave, onDelete }: {
           />
           <label htmlFor={`can-edit-jobdesk-${user.id}`} className="text-sm font-medium cursor-pointer">
             Dapat Edit Jobdesk Staff
+          </label>
+        </div>
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
+          <Checkbox
+            id={`can-delete-${user.id}`}
+            checked={canDelete}
+            onCheckedChange={(v) => setCanDelete(!!v)}
+            data-testid={`checkbox-can-delete-${user.id}`}
+          />
+          <label htmlFor={`can-delete-${user.id}`} className="text-sm font-medium cursor-pointer">
+            Dapat Hapus Staff
           </label>
         </div>
       </div>

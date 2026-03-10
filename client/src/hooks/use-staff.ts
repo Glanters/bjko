@@ -34,7 +34,7 @@ export function useCreateStaff() {
       });
 
       if (!res.ok) {
-        if (res.status === 403) throw new Error("Anda tidak memiliki akses (Admin only).");
+        if (res.status === 403) throw new Error("Anda tidak memiliki izin menambahkan staff.");
         throw new Error("Gagal menambahkan staff.");
       }
 
@@ -54,6 +54,29 @@ export function useCreateStaff() {
         title: "Gagal",
         description: err.message,
       });
+    },
+  });
+}
+
+export function useUpdateStaff() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, name, jobdesk, shift }: { id: number; name: string; jobdesk: string; shift: string }) => {
+      const res = await apiRequest("PATCH", `/api/staff/${id}`, { name, jobdesk, shift });
+      if (!res.ok) {
+        if (res.status === 403) throw new Error("Anda tidak memiliki izin edit staff.");
+        throw new Error("Gagal memperbarui staff.");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.staff.list.path] });
+      toast({ title: "Berhasil", description: "Data staff berhasil diperbarui." });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", title: "Gagal", description: err.message });
     },
   });
 }

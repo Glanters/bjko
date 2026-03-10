@@ -35,6 +35,7 @@ export interface IStorage {
   createStaff(s: InsertStaff): Promise<Staff>;
   updateStaffName(id: number, name: string): Promise<Staff>;
   updateStaff(id: number, name: string, jobdesk: string): Promise<Staff>;
+  updateStaffFull(id: number, name: string, jobdesk: string, shift: string): Promise<Staff>;
   updateStaffJobdesk(id: number, jobdesk: string): Promise<Staff>;
   updateStaffCutiStatus(id: number, status: string | null): Promise<Staff>;
   deleteStaff(id: number): Promise<boolean>;
@@ -122,6 +123,11 @@ export class DatabaseStorage implements IStorage {
 
   async updateStaff(id: number, name: string, jobdesk: string): Promise<Staff> {
     const [staffRecord] = await db.update(staff).set({ name, jobdesk }).where(eq(staff.id, id)).returning();
+    return staffRecord;
+  }
+
+  async updateStaffFull(id: number, name: string, jobdesk: string, shift: string): Promise<Staff> {
+    const [staffRecord] = await db.update(staff).set({ name, jobdesk, shift }).where(eq(staff.id, id)).returning();
     return staffRecord;
   }
 
@@ -228,7 +234,7 @@ export class DatabaseStorage implements IStorage {
     const existing = await this.getPermissionByUserId(perm.userId);
     if (existing) {
       const [row] = await db.update(staffPermissions)
-        .set({ canAddStaff: perm.canAddStaff, allowedShifts: perm.allowedShifts, allowedJobdesks: perm.allowedJobdesks, canEditJobdesk: perm.canEditJobdesk ?? false })
+        .set({ canAddStaff: perm.canAddStaff, allowedShifts: perm.allowedShifts, allowedJobdesks: perm.allowedJobdesks, canEditJobdesk: perm.canEditJobdesk ?? false, canDeleteStaff: perm.canDeleteStaff ?? false })
         .where(eq(staffPermissions.userId, perm.userId))
         .returning();
       return row;

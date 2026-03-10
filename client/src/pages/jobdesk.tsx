@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useStaff, useUpdateStaffJobdesk, useDeleteStaff } from "@/hooks/use-staff";
+import { useStaff, useCreateStaff, useUpdateStaff, useDeleteStaff } from "@/hooks/use-staff";
 import { useUniqueJobdesks } from "@/hooks/use-unique-jobdesks";
 import { useJobdeskMasterList, useAddJobdeskToMaster, useDeleteJobdeskFromMaster } from "@/hooks/use-jobdesk-list";
 import { useAuth } from "@/hooks/use-auth";
@@ -10,13 +10,20 @@ import type { StaffPermission } from "@shared/schema";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Briefcase, Pencil, Check, X, Plus, Trash2, Settings2, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, Briefcase, Pencil, Plus, Trash2, Settings2, ChevronDown, ChevronUp, X, UserPlus } from "lucide-react";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 
@@ -27,7 +34,8 @@ export default function Jobdesk() {
   const { user } = useAuth();
   const { data: staffList } = useStaff();
   const { jobdesks: staffJobdesks } = useUniqueJobdesks();
-  const { mutate: updateJobdesk, isPending: isSaving } = useUpdateStaffJobdesk();
+  const { mutate: updateStaff, isPending: isSaving } = useUpdateStaff();
+  const { mutate: createStaff, isPending: isCreating } = useCreateStaff();
   const { mutate: deleteStaff, isPending: isDeleting } = useDeleteStaff();
   const { data: myPerm } = useQuery<StaffPermission>({ queryKey: ["/api/permissions/me"] });
   const { data: masterData } = useJobdeskMasterList();
@@ -36,18 +44,33 @@ export default function Jobdesk() {
 
   const [activeShift, setActiveShift] = useState<Shift>("PAGI");
   const [search, setSearch] = useState("");
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editJobdesk, setEditJobdesk] = useState("");
-  const [isNewJobdeskMode, setIsNewJobdeskMode] = useState(false);
-  const [newJobdeskText, setNewJobdeskText] = useState("");
-  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [showManage, setShowManage] = useState(false);
   const [confirmDeleteJobdesk, setConfirmDeleteJobdesk] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+
+  // Add staff modal state
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addName, setAddName] = useState("");
+  const [addJobdesk, setAddJobdesk] = useState("");
+  const [addShift, setAddShift] = useState<Shift>(activeShift);
+  const [addNewJobdeskMode, setAddNewJobdeskMode] = useState(false);
+  const [addNewJobdeskText, setAddNewJobdeskText] = useState("");
+
+  // Edit staff modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editId, setEditId] = useState<number | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editJobdesk, setEditJobdesk] = useState("");
+  const [editShift, setEditShift] = useState<Shift>("PAGI");
+  const [editNewJobdeskMode, setEditNewJobdeskMode] = useState(false);
+  const [editNewJobdeskText, setEditNewJobdeskText] = useState("");
 
   const today = format(new Date(), "EEEE, dd MMM yyyy", { locale: localeId });
 
   const isAdmin = user?.role === "admin";
   const canEdit = isAdmin || !!myPerm?.canEditJobdesk;
+  const canAdd = isAdmin || !!myPerm?.canAddStaff;
+  const canDelete = isAdmin || !!myPerm?.canDeleteStaff;
 
   const masterList = masterData?.jobdesks ?? [];
 
@@ -62,30 +85,53 @@ export default function Jobdesk() {
     return matchShift && matchSearch;
   });
 
-  function startEdit(id: number, currentJobdesk: string) {
-    setEditingId(id);
-    setEditJobdesk(currentJobdesk);
-    setIsNewJobdeskMode(false);
-    setNewJobdeskText("");
+  // Add modal handlers
+  function openAddModal() {
+    setAddName("");
+    setAddJobdesk(allJobdesks[0] ?? "");
+    setAddShift(activeShift);
+    setAddNewJobdeskMode(false);
+    setAddNewJobdeskText("");
+    setShowAddModal(true);
   }
 
-  function cancelEdit() {
-    setEditingId(null);
-    setEditJobdesk("");
-    setIsNewJobdeskMode(false);
-    setNewJobdeskText("");
-  }
-
-  function saveEdit(id: number) {
-    const jobdeskToSave = isNewJobdeskMode ? newJobdeskText.trim() : editJobdesk;
-    if (!jobdeskToSave) return;
-    if (isNewJobdeskMode && !allJobdesks.includes(jobdeskToSave)) {
-      addToMaster(jobdeskToSave);
+  function handleAdd() {
+    const nameVal = addName.trim();
+    const jobdeskVal = addNewJobdeskMode ? addNewJobdeskText.trim() : addJobdesk;
+    if (!nameVal || !jobdeskVal) return;
+    if (addNewJobdeskMode && !allJobdesks.includes(jobdeskVal)) {
+      addToMaster(jobdeskVal);
     }
-    updateJobdesk({ id, jobdesk: jobdeskToSave }, {
-      onSuccess: () => cancelEdit(),
+    createStaff({ name: nameVal, jobdesk: jobdeskVal, shift: addShift }, {
+      onSuccess: () => setShowAddModal(false),
     });
   }
+
+  // Edit modal handlers
+  function openEditModal(id: number, name: string, jobdesk: string, shift: string) {
+    setEditId(id);
+    setEditName(name);
+    setEditJobdesk(jobdesk);
+    setEditShift((SHIFTS.includes(shift as Shift) ? shift : "PAGI") as Shift);
+    setEditNewJobdeskMode(false);
+    setEditNewJobdeskText("");
+    setShowEditModal(true);
+  }
+
+  function handleEdit() {
+    if (!editId) return;
+    const nameVal = editName.trim();
+    const jobdeskVal = editNewJobdeskMode ? editNewJobdeskText.trim() : editJobdesk;
+    if (!nameVal || !jobdeskVal) return;
+    if (editNewJobdeskMode && !allJobdesks.includes(jobdeskVal)) {
+      addToMaster(jobdeskVal);
+    }
+    updateStaff({ id: editId, name: nameVal, jobdesk: jobdeskVal, shift: editShift }, {
+      onSuccess: () => setShowEditModal(false),
+    });
+  }
+
+  const showActionCol = canEdit || canDelete;
 
   return (
     <div className="min-h-screen bg-background flex relative overflow-hidden">
@@ -111,6 +157,17 @@ export default function Jobdesk() {
                 <p className="text-muted-foreground text-sm">Daftar staff per shift & jobdesk</p>
               </div>
               <div className="flex items-center gap-3">
+                {canAdd && (
+                  <Button
+                    size="sm"
+                    onClick={openAddModal}
+                    className="h-8 px-3 rounded-lg bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary text-xs"
+                    data-testid="button-add-staff"
+                  >
+                    <UserPlus className="w-3.5 h-3.5 mr-1.5" />
+                    Tambah Staff
+                  </Button>
+                )}
                 {isAdmin && (
                   <Button
                     size="sm"
@@ -233,10 +290,10 @@ export default function Jobdesk() {
               </div>
 
               {/* Column headers */}
-              <div className={`grid ${canEdit || isAdmin ? "grid-cols-3" : "grid-cols-2"} px-6 py-3 border-b border-white/10 bg-primary/5`}>
+              <div className={`grid ${showActionCol ? "grid-cols-[1fr_1fr_80px]" : "grid-cols-2"} px-6 py-3 border-b border-white/10 bg-primary/5`}>
                 <span className="text-xs font-bold text-primary/70 uppercase tracking-widest">Nama Staff</span>
                 <span className="text-xs font-bold text-primary/70 uppercase tracking-widest">Jobdesk</span>
-                {(canEdit || isAdmin) && (
+                {showActionCol && (
                   <span className="text-xs font-bold text-primary/70 uppercase tracking-widest text-right">Aksi</span>
                 )}
               </div>
@@ -250,129 +307,63 @@ export default function Jobdesk() {
                 filtered.map((s, i) => (
                   <div
                     key={s.id}
-                    className={`grid ${canEdit || isAdmin ? "grid-cols-3" : "grid-cols-2"} items-center px-6 py-3 border-b border-white/5 hover:bg-primary/5 transition-colors ${
+                    className={`grid ${showActionCol ? "grid-cols-[1fr_1fr_80px]" : "grid-cols-2"} items-center px-6 py-3 border-b border-white/5 hover:bg-primary/5 transition-colors ${
                       i % 2 === 0 ? "bg-background/20" : "bg-background/10"
                     }`}
                     data-testid={`row-jobdesk-${s.id}`}
                   >
                     <span className="font-bold text-foreground uppercase tracking-wide text-sm">{s.name}</span>
+                    <span className="text-muted-foreground font-medium text-sm">{s.jobdesk}</span>
 
-                    {/* Jobdesk column */}
-                    <div className="flex items-center gap-2">
-                      {editingId === s.id ? (
-                        isNewJobdeskMode ? (
-                          <Input
-                            autoFocus
-                            placeholder="Ketik jobdesk baru..."
-                            value={newJobdeskText}
-                            onChange={e => setNewJobdeskText(e.target.value)}
-                            onKeyDown={e => { if (e.key === "Enter") saveEdit(s.id); if (e.key === "Escape") cancelEdit(); }}
-                            className="h-8 text-sm bg-background/50 border-primary/30 focus-visible:ring-primary/30 rounded-lg w-40"
-                            data-testid={`input-new-jobdesk-${s.id}`}
-                          />
-                        ) : (
-                          <Select value={editJobdesk} onValueChange={(val) => {
-                            if (val === "__new__") {
-                              setIsNewJobdeskMode(true);
-                              setNewJobdeskText("");
-                            } else {
-                              setEditJobdesk(val);
-                            }
-                          }}>
-                            <SelectTrigger className="h-8 text-sm bg-background/50 border-primary/30 rounded-lg w-40" data-testid={`select-edit-jobdesk-${s.id}`}>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {allJobdesks.map(j => (
-                                <SelectItem key={j} value={j}>{j}</SelectItem>
-                              ))}
-                              <div className="border-t border-white/10 my-1" />
-                              <SelectItem value="__new__" className="text-primary">
-                                <span className="flex items-center gap-1"><Plus className="w-3 h-3" /> Jobdesk Baru</span>
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        )
-                      ) : (
-                        <span className="text-muted-foreground font-medium text-sm">{s.jobdesk}</span>
-                      )}
-                    </div>
-
-                    {/* Action column */}
-                    {(canEdit || isAdmin) && (
+                    {showActionCol && (
                       <div className="flex items-center justify-end gap-1">
-                        {editingId === s.id ? (
-                          <>
-                            <Button
-                              size="sm"
-                              onClick={() => saveEdit(s.id)}
-                              disabled={isSaving || (!isNewJobdeskMode && !editJobdesk) || (isNewJobdeskMode && !newJobdeskText.trim())}
-                              className="h-7 px-2 rounded-lg bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary text-xs"
-                              data-testid={`button-save-jobdesk-${s.id}`}
-                            >
-                              <Check className="w-3 h-3 mr-1" />
-                              Simpan
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={cancelEdit}
-                              className="h-7 px-2 rounded-lg text-muted-foreground hover:text-foreground text-xs"
-                              data-testid={`button-cancel-edit-${s.id}`}
-                            >
-                              <X className="w-3 h-3" />
-                            </Button>
-                          </>
-                        ) : confirmDeleteId === s.id ? (
-                          <>
-                            <span className="text-xs text-red-400 font-medium">Hapus staff ini?</span>
+                        {confirmDeleteId === s.id ? (
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-red-400 font-medium">Hapus?</span>
                             <Button
                               size="sm"
                               onClick={() => { deleteStaff(s.id); setConfirmDeleteId(null); }}
                               disabled={isDeleting}
                               className="h-7 px-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400 text-xs"
-                              data-testid={`button-confirm-delete-jobdesk-${s.id}`}
+                              data-testid={`button-confirm-delete-${s.id}`}
                             >
-                              <Trash2 className="w-3 h-3 mr-1" />
-                              Ya, Hapus
+                              Ya
                             </Button>
                             <Button
                               size="sm"
                               variant="ghost"
                               onClick={() => setConfirmDeleteId(null)}
                               className="h-7 px-2 rounded-lg text-muted-foreground hover:text-foreground text-xs"
-                              data-testid={`button-cancel-delete-jobdesk-${s.id}`}
+                              data-testid={`button-cancel-delete-${s.id}`}
                             >
                               <X className="w-3 h-3" />
                             </Button>
-                          </>
+                          </div>
                         ) : (
-                          <div className="flex items-center gap-1">
+                          <>
                             {canEdit && (
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => startEdit(s.id, s.jobdesk)}
+                                onClick={() => openEditModal(s.id, s.name, s.jobdesk, s.shift)}
                                 className="h-7 px-2 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 text-xs"
-                                data-testid={`button-edit-jobdesk-${s.id}`}
+                                data-testid={`button-edit-staff-${s.id}`}
                               >
-                                <Pencil className="w-3 h-3 mr-1" />
-                                Edit
+                                <Pencil className="w-3 h-3" />
                               </Button>
                             )}
-                            {isAdmin && (
+                            {canDelete && (
                               <Button
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => setConfirmDeleteId(s.id)}
                                 className="h-7 px-2 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 text-xs"
-                                data-testid={`button-delete-jobdesk-${s.id}`}
+                                data-testid={`button-delete-staff-${s.id}`}
                               >
-                                <Trash2 className="w-3 h-3 mr-1" />
-                                Hapus
+                                <Trash2 className="w-3 h-3" />
                               </Button>
                             )}
-                          </div>
+                          </>
                         )}
                       </div>
                     )}
@@ -387,6 +378,202 @@ export default function Jobdesk() {
           </div>
         </main>
       </div>
+
+      {/* Add Staff Modal */}
+      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+        <DialogContent className="sm:max-w-md bg-card border border-white/10">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-primary font-display">
+              <UserPlus className="w-5 h-5" />
+              Tambah Staff Baru
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nama Staff</label>
+              <Input
+                placeholder="Masukkan nama staff..."
+                value={addName}
+                onChange={e => setAddName(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") handleAdd(); }}
+                className="bg-background/50 border-white/10 focus-visible:ring-primary/30"
+                data-testid="input-add-name"
+                autoFocus
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Shift</label>
+              <Select value={addShift} onValueChange={(v) => setAddShift(v as Shift)}>
+                <SelectTrigger className="bg-background/50 border-white/10" data-testid="select-add-shift">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SHIFTS.map(s => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Jobdesk</label>
+              {addNewJobdeskMode ? (
+                <div className="flex gap-2">
+                  <Input
+                    autoFocus
+                    placeholder="Ketik jobdesk baru..."
+                    value={addNewJobdeskText}
+                    onChange={e => setAddNewJobdeskText(e.target.value)}
+                    className="bg-background/50 border-white/10 focus-visible:ring-primary/30"
+                    data-testid="input-add-new-jobdesk"
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => { setAddNewJobdeskMode(false); setAddNewJobdeskText(""); }}
+                    className="shrink-0"
+                    data-testid="button-cancel-new-jobdesk-add"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : (
+                <Select value={addJobdesk} onValueChange={(v) => {
+                  if (v === "__new__") { setAddNewJobdeskMode(true); setAddNewJobdeskText(""); }
+                  else setAddJobdesk(v);
+                }}>
+                  <SelectTrigger className="bg-background/50 border-white/10" data-testid="select-add-jobdesk">
+                    <SelectValue placeholder="Pilih jobdesk..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allJobdesks.map(j => (
+                      <SelectItem key={j} value={j}>{j}</SelectItem>
+                    ))}
+                    <div className="border-t border-white/10 my-1" />
+                    <SelectItem value="__new__" className="text-primary">
+                      <span className="flex items-center gap-1"><Plus className="w-3 h-3" /> Jobdesk Baru</span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => setShowAddModal(false)}
+              className="text-muted-foreground"
+              data-testid="button-cancel-add-staff"
+            >
+              Batal
+            </Button>
+            <Button
+              onClick={handleAdd}
+              disabled={isCreating || !addName.trim() || !(addNewJobdeskMode ? addNewJobdeskText.trim() : addJobdesk)}
+              className="bg-primary hover:bg-primary/80"
+              data-testid="button-confirm-add-staff"
+            >
+              {isCreating ? "Menyimpan..." : "Tambah Staff"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Staff Modal */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="sm:max-w-md bg-card border border-white/10">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-primary font-display">
+              <Pencil className="w-5 h-5" />
+              Edit Staff
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nama Staff</label>
+              <Input
+                placeholder="Masukkan nama staff..."
+                value={editName}
+                onChange={e => setEditName(e.target.value)}
+                className="bg-background/50 border-white/10 focus-visible:ring-primary/30"
+                data-testid="input-edit-name"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Shift</label>
+              <Select value={editShift} onValueChange={(v) => setEditShift(v as Shift)}>
+                <SelectTrigger className="bg-background/50 border-white/10" data-testid="select-edit-shift">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SHIFTS.map(s => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Jobdesk</label>
+              {editNewJobdeskMode ? (
+                <div className="flex gap-2">
+                  <Input
+                    autoFocus
+                    placeholder="Ketik jobdesk baru..."
+                    value={editNewJobdeskText}
+                    onChange={e => setEditNewJobdeskText(e.target.value)}
+                    className="bg-background/50 border-white/10 focus-visible:ring-primary/30"
+                    data-testid="input-edit-new-jobdesk"
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => { setEditNewJobdeskMode(false); setEditNewJobdeskText(""); }}
+                    className="shrink-0"
+                    data-testid="button-cancel-new-jobdesk-edit"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : (
+                <Select value={editJobdesk} onValueChange={(v) => {
+                  if (v === "__new__") { setEditNewJobdeskMode(true); setEditNewJobdeskText(""); }
+                  else setEditJobdesk(v);
+                }}>
+                  <SelectTrigger className="bg-background/50 border-white/10" data-testid="select-edit-jobdesk">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allJobdesks.map(j => (
+                      <SelectItem key={j} value={j}>{j}</SelectItem>
+                    ))}
+                    <div className="border-t border-white/10 my-1" />
+                    <SelectItem value="__new__" className="text-primary">
+                      <span className="flex items-center gap-1"><Plus className="w-3 h-3" /> Jobdesk Baru</span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => setShowEditModal(false)}
+              className="text-muted-foreground"
+              data-testid="button-cancel-edit-staff"
+            >
+              Batal
+            </Button>
+            <Button
+              onClick={handleEdit}
+              disabled={isSaving || !editName.trim() || !(editNewJobdeskMode ? editNewJobdeskText.trim() : editJobdesk)}
+              className="bg-primary hover:bg-primary/80"
+              data-testid="button-confirm-edit-staff"
+            >
+              {isSaving ? "Menyimpan..." : "Simpan Perubahan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

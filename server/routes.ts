@@ -87,12 +87,18 @@ export async function registerRoutes(
       return res.status(401).json({ message: "Unauthorized" });
     }
     const user = await storage.getUser(req.session.userId);
-    if (!user || user.role !== 'admin') {
-      return res.status(403).json({ message: "Forbidden: Only admins can add staff" });
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+    const perm = await storage.getPermissionByUserId(req.session.userId);
+    if (user.role !== 'admin' && !perm?.canAddStaff) {
+      return res.status(403).json({ message: "Forbidden: Anda tidak memiliki izin menambahkan staff" });
     }
 
     try {
-      const input = api.staff.create.input.parse(req.body);
+      const { name, jobdesk, shift } = req.body;
+      if (!name || !jobdesk) return res.status(400).json({ message: "Nama dan jobdesk wajib diisi" });
+      const VALID_SHIFTS = ["PAGI", "SORE", "MALAM"];
+      const validatedShift = VALID_SHIFTS.includes(shift) ? shift : "PAGI";
+      const input = { name: name.trim(), jobdesk: jobdesk.trim(), shift: validatedShift, role: "agent" };
       const newStaff = await storage.createStaff(input);
       
       // Automatically create user account with staff name as username
@@ -557,8 +563,10 @@ export async function registerRoutes(
       return res.status(401).json({ message: "Unauthorized" });
     }
     const user = await storage.getUser(req.session.userId);
-    if (!user || user.role !== 'admin') {
-      return res.status(403).json({ message: "Forbidden: Only admins can delete staff" });
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+    const perm = await storage.getPermissionByUserId(req.session.userId);
+    if (user.role !== 'admin' && !perm?.canDeleteStaff) {
+      return res.status(403).json({ message: "Forbidden: Anda tidak memiliki izin menghapus staff" });
     }
 
     try {
@@ -775,17 +783,21 @@ export async function registerRoutes(
     return staffList.some(s => s.name === u.username && s.role?.toLowerCase() === "kapten");
   };
 
-  // PATCH /api/staff/:id - Update staff name and jobdesk
+  // PATCH /api/staff/:id - Update staff name, jobdesk, and shift (admin or canEditJobdesk)
   app.patch("/api/staff/:id", async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
     const user = await storage.getUser(req.session.userId);
-    if (!user || user.role !== 'admin') return res.status(403).json({ message: "Forbidden" });
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+    const perm = await storage.getPermissionByUserId(req.session.userId);
+    if (user.role !== 'admin' && !perm?.canEditJobdesk) return res.status(403).json({ message: "Forbidden: Tidak ada izin edit staff" });
     try {
       const staffId = parseInt(req.params.id);
-      const { name, jobdesk } = req.body;
+      const { name, jobdesk, shift } = req.body;
       if (!name || !jobdesk) return res.status(400).json({ message: "Nama dan jobdesk wajib diisi" });
-      const updated = await storage.updateStaff(staffId, name.trim(), jobdesk.trim());
-      await logAudit(req.session.userId, "UPDATE_STAFF", `Staff #${staffId} diupdate: ${name} / ${jobdesk}`);
+      const VALID_SHIFTS = ["PAGI", "SORE", "MALAM"];
+      const updatedShift = VALID_SHIFTS.includes(shift) ? shift : "PAGI";
+      const updated = await storage.updateStaffFull(staffId, name.trim(), jobdesk.trim(), updatedShift);
+      await logAudit(req.session.userId, "UPDATE_STAFF", `Staff #${staffId} diupdate: ${name} / ${jobdesk} / ${updatedShift}`);
       res.json(updated);
     } catch {
       res.status(500).json({ message: "Internal server error" });
