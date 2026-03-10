@@ -1,4 +1,4 @@
-import { users, staff, leaves, auditLogs, settings, type User, type InsertUser, type Staff, type InsertStaff, type Leave, type InsertLeave, type AuditLog, type InsertAuditLog, type Setting } from "@shared/schema";
+import { users, staff, leaves, auditLogs, settings, staffPermissions, type User, type InsertUser, type Staff, type InsertStaff, type Leave, type InsertLeave, type AuditLog, type InsertAuditLog, type Setting, type StaffPermission, type InsertStaffPermission } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
 import session from "express-session";
@@ -48,6 +48,10 @@ export interface IStorage {
   getSetting(key: string): Promise<string | undefined>;
   setSetting(key: string, value: string): Promise<Setting>;
   getAllSettings(): Promise<Setting[]>;
+  getPermissions(): Promise<StaffPermission[]>;
+  getPermissionByUserId(userId: number): Promise<StaffPermission | undefined>;
+  upsertPermission(perm: InsertStaffPermission): Promise<StaffPermission>;
+  deletePermission(userId: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -197,6 +201,34 @@ export class DatabaseStorage implements IStorage {
 
   async getAllSettings(): Promise<Setting[]> {
     return await db.select().from(settings);
+  }
+
+  async getPermissions(): Promise<StaffPermission[]> {
+    return await db.select().from(staffPermissions);
+  }
+
+  async getPermissionByUserId(userId: number): Promise<StaffPermission | undefined> {
+    const [perm] = await db.select().from(staffPermissions).where(eq(staffPermissions.userId, userId));
+    return perm;
+  }
+
+  async upsertPermission(perm: InsertStaffPermission): Promise<StaffPermission> {
+    const existing = await this.getPermissionByUserId(perm.userId);
+    if (existing) {
+      const [row] = await db.update(staffPermissions)
+        .set({ canAddStaff: perm.canAddStaff, allowedShifts: perm.allowedShifts, allowedJobdesks: perm.allowedJobdesks })
+        .where(eq(staffPermissions.userId, perm.userId))
+        .returning();
+      return row;
+    } else {
+      const [row] = await db.insert(staffPermissions).values(perm).returning();
+      return row;
+    }
+  }
+
+  async deletePermission(userId: number): Promise<boolean> {
+    const result = await db.delete(staffPermissions).where(eq(staffPermissions.userId, userId));
+    return !!result;
   }
 }
 

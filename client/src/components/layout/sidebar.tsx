@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import {
   LayoutDashboard, ChevronDown, ChevronRight,
   Coffee, Briefcase, UserMinus, History,
-  Settings, BarChart2, Shield, Database, Settings2,
+  Settings, BarChart2, Shield, Database, Settings2, ShieldCheck,
 } from "lucide-react";
 import bosjokoLogo from "@assets/image_1773044190239.png";
 
@@ -104,8 +104,12 @@ export function Sidebar() {
                 Izin Staff
               </button>
               <button
-                onClick={() => navigate("/")}
-                className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-all text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                onClick={() => navigate("/jobdesk")}
+                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-all ${
+                  location === "/jobdesk"
+                    ? "bg-primary/15 text-primary"
+                    : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                }`}
                 data-testid="sidebar-jobdesk-staff"
               >
                 <Briefcase className="w-3.5 h-3.5 shrink-0" />
@@ -194,6 +198,18 @@ export function Sidebar() {
             >
               <Database className="w-4 h-4 shrink-0" />
               Backup Data
+            </button>
+            <button
+              onClick={() => navigate("/permissions")}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                location === "/permissions"
+                  ? "bg-primary/20 text-primary border border-primary/20"
+                  : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+              }`}
+              data-testid="sidebar-permissions"
+            >
+              <ShieldCheck className="w-4 h-4 shrink-0" />
+              Izin Edit Staff
             </button>
             <button
               onClick={() => navigate("/settings")}

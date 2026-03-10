@@ -15,6 +15,8 @@ import Backup from "@/pages/backup";
 import LeaveRules from "@/pages/leave-rules";
 import Profile from "@/pages/profile";
 import Welcome from "@/pages/welcome";
+import Jobdesk from "@/pages/jobdesk";
+import Permissions from "@/pages/permissions";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 
@@ -102,6 +104,12 @@ function Router() {
       </Route>
       <Route path="/welcome">
         {() => <ProtectedRoute component={Welcome} />}
+      </Route>
+      <Route path="/jobdesk">
+        {() => <ProtectedRoute component={Jobdesk} />}
+      </Route>
+      <Route path="/permissions">
+        {() => <AdminRoute component={Permissions} />}
       </Route>
       <Route component={NotFound} />
     </Switch>

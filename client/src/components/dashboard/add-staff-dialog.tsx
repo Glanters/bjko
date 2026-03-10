@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { api } from "@shared/routes";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
 import { useCreateStaff } from "@/hooks/use-staff";
 import { useUniqueJobdesks } from "@/hooks/use-unique-jobdesks";
 import {
@@ -30,11 +31,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Users, Check } from "lucide-react";
+import { Plus, Users, Check, Lock } from "lucide-react";
+import type { StaffPermission } from "@shared/schema";
 
-type InsertStaffForm = z.infer<typeof api.staff.create.input>;
+const SHIFTS = ["PAGI", "SORE", "MALAM"];
+
+const staffFormSchema = z.object({
+  name: z.string().min(1, "Nama wajib diisi"),
+  jobdesk: z.string().min(1, "Jobdesk wajib dipilih"),
+  role: z.string().default("agent"),
+  shift: z.string().min(1, "Shift wajib dipilih"),
+});
+
+type StaffForm = z.infer<typeof staffFormSchema>;
 
 export function AddStaffDialog() {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const { mutate: createStaff, isPending } = useCreateStaff();
   const { jobdesks, isLoading: jobdesksLoading } = useUniqueJobdesks();
@@ -42,17 +54,34 @@ export function AddStaffDialog() {
   const [newJobdeskValue, setNewJobdeskValue] = useState("");
   const [extraJobdesks, setExtraJobdesks] = useState<string[]>([]);
 
-  const form = useForm<InsertStaffForm>({
-    resolver: zodResolver(api.staff.create.input),
+  const { data: myPerm } = useQuery<StaffPermission | null>({
+    queryKey: ["/api/permissions/me"],
+    enabled: user?.role === "agent",
+  });
+
+  const isAdmin = user?.role === "admin";
+  const canAdd = isAdmin || (myPerm?.canAddStaff === true);
+
+  const allowedShifts = isAdmin
+    ? SHIFTS
+    : (myPerm?.allowedShifts ? myPerm.allowedShifts.split(",").filter(Boolean) : []);
+
+  const allowedJobdesks = isAdmin
+    ? null
+    : (myPerm?.allowedJobdesks ? myPerm.allowedJobdesks.split(",").filter(Boolean) : []);
+
+  const form = useForm<StaffForm>({
+    resolver: zodResolver(staffFormSchema),
     defaultValues: {
       name: "",
       jobdesk: "",
       role: "agent",
+      shift: allowedShifts[0] ?? "PAGI",
     },
   });
 
-  function onSubmit(data: InsertStaffForm) {
-    createStaff(data, {
+  function onSubmit(data: StaffForm) {
+    createStaff(data as any, {
       onSuccess: () => {
         form.reset();
         setOpen(false);
@@ -84,7 +113,17 @@ export function AddStaffDialog() {
     setNewJobdeskValue("");
   };
 
-  const allJobdesks = [...new Set([...jobdesks, ...extraJobdesks])].sort();
+  const baseJobdesks = allowedJobdesks !== null ? allowedJobdesks : jobdesks;
+  const allJobdesks = [...new Set([...baseJobdesks, ...extraJobdesks])].sort();
+
+  if (!canAdd) {
+    return (
+      <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary/50 border border-white/5 text-muted-foreground text-sm">
+        <Lock className="w-4 h-4" />
+        Tidak ada izin tambah staff
+      </div>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={(val) => {
@@ -120,10 +159,10 @@ export function AddStaffDialog() {
                 <FormItem>
                   <FormLabel className="text-foreground/80">Nama Lengkap</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="e.g. Budi Santoso" 
-                      className="bg-background/50 border-white/10 focus-visible:ring-primary/30 rounded-xl h-11" 
-                      {...field} 
+                    <Input
+                      placeholder="e.g. Budi Santoso"
+                      className="bg-background/50 border-white/10 focus-visible:ring-primary/30 rounded-xl h-11"
+                      {...field}
                       data-testid="input-staff-name"
                     />
                   </FormControl>
@@ -131,6 +170,35 @@ export function AddStaffDialog() {
                 </FormItem>
               )}
             />
+
+            {/* Shift */}
+            <FormField
+              control={form.control}
+              name="shift"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-foreground/80">Shift</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger className="bg-background/50 border-white/10 focus:ring-primary/30 rounded-xl h-11" data-testid="select-shift">
+                        <SelectValue placeholder="Pilih shift" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {allowedShifts.map(s => (
+                        <SelectItem key={s} value={s} data-testid={`shift-option-${s}`}>{s}</SelectItem>
+                      ))}
+                      {allowedShifts.length === 0 && (
+                        <SelectItem value="none" disabled>Tidak ada shift yang diizinkan</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Jobdesk */}
             <FormField
               control={form.control}
               name="jobdesk"
@@ -141,9 +209,9 @@ export function AddStaffDialog() {
                     <div className="space-y-2">
                       <div className="flex gap-2">
                         <FormControl>
-                          <Input 
-                            placeholder="Masukkan jobdesk baru" 
-                            className="bg-background/50 border-white/10 focus-visible:ring-primary/30 rounded-xl h-11" 
+                          <Input
+                            placeholder="Masukkan jobdesk baru"
+                            className="bg-background/50 border-white/10 focus-visible:ring-primary/30 rounded-xl h-11"
                             value={newJobdeskValue}
                             onChange={(e) => {
                               setNewJobdeskValue(e.target.value);
@@ -186,8 +254,8 @@ export function AddStaffDialog() {
                       </Button>
                     </div>
                   ) : (
-                    <Select 
-                      value={field.value} 
+                    <Select
+                      value={field.value}
                       onValueChange={handleJobdeskChange}
                       disabled={jobdesksLoading}
                     >
@@ -207,9 +275,11 @@ export function AddStaffDialog() {
                             <div className="border-t border-white/10 my-2" />
                           </>
                         )}
-                        <SelectItem value="new" className="text-primary" data-testid="jobdesk-option-new">
-                          + Tambah Jobdesk Baru
-                        </SelectItem>
+                        {isAdmin && (
+                          <SelectItem value="new" className="text-primary" data-testid="jobdesk-option-new">
+                            + Tambah Jobdesk Baru
+                          </SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                   )}
@@ -217,28 +287,10 @@ export function AddStaffDialog() {
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="role"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-foreground/80">Role Sistem</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="e.g. agent" 
-                      className="bg-background/50 border-white/10 focus-visible:ring-primary/30 rounded-xl h-11"
-                      disabled
-                      {...field} 
-                      data-testid="input-role"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+
             <div className="pt-4">
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="w-full h-11 rounded-xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-semibold shadow-lg hover:shadow-xl transition-all"
                 disabled={isPending}
                 data-testid="button-submit-staff"

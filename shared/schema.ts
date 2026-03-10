@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, integer } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -16,6 +16,7 @@ export const staff = pgTable("staff", {
   name: text("name").notNull(),
   jobdesk: text("jobdesk").notNull(),
   role: text("role").notNull(),
+  shift: text("shift").notNull().default("PAGI"),
 });
 
 export const leaves = pgTable("leaves", {
@@ -39,10 +40,19 @@ export const settings = pgTable("settings", {
   value: text("value").notNull(),
 });
 
+export const staffPermissions = pgTable("staff_permissions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().unique(),
+  canAddStaff: boolean("can_add_staff").notNull().default(false),
+  allowedShifts: text("allowed_shifts").notNull().default(""),
+  allowedJobdesks: text("allowed_jobdesks").notNull().default(""),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
 export const insertStaffSchema = createInsertSchema(staff).omit({ id: true });
 export const insertLeaveSchema = createInsertSchema(leaves).omit({ id: true, startTime: true, date: true });
 export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({ id: true, createdAt: true });
+export const insertStaffPermissionSchema = createInsertSchema(staffPermissions).omit({ id: true });
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -53,3 +63,5 @@ export type InsertLeave = z.infer<typeof insertLeaveSchema>;
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 export type Setting = typeof settings.$inferSelect;
+export type StaffPermission = typeof staffPermissions.$inferSelect;
+export type InsertStaffPermission = z.infer<typeof insertStaffPermissionSchema>;

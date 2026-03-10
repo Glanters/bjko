@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { insertStaffSchema, staff, leaves, users } from './schema';
+import { insertStaffSchema, staff, leaves, users, staffPermissions } from './schema';
 
 export const errorSchemas = {
   validation: z.object({ message: z.string(), field: z.string().optional() }),
@@ -275,6 +275,48 @@ export const api = {
       responses: {
         200: z.object({ limits: z.record(z.string(), z.number()) }),
         400: errorSchemas.validation,
+        401: errorSchemas.unauthorized,
+        403: errorSchemas.forbidden,
+      }
+    }
+  },
+  permissions: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/permissions' as const,
+      responses: {
+        200: z.array(z.custom<typeof staffPermissions.$inferSelect>()),
+        401: errorSchemas.unauthorized,
+        403: errorSchemas.forbidden,
+      }
+    },
+    me: {
+      method: 'GET' as const,
+      path: '/api/permissions/me' as const,
+      responses: {
+        200: z.custom<typeof staffPermissions.$inferSelect | null>(),
+        401: errorSchemas.unauthorized,
+      }
+    },
+    upsert: {
+      method: 'POST' as const,
+      path: '/api/permissions/:userId' as const,
+      input: z.object({
+        canAddStaff: z.boolean(),
+        allowedShifts: z.string(),
+        allowedJobdesks: z.string(),
+      }),
+      responses: {
+        200: z.custom<typeof staffPermissions.$inferSelect>(),
+        401: errorSchemas.unauthorized,
+        403: errorSchemas.forbidden,
+      }
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/permissions/:userId' as const,
+      responses: {
+        200: z.object({ message: z.string() }),
         401: errorSchemas.unauthorized,
         403: errorSchemas.forbidden,
       }
