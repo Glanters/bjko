@@ -19,6 +19,7 @@ import Profile from "@/pages/profile";
 import Welcome from "@/pages/welcome";
 import Jobdesk from "@/pages/jobdesk";
 import Permissions from "@/pages/permissions";
+import StaffCuti from "@/pages/staff-cuti";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 
@@ -115,6 +116,9 @@ function Router() {
       </Route>
       <Route path="/permissions">
         {() => <AdminRoute component={Permissions} />}
+      </Route>
+      <Route path="/staff-cuti">
+        {() => <ProtectedRoute component={StaffCuti} />}
       </Route>
       <Route component={NotFound} />
     </Switch>

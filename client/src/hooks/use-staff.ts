@@ -76,3 +76,22 @@ export function useUpdateStaffJobdesk() {
     },
   });
 }
+
+export function useUpdateStaffCutiStatus() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: string | null }) => {
+      const res = await apiRequest("PATCH", `/api/staff/${id}/cuti-status`, { status });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.staff.list.path] });
+      toast({ title: "Berhasil", description: "Status cuti berhasil diperbarui." });
+    },
+    onError: () => {
+      toast({ variant: "destructive", title: "Gagal", description: "Gagal memperbarui status cuti." });
+    },
+  });
+}

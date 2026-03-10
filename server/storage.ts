@@ -36,6 +36,7 @@ export interface IStorage {
   updateStaffName(id: number, name: string): Promise<Staff>;
   updateStaff(id: number, name: string, jobdesk: string): Promise<Staff>;
   updateStaffJobdesk(id: number, jobdesk: string): Promise<Staff>;
+  updateStaffCutiStatus(id: number, status: string | null): Promise<Staff>;
   deleteStaff(id: number): Promise<boolean>;
   bulkDeleteAllStaff(): Promise<number>;
   getLeaves(): Promise<Leave[]>;
@@ -126,6 +127,11 @@ export class DatabaseStorage implements IStorage {
 
   async updateStaffJobdesk(id: number, jobdesk: string): Promise<Staff> {
     const [staffRecord] = await db.update(staff).set({ jobdesk }).where(eq(staff.id, id)).returning();
+    return staffRecord;
+  }
+
+  async updateStaffCutiStatus(id: number, status: string | null): Promise<Staff> {
+    const [staffRecord] = await db.update(staff).set({ cutiStatus: status }).where(eq(staff.id, id)).returning();
     return staffRecord;
   }
 

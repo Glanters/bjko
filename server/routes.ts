@@ -733,6 +733,25 @@ export async function registerRoutes(
     }
   });
 
+  // PATCH /api/staff/:id/cuti-status - Update staff cuti status (admin, CS LINE, kapten)
+  app.patch("/api/staff/:id/cuti-status", async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
+    const user = await storage.getUser(req.session.userId);
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+    const csLine = await isCsLine(req.session.userId);
+    const kapten = await isKapten(req.session.userId);
+    if (user.role !== 'admin' && !csLine && !kapten) return res.status(403).json({ message: "Forbidden" });
+    try {
+      const staffId = parseInt(req.params.id);
+      const { status } = req.body;
+      const updated = await storage.updateStaffCutiStatus(staffId, status ?? null);
+      await logAudit(req.session.userId, "UPDATE_CUTI_STATUS", `Status cuti staff #${staffId} diubah ke: ${status ?? "kosong"}`);
+      res.json(updated);
+    } catch {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // GET /api/audit-logs — admin or CS LINE
   app.get("/api/audit-logs", async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });

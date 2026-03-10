@@ -12,13 +12,13 @@ export function Sidebar() {
   const [location, navigate] = useLocation();
   const { user } = useAuth();
   const [staffMenuOpen, setStaffMenuOpen] = useState(
-    ["/izin", "/jobdesk", "/history"].includes(location)
+    ["/izin", "/jobdesk", "/staff-cuti"].includes(location)
   );
 
   if (!user) return null;
 
   const isActive = (href: string) => location === href;
-  const isStaffMenuActive = ["/izin", "/jobdesk", "/history"].includes(location);
+  const isStaffMenuActive = ["/izin", "/jobdesk", "/staff-cuti"].includes(location);
 
   return (
     <aside className="hidden md:flex flex-col w-56 shrink-0 border-r border-white/5 bg-background/95 backdrop-blur-xl h-screen sticky top-0 overflow-y-auto">
@@ -98,9 +98,9 @@ export function Sidebar() {
                 Jobdesk Staff
               </button>
               <button
-                onClick={() => navigate("/history")}
+                onClick={() => navigate("/staff-cuti")}
                 className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-all ${
-                  isActive("/history")
+                  isActive("/staff-cuti")
                     ? "bg-primary/15 text-primary"
                     : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
                 }`}
