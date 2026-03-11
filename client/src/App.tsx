@@ -19,6 +19,7 @@ import Welcome from "@/pages/welcome";
 import Jobdesk from "@/pages/jobdesk";
 import Permissions from "@/pages/permissions";
 import StaffCuti from "@/pages/staff-cuti";
+import ShiftKerja from "@/pages/shift-kerja";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { PageTransition } from "@/components/layout/page-transition";
@@ -120,6 +121,9 @@ function Router() {
         </Route>
         <Route path="/staff-cuti">
           {() => <ProtectedRoute component={StaffCuti} />}
+        </Route>
+        <Route path="/shift-kerja">
+          {() => <ProtectedRoute component={ShiftKerja} />}
         </Route>
         <Route component={NotFound} />
       </Switch>

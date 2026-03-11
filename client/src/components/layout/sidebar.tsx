@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import {
   LayoutDashboard, ChevronDown, ChevronRight, ChevronLeft,
   Coffee, Briefcase, UserMinus, History,
-  Settings, BarChart2, Shield, Database, Settings2, ShieldCheck, ClipboardList, PanelLeftClose, PanelLeftOpen,
+  Settings, BarChart2, Shield, Database, Settings2, ShieldCheck, ClipboardList, PanelLeftClose, PanelLeftOpen, Sun,
 } from "lucide-react";
 import bosjokoLogo from "@assets/image_1773044190239.png";
 
@@ -12,14 +12,14 @@ export function Sidebar() {
   const [location, navigate] = useLocation();
   const { user } = useAuth();
   const [staffMenuOpen, setStaffMenuOpen] = useState(
-    ["/izin", "/jobdesk", "/staff-cuti"].includes(location)
+    ["/izin", "/jobdesk", "/staff-cuti", "/shift-kerja"].includes(location)
   );
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("sidebar-collapsed") === "true");
 
   if (!user) return null;
 
   const isActive = (href: string) => location === href;
-  const isStaffMenuActive = ["/izin", "/jobdesk", "/staff-cuti"].includes(location);
+  const isStaffMenuActive = ["/izin", "/jobdesk", "/staff-cuti", "/shift-kerja"].includes(location);
 
   const toggle = () => {
     setCollapsed(prev => {
@@ -134,6 +134,18 @@ export function Sidebar() {
                   >
                     <UserMinus className="w-3.5 h-3.5 shrink-0" />
                     Staff Cuti
+                  </button>
+                  <button
+                    onClick={() => navigate("/shift-kerja")}
+                    className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-all ${
+                      isActive("/shift-kerja")
+                        ? "bg-primary/15 text-primary"
+                        : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                    }`}
+                    data-testid="sidebar-shift-kerja"
+                  >
+                    <Sun className="w-3.5 h-3.5 shrink-0" />
+                    Shift Kerja
                   </button>
                 </div>
               )}
