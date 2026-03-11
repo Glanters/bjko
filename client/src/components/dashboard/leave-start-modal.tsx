@@ -95,7 +95,7 @@ export function LeaveStartModal({ open, leave, staff, onOpenChange }: LeaveStart
               <DialogTitle className="text-2xl font-display text-gradient">
                 {staff.name}
               </DialogTitle>
-              <p className="text-xs text-muted-foreground">{staff.jobdesk}</p>
+              <p className="text-xs text-muted-foreground">{staff.jabatan || staff.jobdesk}</p>
             </div>
           </div>
           <DialogDescription className="text-center text-muted-foreground">

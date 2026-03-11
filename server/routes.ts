@@ -177,14 +177,16 @@ export async function registerRoutes(
       // Check jobdesk limit
       const staffData = await storage.getStaff();
       const staffRecord = staffData.find(s => s.id === input.staffId);
-      if (staffRecord && jobdeskLimits[staffRecord.jobdesk]) {
-        const maxConcurrent = jobdeskLimits[staffRecord.jobdesk];
+      const staffJabatan = staffRecord?.jabatan || staffRecord?.jobdesk;
+      if (staffRecord && staffJabatan && jobdeskLimits[staffJabatan]) {
+        const maxConcurrent = jobdeskLimits[staffJabatan];
         const concurrentLeaves = leaves.filter(l => {
           const staff = staffData.find(s => s.id === l.staffId);
-          return staff?.jobdesk === staffRecord.jobdesk && l.date === today && !l.clockInTime;
+          const sJabatan = staff?.jabatan || staff?.jobdesk;
+          return sJabatan === staffJabatan && l.date === today && !l.clockInTime;
         });
         if (concurrentLeaves.length >= maxConcurrent) {
-          return res.status(400).json({ message: `Maksimal ${maxConcurrent} staff ${staffRecord.jobdesk} yang bisa keluar bersamaan` });
+          return res.status(400).json({ message: `Maksimal ${maxConcurrent} staff ${staffJabatan} yang bisa keluar bersamaan` });
         }
       }
 
@@ -865,8 +867,9 @@ export async function registerRoutes(
     if (!u || u.role === 'admin') return null;
     const staffList = await storage.getStaff();
     const staff = staffList.find(s => s.name.toLowerCase() === u.username.toLowerCase());
-    if (staff && staff.jobdesk) {
-      const byJobdesk = await storage.getPermissionByRole(staff.jobdesk);
+    const staffRole = staff?.jabatan || staff?.jobdesk;
+    if (staff && staffRole) {
+      const byJobdesk = await storage.getPermissionByRole(staffRole);
       if (byJobdesk) return byJobdesk;
     }
     return await storage.getPermissionByRole(u.role);
@@ -877,14 +880,14 @@ export async function registerRoutes(
     const u = await storage.getUser(userId);
     if (!u || u.role !== 'agent') return false;
     const staffList = await storage.getStaff();
-    return staffList.some(s => s.name.toLowerCase() === u.username.toLowerCase() && s.jobdesk?.toUpperCase() === "CS LINE");
+    return staffList.some(s => s.name.toLowerCase() === u.username.toLowerCase() && (s.jabatan || s.jobdesk)?.toUpperCase() === "CS LINE");
   };
 
   const isKapten = async (userId: number): Promise<boolean> => {
     const u = await storage.getUser(userId);
     if (!u) return false;
     const staffList = await storage.getStaff();
-    return staffList.some(s => s.name.toLowerCase() === u.username.toLowerCase() && s.jobdesk?.toUpperCase() === "KAPTEN");
+    return staffList.some(s => s.name.toLowerCase() === u.username.toLowerCase() && (s.jabatan || s.jobdesk)?.toUpperCase() === "KAPTEN");
   };
 
   // PATCH /api/staff/:id - Update staff fields (name requires canEditName, jobdesk/shift requires canEditJobdesk)
@@ -1027,11 +1030,14 @@ export async function registerRoutes(
         last7Days.push({ date: dateStr, count: allLeaves.filter(l => l.date === dateStr).length });
       }
 
-      // Leaves per jobdesk today
+      // Leaves per jabatan today
       const leavesByJobdesk: Record<string, number> = {};
       for (const l of todayLeaves) {
         const s = allStaff.find(x => x.id === l.staffId);
-        if (s) leavesByJobdesk[s.jobdesk] = (leavesByJobdesk[s.jobdesk] || 0) + 1;
+        if (s) {
+          const key = s.jabatan || s.jobdesk;
+          leavesByJobdesk[key] = (leavesByJobdesk[key] || 0) + 1;
+        }
       }
 
       // Top 5 staff by leave count (all time)
@@ -1042,7 +1048,7 @@ export async function registerRoutes(
         .slice(0, 5)
         .map(([staffId, count]) => {
           const s = allStaff.find(x => x.id === Number(staffId));
-          return { staffId: Number(staffId), name: s?.name || 'Unknown', jobdesk: s?.jobdesk || '-', count };
+          return { staffId: Number(staffId), name: s?.name || 'Unknown', jobdesk: s?.jabatan || s?.jobdesk || '-', count };
         });
 
       // On-time vs late

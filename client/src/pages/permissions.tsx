@@ -243,7 +243,7 @@ export default function Permissions() {
 
   const { data: perms } = useQuery<StaffPermission[]>({ queryKey: ["/api/permissions"] });
   const { data: masterData } = useQuery<{ jobdesks: string[] }>({ queryKey: ["/api/jobdeskList"] });
-  const { data: staffData } = useQuery<Array<{ jobdesk: string }>>({ queryKey: ["/api/staff"] });
+  const { data: staffData } = useQuery<Array<{ jobdesk: string; jabatan: string }>>({ queryKey: ["/api/staff"] });
 
   const saveMutation = useMutation({
     mutationFn: ({ role, data }: { role: string; data: any }) =>
@@ -266,7 +266,7 @@ export default function Permissions() {
 
   const allJobdesks = useMemo(() => {
     const masterList = masterData?.jobdesks ?? [];
-    const staffList = (staffData ?? []).map(s => s.jobdesk).filter(Boolean);
+    const staffList = (staffData ?? []).map(s => s.jabatan || s.jobdesk).filter(Boolean);
     return Array.from(new Set([...masterList, ...staffList])).filter(Boolean).sort();
   }, [masterData, staffData]);
 

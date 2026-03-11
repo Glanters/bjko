@@ -111,7 +111,7 @@ export function CurrentLeavePanel() {
                     <p className="text-sm font-medium truncate">{staff.name}</p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-white/10 text-muted-foreground">
-                        {staff.jobdesk}
+                        {staff.jabatan || staff.jobdesk}
                       </Badge>
                       <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
                         <Clock className="w-2.5 h-2.5" />

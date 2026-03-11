@@ -50,11 +50,11 @@ export default function StaffCuti() {
   const isAdmin = user?.role === "admin";
   const isCsLine = useMemo(() => {
     if (!staffList || !user) return false;
-    return staffList.some(s => s.name.toLowerCase() === user.username.toLowerCase() && s.jobdesk?.toUpperCase() === "CS LINE");
+    return staffList.some(s => s.name.toLowerCase() === user.username.toLowerCase() && (s.jabatan || s.jobdesk)?.toUpperCase() === "CS LINE");
   }, [staffList, user]);
   const isKapten = useMemo(() => {
     if (!staffList || !user) return false;
-    return staffList.some(s => s.name.toLowerCase() === user.username.toLowerCase() && s.jobdesk?.toUpperCase() === "KAPTEN");
+    return staffList.some(s => s.name.toLowerCase() === user.username.toLowerCase() && (s.jabatan || s.jobdesk)?.toUpperCase() === "KAPTEN");
   }, [staffList, user]);
 
   const canEdit = isAdmin || isCsLine || isKapten;
@@ -206,7 +206,7 @@ export default function StaffCuti() {
                     data-testid={`row-cuti-${s.id}`}
                   >
                     <span className="font-bold text-foreground uppercase tracking-wide text-sm">{s.name}</span>
-                    <span className="text-muted-foreground text-sm">{s.jobdesk}</span>
+                    <span className="text-muted-foreground text-sm">{s.jabatan || s.jobdesk}</span>
 
                     {/* Status column */}
                     <div>
