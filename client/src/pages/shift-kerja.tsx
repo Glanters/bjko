@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useStaff, useUpdateStaff } from "@/hooks/use-staff";
 import { useAuth } from "@/hooks/use-auth";
+import type { StaffPermission } from "@shared/schema";
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Input } from "@/components/ui/input";
@@ -175,7 +176,11 @@ export default function ShiftKerja() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkTargetShift, setBulkTargetShift] = useState<ShiftKey>("PAGI");
 
+  const { data: myPerm } = useQuery<StaffPermission>({ queryKey: ["/api/permissions/me"] });
+
   const isAdmin = user?.role === "admin";
+  const canEditShift = isAdmin || !!myPerm?.canEditJobdesk;
+
   const today = format(new Date(), "EEEE, dd MMM yyyy", { locale: localeId });
   const sch = schedule ?? DEFAULT_SCHEDULE;
 
@@ -355,7 +360,7 @@ export default function ShiftKerja() {
                   data-testid="input-search-shift"
                 />
               </div>
-              {isAdmin && allFilteredIds.length > 0 && (
+              {canEditShift && allFilteredIds.length > 0 && (
                 <button
                   onClick={() => {
                     const allSelected = allFilteredIds.every(id => selectedIds.has(id));
@@ -429,7 +434,7 @@ export default function ShiftKerja() {
                         </span>
                       </div>
                       <div className="flex items-center gap-3">
-                        {isAdmin && shiftIds.length > 0 && (
+                        {canEditShift && shiftIds.length > 0 && (
                           <button
                             onClick={() => toggleSelectAll(shiftIds, allShiftSelected)}
                             className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-primary transition-colors"
@@ -450,8 +455,8 @@ export default function ShiftKerja() {
                     </div>
 
                     {/* Column headers */}
-                    <div className={`grid ${isAdmin ? "grid-cols-[36px_36px_1fr_130px_90px_90px_90px]" : "grid-cols-[36px_1fr_130px_90px_90px_90px]"} px-6 py-2.5 border-b border-white/10 bg-white/[0.02]`}>
-                      {isAdmin && <span className="text-[10px] font-bold text-muted-foreground/60 uppercase" />}
+                    <div className={`grid ${canEditShift ? "grid-cols-[36px_36px_1fr_130px_90px_90px_90px]" : "grid-cols-[36px_1fr_130px_90px_90px_90px]"} px-6 py-2.5 border-b border-white/10 bg-white/[0.02]`}>
+                      {canEditShift && <span className="text-[10px] font-bold text-muted-foreground/60 uppercase" />}
                       <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">#</span>
                       <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">Nama Staff</span>
                       <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">Jabatan</span>
@@ -478,13 +483,13 @@ export default function ShiftKerja() {
                           return (
                             <div
                               key={s.id}
-                              onClick={() => isAdmin && toggleSelect(s.id)}
-                              className={`grid ${isAdmin ? "grid-cols-[36px_36px_1fr_130px_90px_90px_90px]" : "grid-cols-[36px_1fr_130px_90px_90px_90px]"} items-center px-6 py-3 border-b border-white/5 transition-colors ${
+                              onClick={() => canEditShift && toggleSelect(s.id)}
+                              className={`grid ${canEditShift ? "grid-cols-[36px_36px_1fr_130px_90px_90px_90px]" : "grid-cols-[36px_1fr_130px_90px_90px_90px]"} items-center px-6 py-3 border-b border-white/5 transition-colors ${
                                 isSelected ? shift.selectedRow + " border-l-2 border-l-primary/40" : (i % 2 === 0 ? "bg-background/20" : "bg-background/10")
-                              } ${isAdmin ? "cursor-pointer " + shift.row : ""}`}
+                              } ${canEditShift ? "cursor-pointer " + shift.row : ""}`}
                               data-testid={`row-shift-${s.id}`}
                             >
-                              {isAdmin && (
+                              {canEditShift && (
                                 <div className="flex items-center" onClick={e => e.stopPropagation()}>
                                   <Checkbox
                                     checked={isSelected}
@@ -500,7 +505,7 @@ export default function ShiftKerja() {
                               {/* Name + inline shift dropdown */}
                               <div className="flex items-center gap-2 min-w-0" onClick={e => e.stopPropagation()}>
                                 <span className="font-bold text-foreground uppercase tracking-wide text-sm truncate">{s.name}</span>
-                                {isAdmin && (
+                                {canEditShift && (
                                   <Select
                                     value={s.shift}
                                     onValueChange={(newShift) => {
@@ -555,7 +560,7 @@ export default function ShiftKerja() {
       </div>
 
       {/* ===== Floating Bulk Action Bar ===== */}
-      {isAdmin && totalSelected > 0 && (
+      {canEditShift && totalSelected > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl border border-primary/30 bg-card/95 backdrop-blur-xl shadow-2xl shadow-primary/20 min-w-[480px]"
           data-testid="bulk-action-bar"
         >

@@ -98,7 +98,7 @@ function PermissionRoleRow({ role, perm, allJobdesks, onSave, onDelete }: {
             data-testid={`checkbox-can-edit-jobdesk-${role}`}
           />
           <label htmlFor={`can-edit-jobdesk-${role}`} className="text-sm font-medium cursor-pointer">
-            Dapat Edit Jobdesk Staff
+            Dapat Edit Jobdesk &amp; Shift Staff
           </label>
         </div>
         <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
