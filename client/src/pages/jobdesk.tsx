@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useStaff, useCreateStaff, useUpdateStaff, useDeleteStaff } from "@/hooks/use-staff";
 import { useUniqueJobdesks } from "@/hooks/use-unique-jobdesks";
@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Briefcase, Pencil, Plus, Trash2, Settings2, ChevronDown, ChevronUp, X, UserPlus } from "lucide-react";
+import { Search, Briefcase, Pencil, Plus, Trash2, Settings2, ChevronDown, ChevronUp, X, UserPlus, SlidersHorizontal, Check } from "lucide-react";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 
@@ -72,6 +72,28 @@ export default function Jobdesk() {
   const [editNewJobdeskMode, setEditNewJobdeskMode] = useState(false);
   const [editNewJobdeskText, setEditNewJobdeskText] = useState("");
 
+  // Filter nama state
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [selectedNames, setSelectedNames] = useState<Set<string>>(new Set());
+  const filterRef = useRef<HTMLDivElement>(null);
+
+  // Close filter dropdown when clicking outside
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setFilterOpen(false);
+      }
+    }
+    if (filterOpen) document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [filterOpen]);
+
+  // Reset filter when switching shift tabs
+  useEffect(() => {
+    setSelectedNames(new Set());
+    setSearch("");
+  }, [activeShift]);
+
   const today = format(new Date(), "EEEE, dd MMM yyyy", { locale: localeId });
 
   const isAdmin = user?.role === "admin";
@@ -94,11 +116,22 @@ export default function Jobdesk() {
     [masterList, staffJobdesks]
   );
 
+  // All non-cuti staff names for the current shift (used to populate filter dropdown)
+  const allNamesForShift = useMemo(
+    () =>
+      (staffList ?? [])
+        .filter(s => s.shift === activeShift && !s.cutiStatus)
+        .map(s => s.name)
+        .sort((a, b) => a.localeCompare(b)),
+    [staffList, activeShift]
+  );
+
   const filtered = (staffList ?? []).filter(s => {
     const matchShift = s.shift === activeShift;
     const matchSearch = !search || s.name.toLowerCase().includes(search.toLowerCase());
     const notOnCuti = !s.cutiStatus;
-    return matchShift && matchSearch && notOnCuti;
+    const matchFilter = selectedNames.size === 0 || selectedNames.has(s.name);
+    return matchShift && matchSearch && notOnCuti && matchFilter;
   });
 
   // Add modal handlers
@@ -294,15 +327,111 @@ export default function Jobdesk() {
                     </span>
                   )}
                 </div>
-                <div className="relative w-64">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Cari Nama Staff..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    className="pl-9 bg-background/50 border-white/10 focus-visible:ring-primary/30 text-sm h-9"
-                    data-testid="input-search-jobdesk"
-                  />
+                <div className="flex items-center gap-2">
+                  {/* Filter Nama Dropdown */}
+                  <div className="relative" ref={filterRef}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setFilterOpen(prev => !prev)}
+                      className={`h-9 px-3 rounded-lg border text-xs font-semibold transition-all ${
+                        selectedNames.size > 0
+                          ? "border-primary/50 bg-primary/15 text-primary"
+                          : "border-white/10 text-muted-foreground hover:border-primary/30 hover:text-foreground"
+                      }`}
+                      data-testid="button-filter-nama"
+                    >
+                      <SlidersHorizontal className="w-3.5 h-3.5 mr-1.5" />
+                      Filter Nama
+                      {selectedNames.size > 0 && (
+                        <span className="ml-1.5 bg-primary text-primary-foreground rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold">
+                          {selectedNames.size}
+                        </span>
+                      )}
+                    </Button>
+
+                    {filterOpen && (
+                      <div className="absolute right-0 top-full mt-1 z-50 w-56 rounded-xl border border-white/15 bg-background shadow-xl overflow-hidden">
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-3 py-2 border-b border-white/10 bg-primary/5">
+                          <span className="text-xs font-bold text-primary uppercase tracking-wider">Filter Nama</span>
+                          {selectedNames.size > 0 && (
+                            <button
+                              onClick={() => setSelectedNames(new Set())}
+                              className="text-[10px] text-muted-foreground hover:text-red-400 transition-colors"
+                              data-testid="button-clear-filter-nama"
+                            >
+                              Reset
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Select All / Deselect All */}
+                        <div className="px-3 py-2 border-b border-white/10">
+                          <button
+                            onClick={() => {
+                              if (selectedNames.size === allNamesForShift.length) {
+                                setSelectedNames(new Set());
+                              } else {
+                                setSelectedNames(new Set(allNamesForShift));
+                              }
+                            }}
+                            className="text-xs text-primary/70 hover:text-primary transition-colors font-medium"
+                            data-testid="button-toggle-all-filter"
+                          >
+                            {selectedNames.size === allNamesForShift.length ? "Hapus Semua" : "Pilih Semua"}
+                          </button>
+                        </div>
+
+                        {/* Name list */}
+                        <div className="max-h-52 overflow-y-auto py-1">
+                          {allNamesForShift.length === 0 ? (
+                            <p className="text-xs text-muted-foreground text-center py-4">
+                              Tidak ada staff di shift ini
+                            </p>
+                          ) : (
+                            allNamesForShift.map(name => {
+                              const checked = selectedNames.has(name);
+                              return (
+                                <button
+                                  key={name}
+                                  onClick={() => {
+                                    const next = new Set(selectedNames);
+                                    if (checked) next.delete(name);
+                                    else next.add(name);
+                                    setSelectedNames(next);
+                                  }}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-primary/10 transition-colors"
+                                  data-testid={`filter-name-${name}`}
+                                >
+                                  <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${
+                                    checked
+                                      ? "bg-primary border-primary"
+                                      : "border-white/30 bg-transparent"
+                                  }`}>
+                                    {checked && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
+                                  </div>
+                                  <span className="text-sm text-foreground truncate">{name}</span>
+                                </button>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Search Bar */}
+                  <div className="relative w-56">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Cari Nama Staff..."
+                      value={search}
+                      onChange={e => setSearch(e.target.value)}
+                      className="pl-9 bg-background/50 border-white/10 focus-visible:ring-primary/30 text-sm h-9"
+                      data-testid="input-search-jobdesk"
+                    />
+                  </div>
                 </div>
               </div>
 
