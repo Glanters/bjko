@@ -181,6 +181,13 @@ export default function ShiftKerja() {
   const isAdmin = user?.role === "admin";
   const canEditShift = isAdmin || !!myPerm?.canEditJobdesk;
 
+  const ALL_SHIFTS: ShiftKey[] = ["PAGI", "GANTUNG", "SORE", "MALAM"];
+  const allowedShiftOptions: ShiftKey[] = isAdmin
+    ? ALL_SHIFTS
+    : myPerm?.allowedShifts
+      ? (myPerm.allowedShifts.split(",").filter(s => ALL_SHIFTS.includes(s as ShiftKey)) as ShiftKey[])
+      : ALL_SHIFTS;
+
   const today = format(new Date(), "EEEE, dd MMM yyyy", { locale: localeId });
   const sch = schedule ?? DEFAULT_SCHEDULE;
 
@@ -435,9 +442,12 @@ export default function ShiftKerja() {
                       </div>
                       <div className="flex items-center gap-3">
                         {canEditShift && shiftIds.length > 0 && (
-                          <button
+                          <div
+                            role="button"
+                            tabIndex={0}
                             onClick={() => toggleSelectAll(shiftIds, allShiftSelected)}
-                            className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-primary transition-colors"
+                            onKeyDown={e => e.key === "Enter" && toggleSelectAll(shiftIds, allShiftSelected)}
+                            className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-primary transition-colors cursor-pointer select-none"
                             data-testid={`button-select-all-${shift.key.toLowerCase()}`}
                           >
                             <Checkbox
@@ -446,7 +456,7 @@ export default function ShiftKerja() {
                               className="w-3.5 h-3.5 pointer-events-none"
                             />
                             {allShiftSelected ? "Batal Semua" : "Pilih Semua"}
-                          </button>
+                          </div>
                         )}
                         <span className={`text-xs font-bold px-3 py-1 rounded-full border ${shift.badge}`}>
                           {shift.total} Staff
@@ -519,10 +529,9 @@ export default function ShiftKerja() {
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="PAGI" className="text-xs font-bold text-amber-400">PAGI</SelectItem>
-                                      <SelectItem value="GANTUNG" className="text-xs font-bold text-violet-400">GANTUNG</SelectItem>
-                                      <SelectItem value="SORE" className="text-xs font-bold text-orange-400">SORE</SelectItem>
-                                      <SelectItem value="MALAM" className="text-xs font-bold text-blue-400">MALAM</SelectItem>
+                                      {allowedShiftOptions.map(sk => (
+                                        <SelectItem key={sk} value={sk} className={`text-xs font-bold ${SHIFT_COLORS[sk].text}`}>{sk}</SelectItem>
+                                      ))}
                                     </SelectContent>
                                   </Select>
                                 )}
@@ -592,10 +601,9 @@ export default function ShiftKerja() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="PAGI" className="text-sm font-bold text-amber-400">☀️ PAGI</SelectItem>
-              <SelectItem value="GANTUNG" className="text-sm font-bold text-violet-400">🔀 GANTUNG</SelectItem>
-              <SelectItem value="SORE" className="text-sm font-bold text-orange-400">🌅 SORE</SelectItem>
-              <SelectItem value="MALAM" className="text-sm font-bold text-blue-400">🌙 MALAM</SelectItem>
+              {allowedShiftOptions.map(sk => (
+                <SelectItem key={sk} value={sk} className={`text-sm font-bold ${SHIFT_COLORS[sk].text}`}>{sk}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
 

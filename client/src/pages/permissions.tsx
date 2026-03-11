@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ShieldCheck, Layers, Trash2, Save, ChevronDown, Check, Briefcase } from "lucide-react";
 import type { StaffPermission } from "@shared/schema";
 
-const SHIFTS = ["PAGI", "SORE", "MALAM"];
+const SHIFTS = ["PAGI", "GANTUNG", "SORE", "MALAM"];
 
 function parseList(val: string): string[] {
   return val ? val.split(",").filter(Boolean) : [];

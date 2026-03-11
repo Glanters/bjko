@@ -27,8 +27,15 @@ import { Search, Briefcase, Pencil, Plus, Trash2, Settings2, ChevronDown, Chevro
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 
-const SHIFTS = ["PAGI", "SORE", "MALAM"] as const;
+const SHIFTS = ["PAGI", "GANTUNG", "SORE", "MALAM"] as const;
 type Shift = typeof SHIFTS[number];
+
+const SHIFT_TEXT_COLOR: Record<Shift, string> = {
+  PAGI:    "text-amber-400",
+  GANTUNG: "text-violet-400",
+  SORE:    "text-orange-400",
+  MALAM:   "text-blue-400",
+};
 
 export default function Jobdesk() {
   const { user } = useAuth();
@@ -73,6 +80,12 @@ export default function Jobdesk() {
   const canEdit = canEditJobdeskPerm || canEditNamePerm;
   const canAdd = isAdmin || !!myPerm?.canAddStaff;
   const canDelete = isAdmin || !!myPerm?.canDeleteStaff;
+
+  const allowedShiftOptions: Shift[] = isAdmin
+    ? [...SHIFTS]
+    : myPerm?.allowedShifts
+      ? (myPerm.allowedShifts.split(",").filter(s => (SHIFTS as readonly string[]).includes(s)) as Shift[])
+      : [...SHIFTS];
 
   const masterList = masterData?.jobdesks ?? [];
 
@@ -330,28 +343,21 @@ export default function Jobdesk() {
                           className="h-7 w-[110px] text-xs font-bold border border-white/10 bg-white/5 px-2 hover:bg-primary/10 rounded-lg focus:ring-0 focus:ring-offset-0"
                           data-testid={`select-shift-${s.id}`}
                         >
-                          <span className={
-                            s.shift === "PAGI" ? "text-amber-400" :
-                            s.shift === "SORE" ? "text-orange-400" :
-                            "text-blue-400"
-                          }>{s.shift}</span>
+                          <span className={SHIFT_TEXT_COLOR[s.shift as Shift] ?? "text-muted-foreground"}>{s.shift}</span>
                         </SelectTrigger>
                         <SelectContent>
-                          {SHIFTS.map(sh => (
+                          {allowedShiftOptions.map(sh => (
                             <SelectItem key={sh} value={sh} className="text-xs font-bold">
-                              <span className={`px-2 py-0.5 rounded-md ${
-                                sh === "PAGI" ? "text-amber-400" :
-                                sh === "SORE" ? "text-orange-400" :
-                                "text-blue-400"
-                              }`}>{sh}</span>
+                              <span className={`px-2 py-0.5 rounded-md ${SHIFT_TEXT_COLOR[sh]}`}>{sh}</span>
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     ) : (
                       <span className={`text-xs font-bold px-2 py-1 rounded-lg w-fit ${
-                        s.shift === "PAGI" ? "bg-amber-500/20 text-amber-400" :
-                        s.shift === "SORE" ? "bg-orange-500/20 text-orange-400" :
+                        s.shift === "PAGI"    ? "bg-amber-500/20 text-amber-400" :
+                        s.shift === "GANTUNG" ? "bg-violet-500/20 text-violet-400" :
+                        s.shift === "SORE"    ? "bg-orange-500/20 text-orange-400" :
                         "bg-blue-500/20 text-blue-400"
                       }`}>
                         {s.shift}
@@ -453,7 +459,7 @@ export default function Jobdesk() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {SHIFTS.map(s => (
+                  {allowedShiftOptions.map(s => (
                     <SelectItem key={s} value={s}>{s}</SelectItem>
                   ))}
                 </SelectContent>
@@ -554,7 +560,7 @@ export default function Jobdesk() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {SHIFTS.map(s => (
+                      {allowedShiftOptions.map(s => (
                         <SelectItem key={s} value={s}>{s}</SelectItem>
                       ))}
                     </SelectContent>
