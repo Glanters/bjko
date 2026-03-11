@@ -58,7 +58,7 @@ export default function History() {
     staleTime: 0,
   });
 
-  const canEditPunishment = user?.role === "admin" || !!myPerm?.canEditName;
+  const canEditPunishment = user?.role === "admin" || !!myPerm?.canEditJobdesk;
 
   useEffect(() => {
     fetch("/api/staff", { credentials: "include" })

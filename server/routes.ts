@@ -297,7 +297,7 @@ export async function registerRoutes(
     if (!user) return res.status(401).json({ message: "Unauthorized" });
     if (user.role !== "admin") {
       const perm = await getPermForUser(req.session.userId);
-      if (!perm?.canEditName) return res.status(403).json({ message: "Forbidden: Tidak ada izin edit hukuman" });
+      if (!perm?.canEditJobdesk) return res.status(403).json({ message: "Forbidden: Tidak ada izin edit hukuman" });
     }
     try {
       const leaveId = parseInt(req.params.id);
