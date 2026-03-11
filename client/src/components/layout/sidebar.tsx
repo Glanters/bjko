@@ -6,7 +6,7 @@ import {
   Coffee, Briefcase, UserMinus, History,
   Settings, BarChart2, Shield, Database, Settings2, ShieldCheck, ClipboardList, PanelLeftClose, PanelLeftOpen, Sun,
 } from "lucide-react";
-import bosjokoLogo from "@assets/image_1773206448155.png";
+import bosjokoLogo from "@assets/image_1773206825745.png";
 
 export function Sidebar() {
   const [location, navigate] = useLocation();

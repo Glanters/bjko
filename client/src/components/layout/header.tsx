@@ -10,7 +10,7 @@ import {
   ArrowLeft, Sun, Moon, BarChart2, Shield, Database, Settings2,
   ChevronDown, LayoutDashboard, History as HistoryIcon, Pencil,
 } from "lucide-react";
-import bosjokoLogo from "@assets/image_1773206448155.png";
+import bosjokoLogo from "@assets/image_1773206825745.png";
 import { Badge } from "@/components/ui/badge";
 import { useLocation } from "wouter";
 
