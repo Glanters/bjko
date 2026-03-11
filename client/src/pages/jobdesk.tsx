@@ -722,21 +722,14 @@ export default function Jobdesk() {
                       </Button>
                     </div>
                   ) : (
-                    <Select value={editJobdesk} onValueChange={(v) => {
-                      if (v === "__new__") { setEditNewJobdeskMode(true); setEditNewJobdeskText(""); }
-                      else setEditJobdesk(v);
-                    }}>
+                    <Select value={editJobdesk} onValueChange={(v) => setEditJobdesk(v)}>
                       <SelectTrigger className="bg-background/50 border-white/10" data-testid="select-edit-jobdesk">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {allJobdesks.map(j => (
+                        {["CS", "CS LINE", "KAPTEN", "KASIR"].map(j => (
                           <SelectItem key={j} value={j}>{j}</SelectItem>
                         ))}
-                        <div className="border-t border-white/10 my-1" />
-                        <SelectItem value="__new__" className="text-primary">
-                          <span className="flex items-center gap-1"><Plus className="w-3 h-3" /> Jobdesk Baru</span>
-                        </SelectItem>
                       </SelectContent>
                     </Select>
                   )}

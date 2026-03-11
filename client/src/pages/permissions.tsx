@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Header } from "@/components/layout/header";
@@ -241,9 +241,8 @@ function PermissionRoleRow({ role, perm, allJobdesks, onSave, onDelete }: {
 export default function Permissions() {
   const { toast } = useToast();
 
+  const FIXED_JABATAN_ROLES = ["CS", "CS LINE", "KAPTEN", "KASIR"];
   const { data: perms } = useQuery<StaffPermission[]>({ queryKey: ["/api/permissions"] });
-  const { data: masterData } = useQuery<{ jobdesks: string[] }>({ queryKey: ["/api/jobdeskList"] });
-  const { data: staffData } = useQuery<Array<{ jobdesk: string; jabatan: string }>>({ queryKey: ["/api/staff"] });
 
   const saveMutation = useMutation({
     mutationFn: ({ role, data }: { role: string; data: any }) =>
@@ -264,11 +263,7 @@ export default function Permissions() {
     onError: () => toast({ title: "Gagal menghapus izin", variant: "destructive" }),
   });
 
-  const allJobdesks = useMemo(() => {
-    const masterList = masterData?.jobdesks ?? [];
-    const staffList = (staffData ?? []).map(s => s.jabatan || s.jobdesk).filter(Boolean);
-    return Array.from(new Set([...masterList, ...staffList])).filter(Boolean).sort();
-  }, [masterData, staffData]);
+  const allJobdesks = FIXED_JABATAN_ROLES;
 
   const uniqueNonAdminRoles = allJobdesks;
 

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +12,8 @@ import { Pencil } from "lucide-react";
 import { useEditStaff } from "@/hooks/use-edit-staff";
 import type { Staff } from "@shared/schema";
 
+const JABATAN_OPTIONS = ["CS", "CS LINE", "KAPTEN", "KASIR"];
+
 interface EditStaffDialogProps {
   staff: Staff;
 }
@@ -22,11 +23,6 @@ export function EditStaffDialog({ staff }: EditStaffDialogProps) {
   const [name, setName] = useState(staff.name);
   const [jabatan, setJabatan] = useState(staff.jabatan || staff.jobdesk);
   const { mutate: editStaff, isPending } = useEditStaff();
-
-  const { data: masterListData } = useQuery<{ jobdesks: string[] }>({
-    queryKey: ["/api/jobdeskList"],
-  });
-  const jabatanOptions = masterListData?.jobdesks ?? [];
 
   const handleOpen = () => {
     setName(staff.name);
@@ -40,6 +36,10 @@ export function EditStaffDialog({ staff }: EditStaffDialogProps) {
       onSuccess: () => setOpen(false),
     });
   };
+
+  const displayOptions = JABATAN_OPTIONS.includes(jabatan)
+    ? JABATAN_OPTIONS
+    : [...JABATAN_OPTIONS, jabatan].filter(Boolean);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -77,12 +77,9 @@ export function EditStaffDialog({ staff }: EditStaffDialogProps) {
                 <SelectValue placeholder="Pilih jabatan" />
               </SelectTrigger>
               <SelectContent>
-                {jabatanOptions.map(j => (
+                {displayOptions.map(j => (
                   <SelectItem key={j} value={j}>{j}</SelectItem>
                 ))}
-                {jabatan && !jabatanOptions.includes(jabatan) && (
-                  <SelectItem key={jabatan} value={jabatan}>{jabatan}</SelectItem>
-                )}
               </SelectContent>
             </Select>
           </div>
