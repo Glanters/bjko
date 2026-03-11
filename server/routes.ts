@@ -731,6 +731,34 @@ export async function registerRoutes(
     } catch { res.status(500).json({ message: "Internal server error" }); }
   });
 
+  // POST /api/staff/batch-shift — bulk update shift for multiple staff
+  app.post("/api/staff/batch-shift", async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
+    const user = await storage.getUser(req.session.userId);
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+    const perm = await getPermForUser(req.session.userId!);
+    if (user.role !== "admin" && !perm?.canEditJobdesk) return res.status(403).json({ message: "Forbidden" });
+    const { staffIds, shift } = req.body;
+    const VALID_SHIFTS = ["PAGI", "SORE", "MALAM"];
+    if (!Array.isArray(staffIds) || !VALID_SHIFTS.includes(shift)) {
+      return res.status(400).json({ message: "staffIds (array) dan shift (PAGI/SORE/MALAM) diperlukan" });
+    }
+    try {
+      const allStaff = await storage.getStaff();
+      const updated = [];
+      for (const id of staffIds) {
+        const s = allStaff.find(x => x.id === id);
+        if (!s) continue;
+        const result = await storage.updateStaffFull(s.id, s.name, s.jobdesk, shift);
+        updated.push(result);
+      }
+      await logAudit(req.session.userId, "BATCH_SHIFT", `${updated.length} staff dipindahkan ke shift ${shift}`);
+      res.json({ updated: updated.length });
+    } catch {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // --- Shift Schedule ---
   const SHIFT_SCHEDULE_KEY = "shift_schedule";
   const DEFAULT_SHIFT_SCHEDULE = {

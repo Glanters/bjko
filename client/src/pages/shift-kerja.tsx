@@ -6,6 +6,7 @@ import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -13,11 +14,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Sun, Sunset, Moon, Search, Settings2, Clock, LogIn, LogOut, ChevronDown, ChevronUp, Save } from "lucide-react";
+import {
+  Sun, Sunset, Moon, Search, Settings2, Clock,
+  LogIn, LogOut, ChevronDown, ChevronUp, Save,
+  Users, X, CheckSquare, ArrowRightLeft,
+} from "lucide-react";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { api } from "@shared/routes";
 
 type ShiftKey = "PAGI" | "SORE" | "MALAM";
 type ShiftSchedule = Record<ShiftKey, { start: string; end: string }>;
@@ -39,7 +45,7 @@ const SHIFTS = [
     dot: "bg-amber-400",
     header: "text-amber-400",
     row: "hover:bg-amber-500/5",
-    cardBg: "bg-amber-500/10",
+    selectedRow: "bg-amber-500/10",
   },
   {
     key: "SORE" as ShiftKey,
@@ -51,7 +57,7 @@ const SHIFTS = [
     dot: "bg-orange-400",
     header: "text-orange-400",
     row: "hover:bg-orange-500/5",
-    cardBg: "bg-orange-500/10",
+    selectedRow: "bg-orange-500/10",
   },
   {
     key: "MALAM" as ShiftKey,
@@ -63,9 +69,15 @@ const SHIFTS = [
     dot: "bg-blue-400",
     header: "text-blue-400",
     row: "hover:bg-blue-500/5",
-    cardBg: "bg-blue-500/10",
+    selectedRow: "bg-blue-500/10",
   },
 ];
+
+const SHIFT_COLORS: Record<ShiftKey, { text: string; bg: string; border: string }> = {
+  PAGI:  { text: "text-amber-400",  bg: "bg-amber-500/20",  border: "border-amber-500/40" },
+  SORE:  { text: "text-orange-400", bg: "bg-orange-500/20", border: "border-orange-500/40" },
+  MALAM: { text: "text-blue-400",   bg: "bg-blue-500/20",   border: "border-blue-500/40" },
+};
 
 function calcJamKerja(start: string, end: string): string {
   const [sh, sm] = start.split(":").map(Number);
@@ -110,15 +122,43 @@ function useSaveShiftSchedule() {
   });
 }
 
+function useBatchShift() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async ({ staffIds, shift }: { staffIds: number[]; shift: ShiftKey }) => {
+      const res = await apiRequest("POST", "/api/staff/batch-shift", { staffIds, shift });
+      if (!res.ok) throw new Error("Gagal memindahkan shift");
+      return res.json() as Promise<{ updated: number }>;
+    },
+    onSuccess: (data, vars) => {
+      queryClient.invalidateQueries({ queryKey: [api.staff.list.path] });
+      toast({
+        title: "Shift Berhasil Diubah",
+        description: `${data.updated} staff berhasil dipindahkan ke Shift ${vars.shift}.`,
+      });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", title: "Gagal", description: err.message });
+    },
+  });
+}
+
 export default function ShiftKerja() {
   const { user } = useAuth();
   const { data: staffList } = useStaff();
   const { data: schedule } = useShiftSchedule();
   const { mutate: saveSchedule, isPending: isSaving } = useSaveShiftSchedule();
+  const { mutate: batchShift, isPending: isBatchSaving } = useBatchShift();
   const { mutate: updateStaff } = useUpdateStaff();
+
   const [search, setSearch] = useState("");
   const [showSettings, setShowSettings] = useState(false);
   const [editSchedule, setEditSchedule] = useState<ShiftSchedule | null>(null);
+
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkTargetShift, setBulkTargetShift] = useState<ShiftKey>("PAGI");
 
   const isAdmin = user?.role === "admin";
   const today = format(new Date(), "EEEE, dd MMM yyyy", { locale: localeId });
@@ -137,6 +177,35 @@ export default function ShiftKerja() {
     schedule: sch[shift.key],
   }));
 
+  // Selection helpers
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = (shiftStaffIds: number[], allSelected: boolean) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (allSelected) shiftStaffIds.forEach(id => next.delete(id));
+      else shiftStaffIds.forEach(id => next.add(id));
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const handleBulkAssign = () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    batchShift({ staffIds: ids, shift: bulkTargetShift }, {
+      onSuccess: () => clearSelection(),
+    });
+  };
+
   function openSettings() {
     setEditSchedule(JSON.parse(JSON.stringify(sch)));
     setShowSettings(true);
@@ -146,6 +215,9 @@ export default function ShiftKerja() {
     if (!editSchedule) return;
     saveSchedule(editSchedule, { onSuccess: () => setShowSettings(false) });
   }
+
+  const totalSelected = selectedIds.size;
+  const allFilteredIds = grouped.flatMap(g => g.staff.map(s => s.id));
 
   return (
     <div className="min-h-screen bg-background flex relative overflow-hidden">
@@ -157,7 +229,7 @@ export default function ShiftKerja() {
       <div className="flex-1 flex flex-col min-w-0">
         <Header />
 
-        <main className="flex-1 overflow-auto relative z-10">
+        <main className="flex-1 overflow-auto relative z-10 pb-28">
           {/* Hero */}
           <div className="relative bg-gradient-to-br from-primary/20 via-primary/10 to-background border-b border-primary/20 px-6 py-8">
             <div className="flex items-end justify-between">
@@ -168,7 +240,7 @@ export default function ShiftKerja() {
                     SHIFT KERJA
                   </h1>
                 </div>
-                <p className="text-muted-foreground text-sm">Daftar staff dikelompokkan per shift beserta jam kerja</p>
+                <p className="text-muted-foreground text-sm">Daftar staff per shift · centang untuk pindah shift sekaligus</p>
               </div>
               <div className="flex items-center gap-3">
                 {isAdmin && (
@@ -189,7 +261,7 @@ export default function ShiftKerja() {
             </div>
           </div>
 
-          {/* Settings Panel (admin only) */}
+          {/* Jam Shift Settings Panel */}
           {isAdmin && showSettings && editSchedule && (
             <div className="mx-6 mt-4 p-5 rounded-2xl border border-primary/20 bg-primary/5 space-y-4" data-testid="panel-shift-settings">
               <div className="flex items-center justify-between">
@@ -224,8 +296,7 @@ export default function ShiftKerja() {
                           type="time"
                           value={editSchedule[shift.key].start}
                           onChange={e => setEditSchedule(prev => prev ? {
-                            ...prev,
-                            [shift.key]: { ...prev[shift.key], start: e.target.value }
+                            ...prev, [shift.key]: { ...prev[shift.key], start: e.target.value }
                           } : prev)}
                           className="h-8 text-xs bg-background/50 border-white/10 focus-visible:ring-primary/30"
                           data-testid={`input-start-${shift.key.toLowerCase()}`}
@@ -239,8 +310,7 @@ export default function ShiftKerja() {
                           type="time"
                           value={editSchedule[shift.key].end}
                           onChange={e => setEditSchedule(prev => prev ? {
-                            ...prev,
-                            [shift.key]: { ...prev[shift.key], end: e.target.value }
+                            ...prev, [shift.key]: { ...prev[shift.key], end: e.target.value }
                           } : prev)}
                           className="h-8 text-xs bg-background/50 border-white/10 focus-visible:ring-primary/30"
                           data-testid={`input-end-${shift.key.toLowerCase()}`}
@@ -258,16 +328,32 @@ export default function ShiftKerja() {
           )}
 
           <div className="px-6 py-6 space-y-4">
-            {/* Search */}
-            <div className="relative w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Cari nama atau jobdesk..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="pl-9 bg-background/50 border-white/10 focus-visible:ring-primary/30 text-sm h-9"
-                data-testid="input-search-shift"
-              />
+            {/* Top bar: search + select all */}
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="relative w-72">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Cari nama atau jobdesk..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="pl-9 bg-background/50 border-white/10 focus-visible:ring-primary/30 text-sm h-9"
+                  data-testid="input-search-shift"
+                />
+              </div>
+              {isAdmin && allFilteredIds.length > 0 && (
+                <button
+                  onClick={() => {
+                    const allSelected = allFilteredIds.every(id => selectedIds.has(id));
+                    if (allSelected) clearSelection();
+                    else setSelectedIds(new Set(allFilteredIds));
+                  }}
+                  className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors px-3 py-1.5 rounded-lg border border-white/10 hover:border-primary/30"
+                  data-testid="button-select-all"
+                >
+                  <CheckSquare className="w-3.5 h-3.5" />
+                  {allFilteredIds.every(id => selectedIds.has(id)) ? "Batal Pilih Semua" : "Pilih Semua"}
+                </button>
+              )}
             </div>
 
             {/* Summary cards */}
@@ -303,128 +389,214 @@ export default function ShiftKerja() {
 
             {/* Shift sections */}
             <div className="grid grid-cols-1 gap-6">
-              {grouped.map(shift => (
-                <div
-                  key={shift.key}
-                  className={`glass-panel rounded-2xl border ${shift.border} overflow-hidden`}
-                  data-testid={`section-shift-${shift.key.toLowerCase()}`}
-                >
-                  {/* Section header */}
-                  <div className={`bg-gradient-to-r ${shift.gradient} px-6 py-4 border-b border-white/10 flex items-center justify-between`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`w-2 h-2 rounded-full ${shift.dot} shadow-lg`} />
-                      <shift.icon className={`w-4 h-4 ${shift.header}`} />
-                      <span className={`font-black uppercase tracking-widest text-sm ${shift.header}`}>
-                        {shift.label}
-                      </span>
-                      <span className="text-xs text-muted-foreground/60 font-medium">
-                        {shift.schedule.start} – {shift.schedule.end}
-                        <span className={`ml-1.5 font-bold ${shift.header}`}>
-                          ({calcJamKerja(shift.schedule.start, shift.schedule.end)})
+              {grouped.map(shift => {
+                const shiftIds = shift.staff.map(s => s.id);
+                const allShiftSelected = shiftIds.length > 0 && shiftIds.every(id => selectedIds.has(id));
+                const someShiftSelected = shiftIds.some(id => selectedIds.has(id));
+
+                return (
+                  <div
+                    key={shift.key}
+                    className={`glass-panel rounded-2xl border ${shift.border} overflow-hidden`}
+                    data-testid={`section-shift-${shift.key.toLowerCase()}`}
+                  >
+                    {/* Section header */}
+                    <div className={`bg-gradient-to-r ${shift.gradient} px-6 py-4 border-b border-white/10 flex items-center justify-between`}>
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full ${shift.dot} shadow-lg`} />
+                        <shift.icon className={`w-4 h-4 ${shift.header}`} />
+                        <span className={`font-black uppercase tracking-widest text-sm ${shift.header}`}>{shift.label}</span>
+                        <span className="text-xs text-muted-foreground/60 font-medium">
+                          {shift.schedule.start} – {shift.schedule.end}
+                          <span className={`ml-1.5 font-bold ${shift.header}`}>
+                            ({calcJamKerja(shift.schedule.start, shift.schedule.end)})
+                          </span>
                         </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {isAdmin && shiftIds.length > 0 && (
+                          <button
+                            onClick={() => toggleSelectAll(shiftIds, allShiftSelected)}
+                            className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-primary transition-colors"
+                            data-testid={`button-select-all-${shift.key.toLowerCase()}`}
+                          >
+                            <Checkbox
+                              checked={allShiftSelected}
+                              data-state={someShiftSelected && !allShiftSelected ? "indeterminate" : undefined}
+                              className="w-3.5 h-3.5 pointer-events-none"
+                            />
+                            {allShiftSelected ? "Batal Semua" : "Pilih Semua"}
+                          </button>
+                        )}
+                        <span className={`text-xs font-bold px-3 py-1 rounded-full border ${shift.badge}`}>
+                          {shift.total} Staff
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Column headers */}
+                    <div className={`grid ${isAdmin ? "grid-cols-[36px_36px_1fr_130px_90px_90px_90px]" : "grid-cols-[36px_1fr_130px_90px_90px_90px]"} px-6 py-2.5 border-b border-white/10 bg-white/[0.02]`}>
+                      {isAdmin && <span className="text-[10px] font-bold text-muted-foreground/60 uppercase" />}
+                      <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">#</span>
+                      <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">Nama Staff</span>
+                      <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">Jabatan</span>
+                      <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest flex items-center gap-1">
+                        <LogIn className="w-3 h-3" />Masuk
+                      </span>
+                      <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest flex items-center gap-1">
+                        <LogOut className="w-3 h-3" />Pulang
+                      </span>
+                      <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest flex items-center gap-1">
+                        <Clock className="w-3 h-3" />Jam
                       </span>
                     </div>
-                    <span className={`text-xs font-bold px-3 py-1 rounded-full border ${shift.badge}`}>
-                      {shift.total} Staff
-                    </span>
+
+                    {/* Rows */}
+                    {shift.staff.length === 0 ? (
+                      <div className="px-6 py-10 text-center text-muted-foreground text-sm">
+                        {search ? "Tidak ada staff yang cocok" : `Belum ada staff untuk ${shift.label}`}
+                      </div>
+                    ) : (
+                      <div>
+                        {shift.staff.map((s, i) => {
+                          const isSelected = selectedIds.has(s.id);
+                          return (
+                            <div
+                              key={s.id}
+                              onClick={() => isAdmin && toggleSelect(s.id)}
+                              className={`grid ${isAdmin ? "grid-cols-[36px_36px_1fr_130px_90px_90px_90px]" : "grid-cols-[36px_1fr_130px_90px_90px_90px]"} items-center px-6 py-3 border-b border-white/5 transition-colors ${
+                                isSelected ? shift.selectedRow + " border-l-2 border-l-primary/40" : (i % 2 === 0 ? "bg-background/20" : "bg-background/10")
+                              } ${isAdmin ? "cursor-pointer " + shift.row : ""}`}
+                              data-testid={`row-shift-${s.id}`}
+                            >
+                              {isAdmin && (
+                                <div className="flex items-center" onClick={e => e.stopPropagation()}>
+                                  <Checkbox
+                                    checked={isSelected}
+                                    onCheckedChange={() => toggleSelect(s.id)}
+                                    className="w-4 h-4"
+                                    data-testid={`checkbox-staff-${s.id}`}
+                                  />
+                                </div>
+                              )}
+
+                              <span className="text-xs font-bold text-muted-foreground/40">{i + 1}</span>
+
+                              {/* Name + inline shift dropdown */}
+                              <div className="flex items-center gap-2 min-w-0" onClick={e => e.stopPropagation()}>
+                                <span className="font-bold text-foreground uppercase tracking-wide text-sm truncate">{s.name}</span>
+                                {isAdmin && (
+                                  <Select
+                                    value={s.shift}
+                                    onValueChange={(newShift) => {
+                                      updateStaff({ id: s.id, name: s.name, jobdesk: s.jobdesk, shift: newShift });
+                                    }}
+                                  >
+                                    <SelectTrigger
+                                      className={`h-5 w-auto min-w-[52px] text-[10px] font-bold border px-1.5 rounded-md focus:ring-0 focus:ring-offset-0 ${shift.badge} bg-transparent`}
+                                      data-testid={`select-change-shift-${s.id}`}
+                                    >
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="PAGI" className="text-xs font-bold text-amber-400">PAGI</SelectItem>
+                                      <SelectItem value="SORE" className="text-xs font-bold text-orange-400">SORE</SelectItem>
+                                      <SelectItem value="MALAM" className="text-xs font-bold text-blue-400">MALAM</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                )}
+                              </div>
+
+                              <span className="text-muted-foreground font-medium text-sm truncate">{s.jobdesk || "-"}</span>
+                              <span className={`text-sm font-bold ${shift.header}`}>{shift.schedule.start}</span>
+                              <span className="text-sm font-medium text-muted-foreground">{shift.schedule.end}</span>
+                              <span className="text-xs font-bold text-foreground/80 flex items-center gap-1">
+                                <Clock className="w-3 h-3 text-muted-foreground/40" />
+                                {calcJamKerja(shift.schedule.start, shift.schedule.end)}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {shift.staff.length > 0 && (
+                      <div className="px-6 py-2.5 border-t border-white/5 bg-white/[0.01] flex items-center justify-between">
+                        <span className="text-[11px] text-muted-foreground/50">
+                          Jam Kerja: <span className={`font-bold ${shift.header}`}>{calcJamKerja(shift.schedule.start, shift.schedule.end)}</span>
+                        </span>
+                        <p className="text-[11px] text-muted-foreground/50">
+                          {search ? `${shift.staff.length} dari ${shift.total}` : `${shift.total}`} staff
+                        </p>
+                      </div>
+                    )}
                   </div>
-
-                  {/* Column headers */}
-                  <div className="grid grid-cols-[36px_1fr_140px_100px_100px_100px] px-6 py-2.5 border-b border-white/10 bg-white/[0.02]">
-                    <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">#</span>
-                    <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">Nama Staff</span>
-                    <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">Jabatan</span>
-                    <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest flex items-center gap-1">
-                      <LogIn className="w-3 h-3" />Jam Masuk
-                    </span>
-                    <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest flex items-center gap-1">
-                      <LogOut className="w-3 h-3" />Jam Pulang
-                    </span>
-                    <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest flex items-center gap-1">
-                      <Clock className="w-3 h-3" />Jam Kerja
-                    </span>
-                  </div>
-
-                  {/* Staff rows */}
-                  {shift.staff.length === 0 ? (
-                    <div className="px-6 py-10 text-center text-muted-foreground text-sm">
-                      {search ? "Tidak ada staff yang cocok" : `Belum ada staff untuk ${shift.label}`}
-                    </div>
-                  ) : (
-                    <div>
-                      {shift.staff.map((s, i) => (
-                        <div
-                          key={s.id}
-                          className={`grid grid-cols-[36px_1fr_140px_100px_100px_100px] items-center px-6 py-3 border-b border-white/5 transition-colors ${shift.row} ${
-                            i % 2 === 0 ? "bg-background/20" : "bg-background/10"
-                          }`}
-                          data-testid={`row-shift-${s.id}`}
-                        >
-                          <span className="text-xs font-bold text-muted-foreground/40">{i + 1}</span>
-
-                          {/* Name + inline shift change dropdown */}
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="font-bold text-foreground uppercase tracking-wide text-sm truncate">{s.name}</span>
-                            {isAdmin && (
-                              <Select
-                                value={s.shift}
-                                onValueChange={(newShift) => {
-                                  updateStaff({ id: s.id, name: s.name, jobdesk: s.jobdesk, shift: newShift });
-                                }}
-                              >
-                                <SelectTrigger
-                                  className={`h-5 w-auto min-w-[56px] text-[10px] font-bold border px-1.5 rounded-md focus:ring-0 focus:ring-offset-0 ${shift.badge} bg-transparent`}
-                                  data-testid={`select-change-shift-${s.id}`}
-                                >
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="PAGI" className="text-xs font-bold text-amber-400">PAGI</SelectItem>
-                                  <SelectItem value="SORE" className="text-xs font-bold text-orange-400">SORE</SelectItem>
-                                  <SelectItem value="MALAM" className="text-xs font-bold text-blue-400">MALAM</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            )}
-                          </div>
-
-                          <span className="text-muted-foreground font-medium text-sm truncate">{s.jobdesk || "-"}</span>
-
-                          {/* Jam Masuk */}
-                          <span className={`text-sm font-bold ${shift.header}`}>
-                            {shift.schedule.start}
-                          </span>
-
-                          {/* Jam Pulang */}
-                          <span className="text-sm font-medium text-muted-foreground">
-                            {shift.schedule.end}
-                          </span>
-
-                          {/* Jam Kerja */}
-                          <span className="text-xs font-bold text-foreground/80 flex items-center gap-1">
-                            <Clock className="w-3 h-3 text-muted-foreground/50" />
-                            {calcJamKerja(shift.schedule.start, shift.schedule.end)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {shift.staff.length > 0 && (
-                    <div className="px-6 py-2.5 border-t border-white/5 bg-white/[0.01] flex items-center justify-between">
-                      <span className="text-[11px] text-muted-foreground/50">
-                        Jam Kerja: <span className={`font-bold ${shift.header}`}>{calcJamKerja(shift.schedule.start, shift.schedule.end)}</span>
-                      </span>
-                      <p className="text-[11px] text-muted-foreground/50 text-right">
-                        {search ? `${shift.staff.length} dari ${shift.total}` : `${shift.total}`} staff
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </main>
       </div>
+
+      {/* ===== Floating Bulk Action Bar ===== */}
+      {isAdmin && totalSelected > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl border border-primary/30 bg-card/95 backdrop-blur-xl shadow-2xl shadow-primary/20 min-w-[480px]"
+          data-testid="bulk-action-bar"
+        >
+          {/* Count badge */}
+          <div className="flex items-center gap-2 mr-1">
+            <div className="w-8 h-8 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center">
+              <Users className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground leading-none mb-0.5">Staff dipilih</p>
+              <p className="text-lg font-black text-primary leading-none">{totalSelected}</p>
+            </div>
+          </div>
+
+          <div className="w-px h-8 bg-white/10" />
+
+          {/* Arrow icon */}
+          <ArrowRightLeft className="w-4 h-4 text-muted-foreground shrink-0" />
+
+          {/* Pindahkan ke label */}
+          <span className="text-sm text-muted-foreground whitespace-nowrap">Pindahkan ke Shift</span>
+
+          {/* Shift selector */}
+          <Select value={bulkTargetShift} onValueChange={(v) => setBulkTargetShift(v as ShiftKey)}>
+            <SelectTrigger
+              className={`h-9 w-[120px] text-sm font-bold border rounded-xl focus:ring-0 focus:ring-offset-0 ${SHIFT_COLORS[bulkTargetShift].bg} ${SHIFT_COLORS[bulkTargetShift].border} ${SHIFT_COLORS[bulkTargetShift].text}`}
+              data-testid="select-bulk-target-shift"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="PAGI" className="text-sm font-bold text-amber-400">☀️ PAGI</SelectItem>
+              <SelectItem value="SORE" className="text-sm font-bold text-orange-400">🌅 SORE</SelectItem>
+              <SelectItem value="MALAM" className="text-sm font-bold text-blue-400">🌙 MALAM</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Terapkan button */}
+          <Button
+            onClick={handleBulkAssign}
+            disabled={isBatchSaving}
+            className="h-9 px-5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm"
+            data-testid="button-bulk-apply"
+          >
+            {isBatchSaving ? "Menyimpan..." : "Terapkan"}
+          </Button>
+
+          {/* Cancel */}
+          <button
+            onClick={clearSelection}
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors"
+            data-testid="button-bulk-cancel"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
