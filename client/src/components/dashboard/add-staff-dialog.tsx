@@ -61,6 +61,7 @@ export function AddStaffDialog() {
 
   const { data: myPerm } = useQuery<StaffPermission | null>({
     queryKey: ["/api/permissions/me"],
+    staleTime: 0,
     enabled: user?.role === "agent",
   });
 

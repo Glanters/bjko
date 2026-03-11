@@ -176,7 +176,7 @@ export default function ShiftKerja() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkTargetShift, setBulkTargetShift] = useState<ShiftKey>("PAGI");
 
-  const { data: myPerm } = useQuery<StaffPermission>({ queryKey: ["/api/permissions/me"] });
+  const { data: myPerm } = useQuery<StaffPermission>({ queryKey: ["/api/permissions/me"], staleTime: 0 });
 
   const isAdmin = user?.role === "admin";
   const canEditShift = isAdmin || !!myPerm?.canEditJobdesk;
@@ -271,7 +271,7 @@ export default function ShiftKerja() {
                 <p className="text-muted-foreground text-sm">Daftar staff per shift · centang untuk pindah shift sekaligus</p>
               </div>
               <div className="flex items-center gap-3">
-                {isAdmin && (
+                {(isAdmin || !!myPerm?.canEditJobdesk) && (
                   <Button
                     size="sm"
                     variant="ghost"
@@ -290,7 +290,7 @@ export default function ShiftKerja() {
           </div>
 
           {/* Jam Shift Settings Panel */}
-          {isAdmin && showSettings && editSchedule && (
+          {(isAdmin || !!myPerm?.canEditJobdesk) && showSettings && editSchedule && (
             <div className="mx-6 mt-4 p-5 rounded-2xl border border-primary/20 bg-primary/5 space-y-4" data-testid="panel-shift-settings">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">

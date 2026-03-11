@@ -25,6 +25,7 @@ export default function Profile() {
 
   const { data: myPerm } = useQuery<StaffPermission | null>({
     queryKey: ["/api/permissions/me"],
+    staleTime: 0,
     enabled: !!user && user.role !== "admin",
   });
 

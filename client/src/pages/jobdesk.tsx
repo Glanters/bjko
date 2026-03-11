@@ -42,7 +42,7 @@ export default function Jobdesk() {
   const { mutate: updateStaff, isPending: isSaving } = useUpdateStaff();
   const { mutate: createStaff, isPending: isCreating } = useCreateStaff();
   const { mutate: deleteStaff, isPending: isDeleting } = useDeleteStaff();
-  const { data: myPerm } = useQuery<StaffPermission>({ queryKey: ["/api/permissions/me"] });
+  const { data: myPerm } = useQuery<StaffPermission>({ queryKey: ["/api/permissions/me"], staleTime: 0 });
   const { data: masterData } = useJobdeskMasterList();
   const { mutate: addToMaster } = useAddJobdeskToMaster();
   const { mutate: deleteFromMaster, isPending: isDeletingJobdesk } = useDeleteJobdeskFromMaster();
@@ -114,18 +114,17 @@ export default function Jobdesk() {
     [masterList]
   );
 
-  // All non-cuti staff names for the current shift that have a role in master list
+  // All non-cuti staff names for the current shift
   const allNamesForShift = useMemo(
     () =>
       (staffList ?? [])
         .filter(s =>
           s.shift === activeShift &&
-          !s.cutiStatus &&
-          (masterList.length === 0 || masterList.includes(s.jobdesk))
+          !s.cutiStatus
         )
         .map(s => s.name)
         .sort((a, b) => a.localeCompare(b)),
-    [staffList, activeShift, masterList]
+    [staffList, activeShift]
   );
 
   const filtered = (staffList ?? []).filter(s => {
@@ -133,8 +132,7 @@ export default function Jobdesk() {
     const matchSearch = !search || s.name.toLowerCase().includes(search.toLowerCase());
     const notOnCuti = !s.cutiStatus;
     const matchFilter = selectedNames.size === 0 || selectedNames.has(s.name);
-    const matchRole = masterList.length === 0 || masterList.includes(s.jobdesk);
-    return matchShift && matchSearch && notOnCuti && matchFilter && matchRole;
+    return matchShift && matchSearch && notOnCuti && matchFilter;
   });
 
   // Add modal handlers

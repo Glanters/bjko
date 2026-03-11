@@ -104,7 +104,7 @@ export async function registerRoutes(
     try {
       const { name, jobdesk, shift } = req.body;
       if (!name || !jobdesk) return res.status(400).json({ message: "Nama dan jobdesk wajib diisi" });
-      const VALID_SHIFTS = ["PAGI", "SORE", "MALAM"];
+      const VALID_SHIFTS = ["PAGI", "GANTUNG", "SORE", "MALAM"];
       const validatedShift = VALID_SHIFTS.includes(shift) ? shift : "PAGI";
       const input = { name: name.trim(), jabatan: jobdesk.trim(), jobdesk: jobdesk.trim(), shift: validatedShift, role: "agent" };
       const newStaff = await storage.createStaff(input);
@@ -790,7 +790,11 @@ export async function registerRoutes(
   app.post("/api/shift-schedule", async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
     const user = await storage.getUser(req.session.userId);
-    if (!user || user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+    if (user.role !== "admin") {
+      const perm = await getPermForUser(req.session.userId);
+      if (!perm?.canEditJobdesk) return res.status(403).json({ message: "Forbidden" });
+    }
     const { schedule } = req.body;
     if (!schedule || typeof schedule !== "object") return res.status(400).json({ message: "Schedule diperlukan" });
     await storage.setSetting(SHIFT_SCHEDULE_KEY, JSON.stringify(schedule));
@@ -906,7 +910,7 @@ export async function registerRoutes(
       const existing = allStaff.find(s => s.id === staffId);
       if (!existing) return res.status(404).json({ message: "Staff tidak ditemukan" });
       const { name, jabatan, jobdesk, shift } = req.body;
-      const VALID_SHIFTS = ["PAGI", "SORE", "MALAM"];
+      const VALID_SHIFTS = ["PAGI", "GANTUNG", "SORE", "MALAM"];
       const finalName = canChangeName && name ? name.trim() : existing.name;
       if (jabatan !== undefined) {
         const finalJabatan = canChangeJobdesk && jabatan ? jabatan.trim() : existing.jabatan;
