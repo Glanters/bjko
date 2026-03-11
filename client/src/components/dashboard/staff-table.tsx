@@ -1,7 +1,7 @@
 import { useStaff } from "@/hooks/use-staff";
 import { useLeaves, useCreateLeave, useResetStaffLimit } from "@/hooks/use-leaves";
 import { useAuth } from "@/hooks/use-auth";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   Table,
   TableBody,
@@ -37,6 +37,7 @@ export function StaffTable() {
   const [modalOpen, setModalOpen] = useState(false);
   const { mutate: deleteStaff, isPending: isDeletingStaff } = useDeleteStaff();
   const maxLeaves = useMaxLeaves();
+  const isCreatingRef = useRef(false);
 
   if (isStaffLoading || isLeavesLoading) {
     return (
@@ -54,6 +55,7 @@ export function StaffTable() {
   const todaysLeaves = leaves.filter(l => new Date(l.startTime) >= localMidnight);
 
   const handleLeave = (staffId: number, currentLeavesCount: number, staff: Staff) => {
+    if (isCreatingRef.current) return;
     if (currentLeavesCount >= maxLeaves) {
       toast({
         variant: "destructive",
@@ -62,11 +64,16 @@ export function StaffTable() {
       });
       return;
     }
+    isCreatingRef.current = true;
     createLeave(staffId, {
       onSuccess: (newLeave) => {
+        isCreatingRef.current = false;
         setSelectedLeave(newLeave);
         setSelectedStaff(staff);
         setModalOpen(true);
+      },
+      onError: () => {
+        isCreatingRef.current = false;
       },
     });
   };
@@ -134,8 +141,7 @@ export function StaffTable() {
     const leavesCount = staffLeavesToday.length;
     const isLimitReached = leavesCount >= maxLeaves;
     const hasActiveLeave = staffLeavesToday.some(l => !l.clockInTime);
-    // Only truly disabled during pending or limit — for active leave we handle via onClick toast
-    const isButtonDisabled = isPending || isLimitReached;
+    const isButtonDisabled = isPending || isLimitReached || hasActiveLeave;
 
     return (
       <TableRow className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
