@@ -46,6 +46,7 @@ export interface IStorage {
   updateLeaveClockIn(id: number, clockInTime: Date): Promise<Leave>;
   deleteLeave(id: number): Promise<boolean>;
   updateLeave(id: number, clockInTime: Date | null): Promise<Leave>;
+  updateLeavePunishment(id: number, punishment: string | null): Promise<Leave>;
   resetStaffLeavesToday(staffId: number, date: string): Promise<number>;
   getAuditLogs(): Promise<AuditLog[]>;
   createAuditLog(log: InsertAuditLog): Promise<AuditLog>;
@@ -168,6 +169,11 @@ export class DatabaseStorage implements IStorage {
 
   async updateLeave(id: number, clockInTime: Date | null): Promise<Leave> {
     const [leave] = await db.update(leaves).set({ clockInTime }).where(eq(leaves.id, id)).returning();
+    return leave;
+  }
+
+  async updateLeavePunishment(id: number, punishment: string | null): Promise<Leave> {
+    const [leave] = await db.update(leaves).set({ punishment }).where(eq(leaves.id, id)).returning();
     return leave;
   }
 

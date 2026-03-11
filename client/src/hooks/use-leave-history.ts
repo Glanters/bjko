@@ -86,3 +86,40 @@ export function useUpdateLeaveClockIn() {
     },
   });
 }
+
+export function useUpdateLeavePunishment() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ leaveId, punishment }: { leaveId: number; punishment: string | null }) => {
+      const res = await fetch(`/api/leaves/${leaveId}/punishment`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ punishment }),
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Gagal menyimpan hukuman.");
+      }
+
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.leaves.list.path] });
+      toast({
+        title: "Berhasil",
+        description: "Hukuman berhasil disimpan.",
+      });
+    },
+    onError: (err: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Gagal",
+        description: err.message,
+      });
+    },
+  });
+}

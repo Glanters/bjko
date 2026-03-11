@@ -27,6 +27,7 @@ export const leaves = pgTable("leaves", {
   startTime: timestamp("start_time").notNull().defaultNow(),
   clockInTime: timestamp("clock_in_time"),
   date: text("date").notNull(),
+  punishment: text("punishment"),
 });
 
 export const auditLogs = pgTable("audit_logs", {

@@ -16,6 +16,7 @@ Key features:
 - Per-agent permissions for adding, editing, and deleting staff (canAddStaff, canEditJobdesk, canDeleteStaff, canEditName, canEditPassword)
 - Admin and permitted users can Add/Edit/Delete staff directly from Jobdesk page via modal dialogs
 - Staff edit supports full update: name, shift, and jobdesk all editable in one modal
+- Hukuman (punishment) tracking for TERLAMBAT leave entries with inline editing (requires canEditName permission)
 
 ## User Preferences
 

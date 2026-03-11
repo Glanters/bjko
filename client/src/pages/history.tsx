@@ -1,12 +1,14 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Header } from "@/components/layout/header";
-import { useLeaveHistory, useDeleteLeave, useUpdateLeaveClockIn } from "@/hooks/use-leave-history";
+import { useLeaveHistory, useDeleteLeave, useUpdateLeaveClockIn, useUpdateLeavePunishment } from "@/hooks/use-leave-history";
 import { useDeleteAllLeaves } from "@/hooks/use-delete-all-leaves";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { Trash2, Clock } from "lucide-react";
+import { Trash2, Clock, Pencil, Check, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -31,7 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Leave, Staff } from "@shared/schema";
+import type { Leave, Staff, StaffPermission } from "@shared/schema";
 
 export default function History() {
   const { user } = useAuth();
@@ -39,9 +41,24 @@ export default function History() {
   const { mutate: deleteLeave, isPending: isDeletingLeave } = useDeleteLeave();
   const { mutate: updateClockIn } = useUpdateLeaveClockIn();
   const { mutate: deleteAllByDate, isPending: isDeletingAll } = useDeleteAllLeaves();
+  const { mutate: updatePunishment, isPending: isSavingPunishment } = useUpdateLeavePunishment();
   const [staffMap, setStaffMap] = useState<Record<number, Staff>>({});
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("SEMUA");
+  const [editingPunishmentId, setEditingPunishmentId] = useState<number | null>(null);
+  const [editingPunishmentValue, setEditingPunishmentValue] = useState<string>("");
+
+  const { data: myPerm } = useQuery<StaffPermission | null>({
+    queryKey: ["/api/permissions/me"],
+    queryFn: async () => {
+      const res = await fetch("/api/permissions/me", { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    staleTime: 0,
+  });
+
+  const canEditPunishment = user?.role === "admin" || !!myPerm?.canEditName;
 
   useEffect(() => {
     fetch("/api/staff", { credentials: "include" })
@@ -95,6 +112,28 @@ export default function History() {
     if (user.role === "admin") {
       updateClockIn({ leaveId, clockInTime: null });
     }
+  };
+
+  const startEditPunishment = (leave: Leave) => {
+    setEditingPunishmentId(leave.id);
+    setEditingPunishmentValue(leave.punishment ?? "");
+  };
+
+  const cancelEditPunishment = () => {
+    setEditingPunishmentId(null);
+    setEditingPunishmentValue("");
+  };
+
+  const savePunishment = (leaveId: number) => {
+    updatePunishment(
+      { leaveId, punishment: editingPunishmentValue.trim() || null },
+      {
+        onSuccess: () => {
+          setEditingPunishmentId(null);
+          setEditingPunishmentValue("");
+        },
+      }
+    );
   };
 
   const displayDate = selectedDate || (sortedDates.length > 0 ? sortedDates[0] : null);
@@ -249,19 +288,21 @@ export default function History() {
                     <TableHead className="text-muted-foreground">Jam Masuk</TableHead>
                     <TableHead className="text-muted-foreground">Durasi</TableHead>
                     <TableHead className="text-muted-foreground">Status</TableHead>
+                    <TableHead className="text-muted-foreground">Hukuman</TableHead>
                     {user.role === "admin" && <TableHead className="text-muted-foreground text-right">Aksi</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {displayLeaves.map((leave: Leave) => {
-                    const staff = staffMap[leave.staffId];
+                    const staffItem = staffMap[leave.staffId];
                     const status = calculateStatus(leave.startTime, leave.clockInTime);
                     const isLate = status === "TERLAMBAT";
+                    const isEditingThis = editingPunishmentId === leave.id;
 
                     return (
                       <TableRow key={leave.id} className="border-white/5 hover:bg-white/5">
                         <TableCell className="font-medium">
-                          {staff?.name || `Staff #${leave.staffId}`}
+                          {staffItem?.name || `Staff #${leave.staffId}`}
                         </TableCell>
                         <TableCell className="text-sm">
                           {format(new Date(leave.startTime), "HH:mm:ss")}
@@ -285,6 +326,65 @@ export default function History() {
                           >
                             {status}
                           </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm min-w-[180px]">
+                          {!isLate ? (
+                            <span className="text-muted-foreground">–</span>
+                          ) : isEditingThis ? (
+                            <div className="flex items-center gap-1">
+                              <Input
+                                value={editingPunishmentValue}
+                                onChange={e => setEditingPunishmentValue(e.target.value)}
+                                onKeyDown={e => {
+                                  if (e.key === "Enter") savePunishment(leave.id);
+                                  if (e.key === "Escape") cancelEditPunishment();
+                                }}
+                                className="h-7 text-xs px-2 w-36"
+                                placeholder="Tulis hukuman..."
+                                autoFocus
+                                data-testid={`input-punishment-${leave.id}`}
+                              />
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0 text-green-400 hover:text-green-300"
+                                onClick={() => savePunishment(leave.id)}
+                                disabled={isSavingPunishment}
+                                data-testid={`button-save-punishment-${leave.id}`}
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0 text-red-400 hover:text-red-300"
+                                onClick={cancelEditPunishment}
+                                data-testid={`button-cancel-punishment-${leave.id}`}
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 group">
+                              <span
+                                className={leave.punishment ? "text-orange-400 font-medium" : "text-muted-foreground italic"}
+                                data-testid={`text-punishment-${leave.id}`}
+                              >
+                                {leave.punishment || "Belum diisi"}
+                              </span>
+                              {canEditPunishment && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                                  onClick={() => startEditPunishment(leave)}
+                                  data-testid={`button-edit-punishment-${leave.id}`}
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                </Button>
+                              )}
+                            </div>
+                          )}
                         </TableCell>
                         {user.role === "admin" && (
                           <TableCell className="text-right">

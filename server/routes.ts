@@ -290,6 +290,25 @@ export async function registerRoutes(
     }
   });
 
+  // PATCH /api/leaves/:id/punishment - Set punishment for a late leave record
+  app.patch("/api/leaves/:id/punishment", async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
+    const user = await storage.getUser(req.session.userId);
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+    if (user.role !== "admin") {
+      const perm = await getPermForUser(req.session.userId);
+      if (!perm?.canEditName) return res.status(403).json({ message: "Forbidden: Tidak ada izin edit hukuman" });
+    }
+    try {
+      const leaveId = parseInt(req.params.id);
+      const { punishment } = req.body;
+      const updated = await storage.updateLeavePunishment(leaveId, punishment ?? null);
+      if (!updated) return res.status(404).json({ message: "Izin tidak ditemukan" });
+      await logAudit(req.session.userId, "UPDATE_LEAVE_PUNISHMENT", `Hukuman izin #${leaveId}: ${punishment ?? "dihapus"}`);
+      res.json(updated);
+    } catch { res.status(500).json({ message: "Internal server error" }); }
+  });
+
   app.post("/api/leaves/delete-by-date", async (req, res) => {
     if (!req.session.userId) {
       return res.status(401).json({ message: "Unauthorized" });
