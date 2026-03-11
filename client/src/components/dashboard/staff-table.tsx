@@ -89,8 +89,11 @@ export function StaffTable() {
   // Define custom jobdesk order
   const jobdeskOrder = ["CS LINE", "CS", "KAPTEN", "KASIR"];
   
+  // Exclude staff that are on cuti — they only appear on the Staff Cuti page
+  const activeStaffList = staffList.filter(s => !s.cutiStatus);
+
   // Group staff by jobdesk
-  const groupedByJobdesk = staffList.reduce((acc, staff) => {
+  const groupedByJobdesk = activeStaffList.reduce((acc, staff) => {
     if (!acc[staff.jobdesk]) {
       acc[staff.jobdesk] = [];
     }
@@ -100,10 +103,10 @@ export function StaffTable() {
 
   // Filter staff by search query
   const filteredStaffList = searchQuery.trim()
-    ? staffList.filter(staff =>
+    ? activeStaffList.filter(staff =>
         staff.name.toLowerCase().includes(searchQuery.toLowerCase())
       )
-    : staffList;
+    : activeStaffList;
 
   // Regroup by jobdesk after filtering
   const filteredGroupedByJobdesk = filteredStaffList.reduce((acc, staff) => {
@@ -259,7 +262,7 @@ export function StaffTable() {
 
       <Card className="glass-panel border-0 overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
-          {staffList.length === 0 ? (
+          {activeStaffList.length === 0 ? (
             <div className="flex items-center justify-center py-12">
               <Briefcase className="w-12 h-12 mx-auto mb-3 opacity-20" />
               <p className="text-muted-foreground">Belum ada data staff.</p>

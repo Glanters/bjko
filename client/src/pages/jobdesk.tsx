@@ -97,7 +97,8 @@ export default function Jobdesk() {
   const filtered = (staffList ?? []).filter(s => {
     const matchShift = s.shift === activeShift;
     const matchSearch = !search || s.name.toLowerCase().includes(search.toLowerCase());
-    return matchShift && matchSearch;
+    const notOnCuti = !s.cutiStatus;
+    return matchShift && matchSearch && notOnCuti;
   });
 
   // Add modal handlers

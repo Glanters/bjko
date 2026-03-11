@@ -198,9 +198,10 @@ export default function ShiftKerja() {
       const matchSearch = !search.trim() ||
         s.name.toLowerCase().includes(search.toLowerCase()) ||
         s.jobdesk.toLowerCase().includes(search.toLowerCase());
-      return matchShift && matchSearch;
+      const notOnCuti = !s.cutiStatus;
+      return matchShift && matchSearch && notOnCuti;
     }),
-    total: (staffList ?? []).filter(s => s.shift === shift.key).length,
+    total: (staffList ?? []).filter(s => s.shift === shift.key && !s.cutiStatus).length,
     schedule: sch[shift.key],
   }));
 
