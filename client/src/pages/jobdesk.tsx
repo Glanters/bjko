@@ -1,7 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useStaff, useCreateStaff, useUpdateStaff, useDeleteStaff } from "@/hooks/use-staff";
-import { useUniqueJobdesks } from "@/hooks/use-unique-jobdesks";
 import { useJobdeskMasterList, useAddJobdeskToMaster, useDeleteJobdeskFromMaster } from "@/hooks/use-jobdesk-list";
 import { useAuth } from "@/hooks/use-auth";
 import { Header } from "@/components/layout/header";
@@ -40,7 +39,6 @@ const SHIFT_TEXT_COLOR: Record<Shift, string> = {
 export default function Jobdesk() {
   const { user } = useAuth();
   const { data: staffList } = useStaff();
-  const { jobdesks: staffJobdesks } = useUniqueJobdesks();
   const { mutate: updateStaff, isPending: isSaving } = useUpdateStaff();
   const { mutate: createStaff, isPending: isCreating } = useCreateStaff();
   const { mutate: deleteStaff, isPending: isDeleting } = useDeleteStaff();
@@ -112,18 +110,22 @@ export default function Jobdesk() {
   const masterList = masterData?.jobdesks ?? [];
 
   const allJobdesks = useMemo(
-    () => Array.from(new Set([...masterList, ...staffJobdesks])).filter(Boolean).sort(),
-    [masterList, staffJobdesks]
+    () => [...masterList].filter(Boolean).sort(),
+    [masterList]
   );
 
-  // All non-cuti staff names for the current shift (used to populate filter dropdown)
+  // All non-cuti staff names for the current shift that have a role in master list
   const allNamesForShift = useMemo(
     () =>
       (staffList ?? [])
-        .filter(s => s.shift === activeShift && !s.cutiStatus)
+        .filter(s =>
+          s.shift === activeShift &&
+          !s.cutiStatus &&
+          (masterList.length === 0 || masterList.includes(s.jobdesk))
+        )
         .map(s => s.name)
         .sort((a, b) => a.localeCompare(b)),
-    [staffList, activeShift]
+    [staffList, activeShift, masterList]
   );
 
   const filtered = (staffList ?? []).filter(s => {
@@ -131,7 +133,8 @@ export default function Jobdesk() {
     const matchSearch = !search || s.name.toLowerCase().includes(search.toLowerCase());
     const notOnCuti = !s.cutiStatus;
     const matchFilter = selectedNames.size === 0 || selectedNames.has(s.name);
-    return matchShift && matchSearch && notOnCuti && matchFilter;
+    const matchRole = masterList.length === 0 || masterList.includes(s.jobdesk);
+    return matchShift && matchSearch && notOnCuti && matchFilter && matchRole;
   });
 
   // Add modal handlers
@@ -227,7 +230,7 @@ export default function Jobdesk() {
                     data-testid="button-manage-jobdesks"
                   >
                     <Settings2 className="w-3.5 h-3.5 mr-1.5" />
-                    Kelola Jobdesk
+                    Kelola Role
                     {showManage ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />}
                   </Button>
                 )}
@@ -241,11 +244,11 @@ export default function Jobdesk() {
             <div className="mx-6 mt-4 p-4 rounded-2xl border border-primary/20 bg-primary/5">
               <div className="flex items-center gap-2 mb-3">
                 <Settings2 className="w-4 h-4 text-primary" />
-                <span className="text-sm font-bold text-primary uppercase tracking-wider">Daftar Master Jobdesk</span>
-                <span className="text-xs text-muted-foreground ml-1">— klik X untuk hapus dari daftar</span>
+                <span className="text-sm font-bold text-primary uppercase tracking-wider">Daftar Role</span>
+                <span className="text-xs text-muted-foreground ml-1">— klik X untuk hapus role dari tampilan</span>
               </div>
               {allJobdesks.length === 0 ? (
-                <p className="text-xs text-muted-foreground">Belum ada jobdesk terdaftar.</p>
+                <p className="text-xs text-muted-foreground">Belum ada role terdaftar.</p>
               ) : (
                 <div className="flex flex-wrap gap-2">
                   {allJobdesks.map(j => (
@@ -288,7 +291,7 @@ export default function Jobdesk() {
                 </div>
               )}
               <p className="text-[11px] text-muted-foreground/60 mt-3">
-                Jobdesk yang dihapus dari daftar tidak lagi muncul sebagai pilihan, namun tidak mengubah data staff yang sudah terlanjur di-assign.
+                Role yang dihapus dari daftar tidak akan ditampilkan di tabel jobdesk, namun data staff tidak berubah.
               </p>
             </div>
           )}
