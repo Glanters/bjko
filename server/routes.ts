@@ -11,6 +11,14 @@ declare module 'express-session' {
   }
 }
 
+/** Returns current date string (YYYY-MM-DD) in WIB timezone (UTC+7) */
+function getWIBDate(offsetDays = 0): string {
+  const now = new Date();
+  const wib = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+  if (offsetDays !== 0) wib.setUTCDate(wib.getUTCDate() + offsetDays);
+  return wib.toISOString().split('T')[0];
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -150,7 +158,7 @@ export async function registerRoutes(
         }
       }
       
-      const today = new Date().toISOString().split('T')[0];
+      const today = getWIBDate();
       const leaves = await storage.getLeaves();
       const staffLeavesToday = leaves.filter(l => l.staffId === input.staffId && l.date === today);
 
@@ -267,7 +275,7 @@ export async function registerRoutes(
     }
     try {
       const staffId = parseInt(req.params.staffId);
-      const today = new Date().toISOString().split('T')[0];
+      const today = getWIBDate();
       const deleted = await storage.resetStaffLeavesToday(staffId, today);
       await storage.createAuditLog({
         action: "RESET_LEAVE_LIMIT",
@@ -1001,7 +1009,7 @@ export async function registerRoutes(
     try {
       const allLeaves = await storage.getLeaves();
       const allStaff = await storage.getStaff();
-      const today = new Date().toISOString().split('T')[0];
+      const today = getWIBDate();
 
       // Today's leaves
       const todayLeaves = allLeaves.filter(l => l.date === today);
@@ -1009,9 +1017,7 @@ export async function registerRoutes(
       // Last 7 days trend
       const last7Days: { date: string; count: number }[] = [];
       for (let i = 6; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        const dateStr = d.toISOString().split('T')[0];
+        const dateStr = getWIBDate(-i);
         last7Days.push({ date: dateStr, count: allLeaves.filter(l => l.date === dateStr).length });
       }
 
@@ -1087,7 +1093,7 @@ export async function registerRoutes(
     }
   });
 
-  function today() { return new Date().toISOString().split('T')[0]; }
+  function today() { return getWIBDate(); }
 
   // POST /api/restore - Restore staff and leaves from backup
   app.post("/api/restore", async (req, res) => {
