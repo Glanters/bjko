@@ -154,8 +154,10 @@ export async function registerRoutes(
       const leaves = await storage.getLeaves();
       const staffLeavesToday = leaves.filter(l => l.staffId === input.staffId && l.date === today);
 
-      if (staffLeavesToday.length >= 4) {
-        return res.status(400).json({ message: "Maksimal izin 4x hari ini" });
+      const maxLeavesStr = await storage.getSetting("max_leaves_per_day");
+      const maxLeavesPerDay = parseInt(maxLeavesStr || "4");
+      if (staffLeavesToday.length >= maxLeavesPerDay) {
+        return res.status(400).json({ message: `Maksimal izin ${maxLeavesPerDay}x hari ini` });
       }
 
       // Block if staff already has an active leave that hasn't been clocked in

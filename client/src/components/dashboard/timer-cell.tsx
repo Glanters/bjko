@@ -25,10 +25,9 @@ export function TimerCell({ leaves, staffId, canClockIn = false }: TimerCellProp
     return () => clearInterval(interval);
   }, []);
 
-  // Filter for today's leaves using local midnight to avoid UTC/local timezone mismatch
-  const localMidnight = new Date();
-  localMidnight.setHours(0, 0, 0, 0);
-  const todaysLeaves = leaves.filter(l => new Date(l.startTime) >= localMidnight);
+  // Use UTC date string to match what the server stores in l.date
+  const todayUtc = new Date().toISOString().split('T')[0];
+  const todaysLeaves = leaves.filter(l => l.date === todayUtc);
 
   if (todaysLeaves.length === 0) {
     return <span className="text-muted-foreground">-</span>;

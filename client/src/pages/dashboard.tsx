@@ -40,11 +40,10 @@ function StatsCards() {
   const totalStaff = staffList?.length ?? 0;
   const agentCount = staffList?.filter(s => s.role === "agent").length ?? 0;
 
-  const localMidnight = new Date();
-  localMidnight.setHours(0, 0, 0, 0);
+  const todayUtc = new Date().toISOString().split('T')[0];
 
   const sedangCuti = leaves?.filter(l =>
-    !l.clockInTime && new Date(l.startTime) >= localMidnight
+    !l.clockInTime && l.date === todayUtc
   ).length ?? 0;
 
   return (
