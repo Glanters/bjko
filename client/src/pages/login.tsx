@@ -4,7 +4,7 @@ import { z } from "zod";
 import { api } from "@shared/routes";
 import { useAuth } from "@/hooks/use-auth";
 import { KeyRound, User, Lock } from "lucide-react";
-import bosjokoLogo from "@assets/image_1773044190239.png";
+import bosjokoLogo from "@assets/image_1773206448155.png";
 import {
   Form,
   FormControl,
