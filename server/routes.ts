@@ -739,9 +739,9 @@ export async function registerRoutes(
     const perm = await getPermForUser(req.session.userId!);
     if (user.role !== "admin" && !perm?.canEditJobdesk) return res.status(403).json({ message: "Forbidden" });
     const { staffIds, shift } = req.body;
-    const VALID_SHIFTS = ["PAGI", "SORE", "MALAM"];
+    const VALID_SHIFTS = ["PAGI", "GANTUNG", "SORE", "MALAM"];
     if (!Array.isArray(staffIds) || !VALID_SHIFTS.includes(shift)) {
-      return res.status(400).json({ message: "staffIds (array) dan shift (PAGI/SORE/MALAM) diperlukan" });
+      return res.status(400).json({ message: "staffIds (array) dan shift (PAGI/GANTUNG/SORE/MALAM) diperlukan" });
     }
     try {
       const allStaff = await storage.getStaff();
@@ -762,15 +762,19 @@ export async function registerRoutes(
   // --- Shift Schedule ---
   const SHIFT_SCHEDULE_KEY = "shift_schedule";
   const DEFAULT_SHIFT_SCHEDULE = {
-    PAGI: { start: "08:00", end: "16:00" },
-    SORE: { start: "16:00", end: "00:00" },
-    MALAM: { start: "00:00", end: "08:00" },
+    PAGI:    { start: "08:00", end: "16:00" },
+    GANTUNG: { start: "00:00", end: "00:00" },
+    SORE:    { start: "16:00", end: "00:00" },
+    MALAM:   { start: "00:00", end: "08:00" },
   };
 
   app.get("/api/shift-schedule", async (req, res) => {
     const val = await storage.getSetting(SHIFT_SCHEDULE_KEY);
     if (!val) return res.json(DEFAULT_SHIFT_SCHEDULE);
-    try { return res.json(JSON.parse(val)); } catch { return res.json(DEFAULT_SHIFT_SCHEDULE); }
+    try {
+      const saved = JSON.parse(val);
+      return res.json({ ...DEFAULT_SHIFT_SCHEDULE, ...saved });
+    } catch { return res.json(DEFAULT_SHIFT_SCHEDULE); }
   });
 
   app.post("/api/shift-schedule", async (req, res) => {

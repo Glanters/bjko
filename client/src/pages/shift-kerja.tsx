@@ -17,7 +17,7 @@ import {
 import {
   Sun, Sunset, Moon, Search, Settings2, Clock,
   LogIn, LogOut, ChevronDown, ChevronUp, Save,
-  Users, X, CheckSquare, ArrowRightLeft,
+  Users, X, CheckSquare, ArrowRightLeft, Shuffle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
@@ -25,13 +25,14 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { api } from "@shared/routes";
 
-type ShiftKey = "PAGI" | "SORE" | "MALAM";
+type ShiftKey = "PAGI" | "GANTUNG" | "SORE" | "MALAM";
 type ShiftSchedule = Record<ShiftKey, { start: string; end: string }>;
 
 const DEFAULT_SCHEDULE: ShiftSchedule = {
-  PAGI: { start: "08:00", end: "16:00" },
-  SORE: { start: "16:00", end: "00:00" },
-  MALAM: { start: "00:00", end: "08:00" },
+  PAGI:    { start: "08:00", end: "16:00" },
+  GANTUNG: { start: "00:00", end: "00:00" },
+  SORE:    { start: "16:00", end: "00:00" },
+  MALAM:   { start: "00:00", end: "08:00" },
 };
 
 const SHIFTS = [
@@ -46,6 +47,18 @@ const SHIFTS = [
     header: "text-amber-400",
     row: "hover:bg-amber-500/5",
     selectedRow: "bg-amber-500/10",
+  },
+  {
+    key: "GANTUNG" as ShiftKey,
+    label: "Shift Gantung",
+    icon: Shuffle,
+    gradient: "from-violet-500/20 via-violet-400/10 to-transparent",
+    border: "border-violet-500/30",
+    badge: "bg-violet-500/20 text-violet-400 border-violet-500/30",
+    dot: "bg-violet-400",
+    header: "text-violet-400",
+    row: "hover:bg-violet-500/5",
+    selectedRow: "bg-violet-500/10",
   },
   {
     key: "SORE" as ShiftKey,
@@ -74,12 +87,14 @@ const SHIFTS = [
 ];
 
 const SHIFT_COLORS: Record<ShiftKey, { text: string; bg: string; border: string }> = {
-  PAGI:  { text: "text-amber-400",  bg: "bg-amber-500/20",  border: "border-amber-500/40" },
-  SORE:  { text: "text-orange-400", bg: "bg-orange-500/20", border: "border-orange-500/40" },
-  MALAM: { text: "text-blue-400",   bg: "bg-blue-500/20",   border: "border-blue-500/40" },
+  PAGI:    { text: "text-amber-400",  bg: "bg-amber-500/20",  border: "border-amber-500/40" },
+  GANTUNG: { text: "text-violet-400", bg: "bg-violet-500/20", border: "border-violet-500/40" },
+  SORE:    { text: "text-orange-400", bg: "bg-orange-500/20", border: "border-orange-500/40" },
+  MALAM:   { text: "text-blue-400",   bg: "bg-blue-500/20",   border: "border-blue-500/40" },
 };
 
 function calcJamKerja(start: string, end: string): string {
+  if (start === end) return "Fleksibel";
   const [sh, sm] = start.split(":").map(Number);
   const [eh, em] = end.split(":").map(Number);
   let startMins = sh * 60 + sm;
@@ -280,7 +295,7 @@ export default function ShiftKerja() {
                   {isSaving ? "Menyimpan..." : "Simpan"}
                 </Button>
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-4 gap-4">
                 {SHIFTS.map(shift => (
                   <div key={shift.key} className={`rounded-xl border ${shift.border} p-4 space-y-3`} data-testid={`setting-shift-${shift.key.toLowerCase()}`}>
                     <div className="flex items-center gap-2">
@@ -357,7 +372,7 @@ export default function ShiftKerja() {
             </div>
 
             {/* Summary cards */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-4 gap-4">
               {grouped.map(shift => (
                 <div
                   key={shift.key}
@@ -500,6 +515,7 @@ export default function ShiftKerja() {
                                     </SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="PAGI" className="text-xs font-bold text-amber-400">PAGI</SelectItem>
+                                      <SelectItem value="GANTUNG" className="text-xs font-bold text-violet-400">GANTUNG</SelectItem>
                                       <SelectItem value="SORE" className="text-xs font-bold text-orange-400">SORE</SelectItem>
                                       <SelectItem value="MALAM" className="text-xs font-bold text-blue-400">MALAM</SelectItem>
                                     </SelectContent>
@@ -572,6 +588,7 @@ export default function ShiftKerja() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="PAGI" className="text-sm font-bold text-amber-400">☀️ PAGI</SelectItem>
+              <SelectItem value="GANTUNG" className="text-sm font-bold text-violet-400">🔀 GANTUNG</SelectItem>
               <SelectItem value="SORE" className="text-sm font-bold text-orange-400">🌅 SORE</SelectItem>
               <SelectItem value="MALAM" className="text-sm font-bold text-blue-400">🌙 MALAM</SelectItem>
             </SelectContent>
