@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,8 +13,6 @@ import { Pencil } from "lucide-react";
 import { useEditStaff } from "@/hooks/use-edit-staff";
 import type { Staff } from "@shared/schema";
 
-const JOBDESK_OPTIONS = ["CS LINE", "CS", "KAPTEN", "KASIR"];
-
 interface EditStaffDialogProps {
   staff: Staff;
 }
@@ -21,18 +20,23 @@ interface EditStaffDialogProps {
 export function EditStaffDialog({ staff }: EditStaffDialogProps) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(staff.name);
-  const [jobdesk, setJobdesk] = useState(staff.jobdesk);
+  const [jabatan, setJabatan] = useState(staff.jabatan || staff.jobdesk);
   const { mutate: editStaff, isPending } = useEditStaff();
+
+  const { data: masterListData } = useQuery<{ jobdesks: string[] }>({
+    queryKey: ["/api/jobdeskList"],
+  });
+  const jabatanOptions = masterListData?.jobdesks ?? [];
 
   const handleOpen = () => {
     setName(staff.name);
-    setJobdesk(staff.jobdesk);
+    setJabatan(staff.jabatan || staff.jobdesk);
     setOpen(true);
   };
 
   const handleSave = () => {
-    if (!name.trim() || !jobdesk) return;
-    editStaff({ id: staff.id, name: name.trim(), jobdesk }, {
+    if (!name.trim() || !jabatan) return;
+    editStaff({ id: staff.id, name: name.trim(), jabatan }, {
       onSuccess: () => setOpen(false),
     });
   };
@@ -53,7 +57,7 @@ export function EditStaffDialog({ staff }: EditStaffDialogProps) {
       <DialogContent className="sm:max-w-[400px] glass-panel border-white/10">
         <DialogHeader>
           <DialogTitle>Edit Data Staff</DialogTitle>
-          <DialogDescription>Ubah nama atau jobdesk staff ini</DialogDescription>
+          <DialogDescription>Ubah nama atau jabatan staff ini</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">
@@ -67,22 +71,25 @@ export function EditStaffDialog({ staff }: EditStaffDialogProps) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="edit-jobdesk">Jobdesk</Label>
-            <Select value={jobdesk} onValueChange={setJobdesk}>
-              <SelectTrigger data-testid="select-edit-jobdesk">
-                <SelectValue placeholder="Pilih jobdesk" />
+            <Label htmlFor="edit-jabatan">Jabatan</Label>
+            <Select value={jabatan} onValueChange={setJabatan}>
+              <SelectTrigger data-testid="select-edit-jabatan">
+                <SelectValue placeholder="Pilih jabatan" />
               </SelectTrigger>
               <SelectContent>
-                {JOBDESK_OPTIONS.map(j => (
+                {jabatanOptions.map(j => (
                   <SelectItem key={j} value={j}>{j}</SelectItem>
                 ))}
+                {jabatan && !jabatanOptions.includes(jabatan) && (
+                  <SelectItem key={jabatan} value={jabatan}>{jabatan}</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
         </div>
         <div className="flex gap-2 justify-end">
           <Button variant="outline" onClick={() => setOpen(false)}>Batal</Button>
-          <Button onClick={handleSave} disabled={isPending || !name.trim() || !jobdesk} data-testid="button-save-edit-staff">
+          <Button onClick={handleSave} disabled={isPending || !name.trim() || !jabatan} data-testid="button-save-edit-staff">
             {isPending ? "Menyimpan..." : "Simpan"}
           </Button>
         </div>

@@ -5,8 +5,8 @@ import { useToast } from "@/hooks/use-toast";
 export function useEditStaff() {
   const { toast } = useToast();
   return useMutation({
-    mutationFn: ({ id, name, jobdesk }: { id: number; name: string; jobdesk: string }) =>
-      apiRequest("PATCH", `/api/staff/${id}`, { name, jobdesk }).then(r => r.json()),
+    mutationFn: ({ id, name, jabatan }: { id: number; name: string; jabatan: string }) =>
+      apiRequest("PATCH", `/api/staff/${id}`, { name, jabatan }).then(r => r.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/staff"] });
       toast({ title: "Berhasil", description: "Data staff berhasil diperbarui" });

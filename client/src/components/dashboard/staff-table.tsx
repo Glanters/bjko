@@ -91,12 +91,13 @@ export function StaffTable() {
   // Exclude staff that are on cuti — they only appear on the Staff Cuti page
   const activeStaffList = staffList.filter(s => !s.cutiStatus);
 
-  // Group staff by jobdesk
+  // Group staff by jabatan (permanent position, independent from jobdesk)
   const groupedByJobdesk = activeStaffList.reduce((acc, staff) => {
-    if (!acc[staff.jobdesk]) {
-      acc[staff.jobdesk] = [];
+    const key = staff.jabatan || staff.jobdesk;
+    if (!acc[key]) {
+      acc[key] = [];
     }
-    acc[staff.jobdesk].push(staff);
+    acc[key].push(staff);
     return acc;
   }, {} as Record<string, Staff[]>);
 
@@ -107,12 +108,13 @@ export function StaffTable() {
       )
     : activeStaffList;
 
-  // Regroup by jobdesk after filtering
+  // Regroup by jabatan after filtering
   const filteredGroupedByJobdesk = filteredStaffList.reduce((acc, staff) => {
-    if (!acc[staff.jobdesk]) {
-      acc[staff.jobdesk] = [];
+    const key = staff.jabatan || staff.jobdesk;
+    if (!acc[key]) {
+      acc[key] = [];
     }
-    acc[staff.jobdesk].push(staff);
+    acc[key].push(staff);
     return acc;
   }, {} as Record<string, Staff[]>);
 
@@ -156,7 +158,7 @@ export function StaffTable() {
         </TableCell>
         <TableCell>
           <Badge variant="outline" className="bg-background/50 border-white/10 text-muted-foreground font-normal">
-            {staff.jobdesk}
+            {staff.jabatan || staff.jobdesk}
           </Badge>
         </TableCell>
         <TableCell className="text-center">

@@ -14,6 +14,7 @@ export const users = pgTable("users", {
 export const staff = pgTable("staff", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  jabatan: text("jabatan").notNull().default(""),
   jobdesk: text("jobdesk").notNull(),
   role: text("role").notNull(),
   shift: text("shift").notNull().default("PAGI"),

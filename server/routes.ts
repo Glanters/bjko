@@ -106,7 +106,7 @@ export async function registerRoutes(
       if (!name || !jobdesk) return res.status(400).json({ message: "Nama dan jobdesk wajib diisi" });
       const VALID_SHIFTS = ["PAGI", "SORE", "MALAM"];
       const validatedShift = VALID_SHIFTS.includes(shift) ? shift : "PAGI";
-      const input = { name: name.trim(), jobdesk: jobdesk.trim(), shift: validatedShift, role: "agent" };
+      const input = { name: name.trim(), jabatan: jobdesk.trim(), jobdesk: jobdesk.trim(), shift: validatedShift, role: "agent" };
       const newStaff = await storage.createStaff(input);
       
       // Automatically create user account with staff name as username
@@ -902,9 +902,15 @@ export async function registerRoutes(
       const allStaff = await storage.getStaff();
       const existing = allStaff.find(s => s.id === staffId);
       if (!existing) return res.status(404).json({ message: "Staff tidak ditemukan" });
-      const { name, jobdesk, shift } = req.body;
+      const { name, jabatan, jobdesk, shift } = req.body;
       const VALID_SHIFTS = ["PAGI", "SORE", "MALAM"];
       const finalName = canChangeName && name ? name.trim() : existing.name;
+      if (jabatan !== undefined) {
+        const finalJabatan = canChangeJobdesk && jabatan ? jabatan.trim() : existing.jabatan;
+        const updated = await storage.updateStaffJabatan(staffId, finalName, finalJabatan);
+        await logAudit(req.session.userId, "UPDATE_STAFF", `Staff #${staffId} diupdate jabatan: ${finalName} / ${finalJabatan}`);
+        return res.json(updated);
+      }
       const finalJobdesk = canChangeJobdesk && jobdesk ? jobdesk.trim() : existing.jobdesk;
       const finalShift = canChangeJobdesk && shift ? (VALID_SHIFTS.includes(shift) ? shift : existing.shift) : existing.shift;
       const updated = await storage.updateStaffFull(staffId, finalName, finalJobdesk, finalShift);
