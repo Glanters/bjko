@@ -731,6 +731,31 @@ export async function registerRoutes(
     } catch { res.status(500).json({ message: "Internal server error" }); }
   });
 
+  // --- Shift Schedule ---
+  const SHIFT_SCHEDULE_KEY = "shift_schedule";
+  const DEFAULT_SHIFT_SCHEDULE = {
+    PAGI: { start: "08:00", end: "16:00" },
+    SORE: { start: "16:00", end: "00:00" },
+    MALAM: { start: "00:00", end: "08:00" },
+  };
+
+  app.get("/api/shift-schedule", async (req, res) => {
+    const val = await storage.getSetting(SHIFT_SCHEDULE_KEY);
+    if (!val) return res.json(DEFAULT_SHIFT_SCHEDULE);
+    try { return res.json(JSON.parse(val)); } catch { return res.json(DEFAULT_SHIFT_SCHEDULE); }
+  });
+
+  app.post("/api/shift-schedule", async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
+    const user = await storage.getUser(req.session.userId);
+    if (!user || user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
+    const { schedule } = req.body;
+    if (!schedule || typeof schedule !== "object") return res.status(400).json({ message: "Schedule diperlukan" });
+    await storage.setSetting(SHIFT_SCHEDULE_KEY, JSON.stringify(schedule));
+    await logAudit(req.session.userId, "UPDATE_SHIFT_SCHEDULE", "Jadwal shift diperbarui");
+    res.json(schedule);
+  });
+
   // --- Jobdesk Master List ---
   const JOBDESK_LIST_KEY = "jobdesk_master_list";
 
