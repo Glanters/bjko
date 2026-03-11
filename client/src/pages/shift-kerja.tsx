@@ -185,7 +185,7 @@ export default function ShiftKerja() {
   const allowedShiftOptions: ShiftKey[] = isAdmin
     ? ALL_SHIFTS
     : myPerm?.allowedShifts
-      ? (myPerm.allowedShifts.split(",").filter(s => ALL_SHIFTS.includes(s as ShiftKey)) as ShiftKey[])
+      ? (myPerm.allowedShifts.split(",").map(s => s.trim()).filter(s => ALL_SHIFTS.includes(s as ShiftKey)) as ShiftKey[])
       : ALL_SHIFTS;
 
   const today = format(new Date(), "EEEE, dd MMM yyyy", { locale: localeId });

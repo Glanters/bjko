@@ -49,9 +49,8 @@ export function StaffTable() {
 
   if (!staffList || !leaves) return null;
 
-  // Use the server's UTC date string (stored in l.date) so client and server always agree on "today"
-  const todayUtc = new Date().toISOString().split('T')[0];
-  const todaysLeaves = leaves.filter(l => l.date === todayUtc);
+  const todayWib = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const todaysLeaves = leaves.filter(l => l.date === todayWib);
 
   const handleLeave = (staffId: number, currentLeavesCount: number, staff: Staff) => {
     if (isCreatingRef.current) return;

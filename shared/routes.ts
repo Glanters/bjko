@@ -200,7 +200,7 @@ export const api = {
       input: z.object({
         name: z.string().min(1),
         jobdesk: z.string().min(1),
-        shift: z.enum(["PAGI", "SORE", "MALAM"]).optional().default("PAGI"),
+        shift: z.enum(["PAGI", "GANTUNG", "SORE", "MALAM"]).optional().default("PAGI"),
       }),
       responses: {
         201: z.custom<typeof staff.$inferSelect>(),

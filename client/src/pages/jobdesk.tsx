@@ -106,7 +106,7 @@ export default function Jobdesk() {
   const allowedShiftOptions: Shift[] = isAdmin
     ? [...SHIFTS]
     : myPerm?.allowedShifts
-      ? (myPerm.allowedShifts.split(",").filter(s => (SHIFTS as readonly string[]).includes(s)) as Shift[])
+      ? (myPerm.allowedShifts.split(",").map(s => s.trim()).filter(s => (SHIFTS as readonly string[]).includes(s)) as Shift[])
       : [...SHIFTS];
 
   const masterList = masterData?.jobdesks ?? [];
@@ -448,7 +448,7 @@ export default function Jobdesk() {
               {/* Rows */}
               {filtered.length === 0 ? (
                 <div className="px-6 py-12 text-center text-muted-foreground text-sm">
-                  {search ? "Tidak ada staff yang cocok" : `Belum ada staff untuk shift ${activeShift}`}
+                  {(search || selectedNames.size > 0) ? "Tidak ada staff yang cocok dengan filter" : `Belum ada staff untuk shift ${activeShift}`}
                 </div>
               ) : (
                 filtered.map((s, i) => (
