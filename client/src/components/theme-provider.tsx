@@ -119,6 +119,16 @@ function hsl(h: number, s: number, l: number) {
   return `${Math.round(h)} ${Math.round(clamp(s, 0, 100))}% ${Math.round(clamp(l, 0, 100))}%`;
 }
 
+const THEME_CSS_VARS_KEY = "theme_css_vars";
+
+const ALL_CUSTOM_VARS = [
+  "--background","--foreground","--card","--card-foreground","--popover","--popover-foreground",
+  "--secondary","--secondary-foreground","--muted","--muted-foreground",
+  "--border","--input","--ring","--sidebar-background","--sidebar-foreground","--sidebar-border",
+  "--primary","--primary-foreground","--accent","--accent-foreground",
+  "--sidebar-primary","--sidebar-primary-foreground","--sidebar-accent","--sidebar-accent-foreground",
+];
+
 export function applyCustomColors(bg: string | null | undefined, primary: string | null | undefined) {
   const root = document.documentElement;
 
@@ -176,6 +186,18 @@ export function applyCustomColors(bg: string | null | undefined, primary: string
       "--sidebar-primary","--sidebar-primary-foreground","--sidebar-accent","--sidebar-accent-foreground"
     ];
     vars2.forEach(v => root.style.removeProperty(v));
+  }
+
+  // Cache computed CSS vars to localStorage so the inline script can apply them on next load (no FOUC)
+  if ((bg && bg.trim()) || (primary && primary.trim())) {
+    const cached: Record<string, string> = {};
+    ALL_CUSTOM_VARS.forEach(v => {
+      const val = root.style.getPropertyValue(v);
+      if (val) cached[v] = val;
+    });
+    try { localStorage.setItem(THEME_CSS_VARS_KEY, JSON.stringify(cached)); } catch (_) {}
+  } else {
+    try { localStorage.removeItem(THEME_CSS_VARS_KEY); } catch (_) {}
   }
 }
 
