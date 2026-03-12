@@ -19,6 +19,8 @@ export const staff = pgTable("staff", {
   role: text("role").notNull(),
   shift: text("shift").notNull().default("PAGI"),
   cutiStatus: text("cuti_status"),
+  customStart: text("custom_start"),
+  customEnd: text("custom_end"),
 });
 
 export const leaves = pgTable("leaves", {

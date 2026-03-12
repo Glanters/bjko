@@ -985,6 +985,24 @@ export async function registerRoutes(
     }
   });
 
+  // PATCH /api/staff/:id/custom-hours — set per-staff custom start/end time (admin or canEditJobdesk)
+  app.patch("/api/staff/:id/custom-hours", async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
+    const user = await storage.getUser(req.session.userId);
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+    const perm = await getPermForUser(req.session.userId);
+    if (user.role !== "admin" && !perm?.canEditJobdesk) return res.status(403).json({ message: "Forbidden" });
+    try {
+      const staffId = parseInt(req.params.id);
+      const { customStart, customEnd } = req.body;
+      const updated = await storage.updateStaffCustomHours(staffId, customStart ?? null, customEnd ?? null);
+      await logAudit(req.session.userId, "UPDATE_STAFF_HOURS", `Jam custom staff #${staffId} diubah: ${customStart ?? "-"} → ${customEnd ?? "-"}`);
+      res.json(updated);
+    } catch {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // GET /api/audit-logs — admin or CS LINE
   app.get("/api/audit-logs", async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });

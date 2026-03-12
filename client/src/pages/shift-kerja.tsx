@@ -18,7 +18,7 @@ import {
 import {
   Sun, Sunset, Moon, Search, Settings2, Clock,
   LogIn, LogOut, ChevronDown, ChevronUp, Save,
-  Users, X, CheckSquare, ArrowRightLeft, Shuffle,
+  Users, X, CheckSquare, ArrowRightLeft, Shuffle, Pencil,
 } from "lucide-react";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
@@ -177,6 +177,29 @@ export default function ShiftKerja() {
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkTargetShift, setBulkTargetShift] = useState<ShiftKey>("PAGI");
+
+  // Per-staff custom hours editing (for GANTUNG shift)
+  const [editingHoursId, setEditingHoursId] = useState<number | null>(null);
+  const [editHours, setEditHours] = useState({ start: "", end: "" });
+
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const { mutate: saveCustomHours, isPending: isSavingHours } = useMutation({
+    mutationFn: async ({ id, customStart, customEnd }: { id: number; customStart: string; customEnd: string }) => {
+      const res = await apiRequest("PATCH", `/api/staff/${id}/custom-hours`, { customStart, customEnd });
+      if (!res.ok) throw new Error("Gagal menyimpan jam");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.staff.list.path] });
+      setEditingHoursId(null);
+      toast({ title: "Jam Disimpan", description: "Jam kerja staff berhasil diperbarui." });
+    },
+    onError: () => {
+      toast({ variant: "destructive", title: "Gagal", description: "Gagal menyimpan jam kerja." });
+    },
+  });
 
   const { data: myPerm } = useQuery<StaffPermission>({ queryKey: ["/api/permissions/me"], staleTime: 0 });
 
@@ -550,12 +573,90 @@ export default function ShiftKerja() {
                               </div>
 
                               <span className="text-muted-foreground font-medium text-sm truncate">{s.jobdesk || "-"}</span>
-                              <span className={`text-sm font-bold ${shift.header}`}>{shift.schedule.start}</span>
-                              <span className="text-sm font-medium text-muted-foreground">{shift.schedule.end}</span>
-                              <span className="text-xs font-bold text-foreground/80 flex items-center gap-1">
-                                <Clock className="w-3 h-3 text-muted-foreground/40" />
-                                {calcJamKerja(shift.schedule.start, shift.schedule.end)}
-                              </span>
+
+                              {/* MASUK / PULANG / JAM — editable per-staff for GANTUNG */}
+                              {shift.key === "GANTUNG" && canEditShift ? (
+                                editingHoursId === s.id ? (
+                                  <>
+                                    <div onClick={e => e.stopPropagation()}>
+                                      <Input
+                                        type="time"
+                                        value={editHours.start}
+                                        onChange={e => setEditHours(h => ({ ...h, start: e.target.value }))}
+                                        className="h-7 text-xs bg-background/50 border-white/10 focus-visible:ring-primary/30 w-[90px]"
+                                        data-testid={`input-custom-start-${s.id}`}
+                                      />
+                                    </div>
+                                    <div onClick={e => e.stopPropagation()}>
+                                      <Input
+                                        type="time"
+                                        value={editHours.end}
+                                        onChange={e => setEditHours(h => ({ ...h, end: e.target.value }))}
+                                        className="h-7 text-xs bg-background/50 border-white/10 focus-visible:ring-primary/30 w-[90px]"
+                                        data-testid={`input-custom-end-${s.id}`}
+                                      />
+                                    </div>
+                                    <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                                      <Button
+                                        size="sm"
+                                        onClick={() => saveCustomHours({ id: s.id, customStart: editHours.start, customEnd: editHours.end })}
+                                        disabled={isSavingHours}
+                                        className="h-7 px-2 text-xs bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary rounded-lg"
+                                        data-testid={`button-save-hours-${s.id}`}
+                                      >
+                                        <Save className="w-3 h-3" />
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => setEditingHoursId(null)}
+                                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground rounded-lg"
+                                        data-testid={`button-cancel-hours-${s.id}`}
+                                      >
+                                        <X className="w-3 h-3" />
+                                      </Button>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <div className="flex items-center gap-1 group" onClick={e => e.stopPropagation()}>
+                                      <span className={`text-sm font-bold ${s.customStart ? shift.header : "text-muted-foreground/40"}`}>
+                                        {s.customStart || "00:00"}
+                                      </span>
+                                      <button
+                                        onClick={() => { setEditingHoursId(s.id); setEditHours({ start: s.customStart || "00:00", end: s.customEnd || "00:00" }); }}
+                                        className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary ml-1"
+                                        title="Atur jam masuk"
+                                        data-testid={`button-edit-start-${s.id}`}
+                                      >
+                                        <Pencil className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                    <span className={`text-sm font-medium ${s.customEnd ? "text-foreground/70" : "text-muted-foreground/40"}`}>
+                                      {s.customEnd || "00:00"}
+                                    </span>
+                                    <span className="text-xs font-bold text-foreground/80 flex items-center gap-1">
+                                      <Clock className="w-3 h-3 text-muted-foreground/40" />
+                                      {s.customStart && s.customEnd ? calcJamKerja(s.customStart, s.customEnd) : "Fleksibel"}
+                                    </span>
+                                  </>
+                                )
+                              ) : (
+                                <>
+                                  <span className={`text-sm font-bold ${shift.header}`}>
+                                    {shift.key === "GANTUNG" ? (s.customStart || shift.schedule.start) : shift.schedule.start}
+                                  </span>
+                                  <span className="text-sm font-medium text-muted-foreground">
+                                    {shift.key === "GANTUNG" ? (s.customEnd || shift.schedule.end) : shift.schedule.end}
+                                  </span>
+                                  <span className="text-xs font-bold text-foreground/80 flex items-center gap-1">
+                                    <Clock className="w-3 h-3 text-muted-foreground/40" />
+                                    {shift.key === "GANTUNG" && s.customStart && s.customEnd
+                                      ? calcJamKerja(s.customStart, s.customEnd)
+                                      : calcJamKerja(shift.schedule.start, shift.schedule.end)}
+                                  </span>
+                                </>
+                              )}
                             </div>
                           );
                         })}

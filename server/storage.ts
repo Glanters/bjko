@@ -39,6 +39,7 @@ export interface IStorage {
   updateStaffFull(id: number, name: string, jobdesk: string, shift: string): Promise<Staff>;
   updateStaffJobdesk(id: number, jobdesk: string): Promise<Staff>;
   updateStaffCutiStatus(id: number, status: string | null): Promise<Staff>;
+  updateStaffCustomHours(id: number, customStart: string | null, customEnd: string | null): Promise<Staff>;
   deleteStaff(id: number): Promise<boolean>;
   bulkDeleteAllStaff(): Promise<number>;
   getLeaves(): Promise<Leave[]>;
@@ -145,6 +146,11 @@ export class DatabaseStorage implements IStorage {
 
   async updateStaffCutiStatus(id: number, status: string | null): Promise<Staff> {
     const [staffRecord] = await db.update(staff).set({ cutiStatus: status }).where(eq(staff.id, id)).returning();
+    return staffRecord;
+  }
+
+  async updateStaffCustomHours(id: number, customStart: string | null, customEnd: string | null): Promise<Staff> {
+    const [staffRecord] = await db.update(staff).set({ customStart, customEnd }).where(eq(staff.id, id)).returning();
     return staffRecord;
   }
 
