@@ -29,6 +29,8 @@ import { api } from "@shared/routes";
 type ShiftKey = "PAGI" | "GANTUNG" | "SORE" | "MALAM";
 type ShiftSchedule = Record<ShiftKey, { start: string; end: string }>;
 
+const JABATAN_ORDER = ["CS LINE", "CS", "KAPTEN", "KASIR"];
+
 const DEFAULT_SCHEDULE: ShiftSchedule = {
   PAGI:    { start: "08:00", end: "16:00" },
   GANTUNG: { start: "00:00", end: "00:00" },
@@ -200,6 +202,15 @@ export default function ShiftKerja() {
         s.jobdesk.toLowerCase().includes(search.toLowerCase());
       const notOnCuti = !s.cutiStatus;
       return matchShift && matchSearch && notOnCuti;
+    }).sort((a, b) => {
+      const jabA = (a.jabatan || a.jobdesk || "").toUpperCase();
+      const jabB = (b.jabatan || b.jobdesk || "").toUpperCase();
+      const idxA = JABATAN_ORDER.indexOf(jabA);
+      const idxB = JABATAN_ORDER.indexOf(jabB);
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+      return jabA.localeCompare(jabB);
     }),
     total: (staffList ?? []).filter(s => s.shift === shift.key && !s.cutiStatus).length,
     schedule: sch[shift.key],

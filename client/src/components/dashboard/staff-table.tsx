@@ -1,7 +1,7 @@
 import { useStaff } from "@/hooks/use-staff";
 import { useLeaves, useCreateLeave, useResetStaffLimit } from "@/hooks/use-leaves";
 import { useAuth } from "@/hooks/use-auth";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -38,6 +38,31 @@ export function StaffTable() {
   const { mutate: deleteStaff, isPending: isDeletingStaff } = useDeleteStaff();
   const maxLeaves = useMaxLeaves();
   const isCreatingRef = useRef(false);
+  const hasAutoOpenedRef = useRef(false);
+
+  // Auto-reopen leave modal after F5 refresh for agents with an active leave
+  useEffect(() => {
+    if (hasAutoOpenedRef.current) return;
+    if (!leaves || !staffList || !user) return;
+
+    if (user.role === "agent") {
+      const todayWib = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const myStaff = staffList.find(s => s.name === user.username);
+      if (myStaff) {
+        const myActiveLeave = leaves.find(l =>
+          l.staffId === myStaff.id &&
+          l.date === todayWib &&
+          !l.clockInTime
+        );
+        if (myActiveLeave) {
+          hasAutoOpenedRef.current = true;
+          setSelectedLeave(myActiveLeave);
+          setSelectedStaff(myStaff);
+          setModalOpen(true);
+        }
+      }
+    }
+  }, [leaves, staffList, user]);
 
   if (isStaffLoading || isLeavesLoading) {
     return (
