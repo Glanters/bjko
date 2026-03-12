@@ -129,17 +129,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateStaffJabatan(id: number, name: string, jabatan: string): Promise<Staff> {
-    const [staffRecord] = await db.update(staff).set({ name, jabatan }).where(eq(staff.id, id)).returning();
+    const [staffRecord] = await db.update(staff).set({ name, jabatan, jobdesk: jabatan }).where(eq(staff.id, id)).returning();
     return staffRecord;
   }
 
   async updateStaffFull(id: number, name: string, jobdesk: string, shift: string): Promise<Staff> {
-    const [staffRecord] = await db.update(staff).set({ name, jobdesk, shift }).where(eq(staff.id, id)).returning();
+    const [staffRecord] = await db.update(staff).set({ name, jabatan: jobdesk, jobdesk, shift }).where(eq(staff.id, id)).returning();
     return staffRecord;
   }
 
   async updateStaffJobdesk(id: number, jobdesk: string): Promise<Staff> {
-    const [staffRecord] = await db.update(staff).set({ jobdesk }).where(eq(staff.id, id)).returning();
+    const [staffRecord] = await db.update(staff).set({ jabatan: jobdesk, jobdesk }).where(eq(staff.id, id)).returning();
     return staffRecord;
   }
 

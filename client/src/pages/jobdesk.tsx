@@ -29,6 +29,8 @@ import { id as localeId } from "date-fns/locale";
 const SHIFTS = ["PAGI", "GANTUNG", "SORE", "MALAM"] as const;
 type Shift = typeof SHIFTS[number];
 
+const JABATAN_ORDER = ["CS LINE", "CS", "KAPTEN", "KASIR"];
+
 const SHIFT_TEXT_COLOR: Record<Shift, string> = {
   PAGI:    "text-amber-400",
   GANTUNG: "text-violet-400",
@@ -133,6 +135,15 @@ export default function Jobdesk() {
     const notOnCuti = !s.cutiStatus;
     const matchFilter = selectedNames.size === 0 || selectedNames.has(s.name);
     return matchShift && matchSearch && notOnCuti && matchFilter;
+  }).sort((a, b) => {
+    const jabA = (a.jabatan || a.jobdesk || "").toUpperCase();
+    const jabB = (b.jabatan || b.jobdesk || "").toUpperCase();
+    const idxA = JABATAN_ORDER.indexOf(jabA);
+    const idxB = JABATAN_ORDER.indexOf(jabB);
+    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+    if (idxA !== -1) return -1;
+    if (idxB !== -1) return 1;
+    return jabA.localeCompare(jabB);
   });
 
   // Add modal handlers
