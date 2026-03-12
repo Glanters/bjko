@@ -291,7 +291,7 @@ export function StaffTable() {
           <div className="space-y-0">
             {sortedJobdesks.map((jobdesk) => {
               const isExpanded = expandedJobdesks.has(jobdesk);
-              const staffInJobdesk = groupedByJobdesk[jobdesk];
+              const staffInJobdesk = filteredGroupedByJobdesk[jobdesk];
               
               return (
                 <div key={jobdesk} className="border-b border-white/5 last:border-b-0">
