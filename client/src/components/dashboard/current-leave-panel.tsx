@@ -38,12 +38,12 @@ export function CurrentLeavePanel() {
 
   if (!staffList || !leaves) return null;
 
-  // Use UTC date string to match what the server stores in l.date
-  const todayUtc = new Date().toISOString().split('T')[0];
+  // Use WIB (UTC+7) date string to match what the server stores in l.date
+  const todayWib = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-  // Staff currently on leave = started today (UTC date) where clockInTime is null
+  // Staff currently on leave = started today (WIB date) where clockInTime is null
   const activeLeaves = leaves
-    .filter(l => !l.clockInTime && l.date === todayUtc)
+    .filter(l => !l.clockInTime && l.date === todayWib)
     .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
 
   const staffMap = Object.fromEntries(staffList.map(s => [s.id, s]));

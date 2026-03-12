@@ -25,16 +25,13 @@ export function TimerCell({ leaves, staffId, canClockIn = false }: TimerCellProp
     return () => clearInterval(interval);
   }, []);
 
-  // Use UTC date string to match what the server stores in l.date
-  const todayUtc = new Date().toISOString().split('T')[0];
-  const todaysLeaves = leaves.filter(l => l.date === todayUtc);
-
-  if (todaysLeaves.length === 0) {
+  if (leaves.length === 0) {
     return <span className="text-muted-foreground">-</span>;
   }
 
   // Get latest leave by sorting desc by start time
-  const latestLeave = [...todaysLeaves].sort(
+  // (parent StaffTable already filters leaves to today WIB date before passing here)
+  const latestLeave = [...leaves].sort(
     (a, b) => new Date(b.startTime!).getTime() - new Date(a.startTime!).getTime()
   )[0];
 
