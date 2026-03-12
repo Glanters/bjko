@@ -50,7 +50,7 @@ export function LeaveStartModal({ open, leave, staff, onOpenChange }: LeaveStart
     if (!clockInTime) return;
     const timer = setTimeout(() => onOpenChange(false), 2000);
     return () => clearTimeout(timer);
-  }, [clockInTime]);
+  }, [clockInTime, onOpenChange]);
 
   if (!leave || !staff) return null;
 

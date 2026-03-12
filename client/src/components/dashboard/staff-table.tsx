@@ -116,16 +116,6 @@ export function StaffTable() {
   // Exclude staff that are on cuti — they only appear on the Staff Cuti page
   const activeStaffList = staffList.filter(s => !s.cutiStatus);
 
-  // Group staff by jabatan (permanent position, independent from jobdesk)
-  const groupedByJobdesk = activeStaffList.reduce((acc, staff) => {
-    const key = staff.jabatan || staff.jobdesk;
-    if (!acc[key]) {
-      acc[key] = [];
-    }
-    acc[key].push(staff);
-    return acc;
-  }, {} as Record<string, Staff[]>);
-
   // Filter staff by search query
   const filteredStaffList = searchQuery.trim()
     ? activeStaffList.filter(staff =>
@@ -133,9 +123,9 @@ export function StaffTable() {
       )
     : activeStaffList;
 
-  // Regroup by jabatan after filtering
+  // Regroup by jabatan after filtering — normalize to UPPERCASE for consistent sort order
   const filteredGroupedByJobdesk = filteredStaffList.reduce((acc, staff) => {
-    const key = staff.jabatan || staff.jobdesk;
+    const key = (staff.jabatan || staff.jobdesk || "").toUpperCase();
     if (!acc[key]) {
       acc[key] = [];
     }
@@ -147,7 +137,6 @@ export function StaffTable() {
   const sortedJobdesks = Object.keys(filteredGroupedByJobdesk).sort((a, b) => {
     const aIndex = jobdeskOrder.indexOf(a);
     const bIndex = jobdeskOrder.indexOf(b);
-    
     if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
     if (aIndex !== -1) return -1;
     if (bIndex !== -1) return 1;
