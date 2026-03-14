@@ -659,8 +659,9 @@ export async function registerRoutes(
   const savedWhitelist = await storage.getSetting('whitelist_ips');
   let whitelistIps: string[] = savedWhitelist ? savedWhitelist.split('\n').filter(Boolean) : [];
 
-  // Jobdesk limits management (stored in memory, could be DB)
-  let jobdeskLimits: Record<string, number> = {};
+  // Jobdesk limits management (persisted to DB)
+  const savedJobdeskLimits = await storage.getSetting('jobdesk_limits');
+  let jobdeskLimits: Record<string, number> = savedJobdeskLimits ? JSON.parse(savedJobdeskLimits) : {};
 
   app.get(api.whitelist.get.path, async (req, res) => {
     if (!req.session.userId) {
@@ -718,6 +719,7 @@ export async function registerRoutes(
     try {
       const input = api.jobdeskLimits.update.input.parse(req.body);
       jobdeskLimits = input.limits;
+      await storage.setSetting('jobdesk_limits', JSON.stringify(jobdeskLimits));
       res.json({ limits: jobdeskLimits });
     } catch (err) {
       if (err instanceof z.ZodError) {
