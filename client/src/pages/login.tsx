@@ -4,7 +4,7 @@ import { z } from "zod";
 import { api } from "@shared/routes";
 import { useAuth } from "@/hooks/use-auth";
 import { KeyRound, User, Lock } from "lucide-react";
-import bosjokoLogo from "@assets/image_1773206825745.png";
+import bosjokoLogo from "@assets/bosjoko_logo_nobg.png";
 import {
   Form,
   FormControl,
@@ -40,9 +40,9 @@ export default function Login() {
 
       <div className="w-full max-w-[420px] relative z-10">
         <div className="glass-panel p-8 md:p-10 rounded-3xl">
-          <div className="flex flex-col items-center text-center mb-10">
-            <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-lg shadow-primary/25 mb-6 border border-white/10">
-              <img src={bosjokoLogo} alt="BOSJOKO Logo" className="w-full h-full object-cover" />
+          <div className="flex flex-col items-center text-center mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="w-48 h-auto mb-6 drop-shadow-[0_0_25px_rgba(var(--primary-rgb,200,170,100),0.3)]">
+              <img src={bosjokoLogo} alt="BOSJOKO Logo" className="w-full h-full object-contain transition-transform duration-500 hover:scale-105" />
             </div>
             <h1 className="text-3xl font-display font-bold text-gradient mb-2">
               System Login

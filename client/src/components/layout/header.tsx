@@ -10,7 +10,7 @@ import {
   ArrowLeft, Sun, Moon, BarChart2, Shield, Database, Settings2,
   ChevronDown, LayoutDashboard, History as HistoryIcon, Pencil,
 } from "lucide-react";
-import bosjokoLogo from "@assets/image_1773206825745.png";
+import bosjokoLogo from "@assets/bosjoko_logo_nobg.png";
 import { Badge } from "@/components/ui/badge";
 import { useLocation } from "wouter";
 
@@ -29,8 +29,8 @@ export function Header() {
       <div className="w-full px-4 h-16 flex items-center justify-between gap-4">
         {/* Logo */}
         <div className="flex items-center gap-3 shrink-0">
-          <div className="w-10 h-10 rounded-xl overflow-hidden border border-white/10 shrink-0">
-            <img src={bosjokoLogo} alt="BOSJOKO Logo" className="w-full h-full object-cover" />
+          <div className="w-10 h-10 rounded-xl overflow-hidden border border-white/10 shrink-0 bg-black/20">
+            <img src={bosjokoLogo} alt="BOSJOKO Logo" className="w-full h-full object-contain transition-transform duration-300 hover:scale-110" />
           </div>
           <div>
             <h1 className="font-display font-bold text-lg leading-tight text-gradient">

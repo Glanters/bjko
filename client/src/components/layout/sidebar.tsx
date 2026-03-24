@@ -6,7 +6,7 @@ import {
   Coffee, Briefcase, UserMinus, History,
   Settings, BarChart2, Shield, Database, Settings2, ShieldCheck, ClipboardList, PanelLeftClose, PanelLeftOpen, Sun,
 } from "lucide-react";
-import bosjokoLogo from "@assets/image_1773206825745.png";
+import bosjokoLogo from "@assets/bosjoko_logo_nobg.png";
 
 export function Sidebar() {
   const [location, navigate] = useLocation();
@@ -41,8 +41,8 @@ export function Sidebar() {
           {/* Logo + Collapse Button */}
           <div className="flex items-center justify-between px-4 py-5 border-b border-white/5">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-9 h-9 rounded-xl overflow-hidden border border-white/10 shrink-0">
-                <img src={bosjokoLogo} alt="Logo" className="w-full h-full object-cover" />
+              <div className="w-9 h-9 rounded-xl overflow-hidden border border-white/10 shrink-0 bg-black/20">
+                <img src={bosjokoLogo} alt="Logo" className="w-full h-full object-contain transition-transform duration-300 hover:scale-110" />
               </div>
               <div className="min-w-0">
                 <p className="font-bold text-sm leading-tight text-gradient truncate">Dashboard Operasional</p>
