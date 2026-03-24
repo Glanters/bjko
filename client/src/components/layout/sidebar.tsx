@@ -39,24 +39,20 @@ export function Sidebar() {
       >
         <div className="w-56 flex flex-col h-full">
           {/* Logo + Collapse Button */}
-          <div className="flex items-center justify-between px-4 py-5 border-b border-white/5">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-9 h-9 rounded-xl overflow-hidden border border-white/10 shrink-0 bg-black/20">
-                <img src={bosjokoLogo} alt="Logo" className="w-full h-full object-contain transition-transform duration-300 hover:scale-110" />
-              </div>
-              <div className="min-w-0">
-                <p className="font-bold text-sm leading-tight text-gradient truncate">Dashboard Operasional</p>
-                <p className="text-[10px] text-muted-foreground font-medium">BOSJOKO</p>
-              </div>
+          <div className="flex flex-col border-b border-white/5">
+            <div className="px-4 pt-4 pb-2">
+              <img src={bosjokoLogo} alt="BOSJOKO Logo" className="w-full h-auto object-contain transition-transform duration-300 hover:scale-[1.02]" />
             </div>
-            <button
-              onClick={toggle}
-              className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/10 transition-all"
-              title="Sembunyikan sidebar"
-              data-testid="button-sidebar-collapse"
-            >
-              <PanelLeftClose className="w-4 h-4" />
-            </button>
+            <div className="flex items-center justify-end px-4 pb-3">
+              <button
+                onClick={toggle}
+                className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/10 transition-all"
+                title="Sembunyikan sidebar"
+                data-testid="button-sidebar-collapse"
+              >
+                <PanelLeftClose className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {/* Nav */}
