@@ -205,9 +205,11 @@ export function applyBgImage(bgImage: string | null | undefined) {
   const root = document.documentElement;
   if (bgImage && bgImage.trim()) {
     root.style.setProperty("--bg-image", `url(${bgImage})`);
+    root.classList.add("has-bg-image");
     try { localStorage.setItem("theme_bg_image", bgImage); } catch (_) {}
   } else {
     root.style.removeProperty("--bg-image");
+    root.classList.remove("has-bg-image");
     try { localStorage.removeItem("theme_bg_image"); } catch (_) {}
   }
 }

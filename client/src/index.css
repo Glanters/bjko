@@ -205,13 +205,23 @@
     animation: page-enter-anim 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
-  /* Background image overlay — only on the body, not inner elements */
-  body {
-    background-image: var(--bg-image, none);
+  /* Background image — fixed layer behind everything when has-bg-image class is set */
+  html.has-bg-image::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: var(--bg-image);
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    background-attachment: fixed;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  /* Make page-level containers semi-transparent so bg image shows through */
+  html.has-bg-image body,
+  html.has-bg-image .bg-background {
+    background-color: hsl(var(--background) / 0.82) !important;
   }
 
   /* Smooth transitions for all interactive elements */
