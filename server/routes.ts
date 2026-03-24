@@ -734,7 +734,8 @@ export async function registerRoutes(
     try {
       const bg = await storage.getSetting("theme_bg");
       const primary = await storage.getSetting("theme_primary");
-      res.json({ bg: bg ?? null, primary: primary ?? null });
+      const bgImage = await storage.getSetting("theme_bg_image");
+      res.json({ bg: bg ?? null, primary: primary ?? null, bgImage: bgImage ?? null });
     } catch { res.status(500).json({ message: "Internal server error" }); }
   });
 
@@ -743,11 +744,13 @@ export async function registerRoutes(
     const user = await storage.getUser(req.session.userId);
     if (!user || user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
     try {
-      const { bg, primary } = req.body;
+      const { bg, primary, bgImage } = req.body;
       if (bg !== undefined) await storage.setSetting("theme_bg", bg);
       if (primary !== undefined) await storage.setSetting("theme_primary", primary);
-      await logAudit(req.session.userId, "UPDATE_THEME", "Tema warna dashboard diperbarui");
-      res.json({ bg: bg ?? null, primary: primary ?? null });
+      if (bgImage !== undefined) await storage.setSetting("theme_bg_image", bgImage);
+      await logAudit(req.session.userId, "UPDATE_THEME", bgImage !== undefined ? "Gambar latar dashboard diperbarui" : "Tema warna dashboard diperbarui");
+      const currentBgImage = await storage.getSetting("theme_bg_image");
+      res.json({ bg: bg ?? null, primary: primary ?? null, bgImage: currentBgImage ?? null });
     } catch { res.status(500).json({ message: "Internal server error" }); }
   });
 
@@ -758,6 +761,7 @@ export async function registerRoutes(
     try {
       await storage.setSetting("theme_bg", "");
       await storage.setSetting("theme_primary", "");
+      await storage.setSetting("theme_bg_image", "");
       res.json({ message: "Tema direset ke default" });
     } catch { res.status(500).json({ message: "Internal server error" }); }
   });

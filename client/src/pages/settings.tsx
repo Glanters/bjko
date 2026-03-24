@@ -9,11 +9,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
-import { Loader2, Eye, EyeOff, Trash2, UserX, Palette, RotateCcw, Check, Layers, Plus, AlertTriangle } from "lucide-react";
+import { Loader2, Eye, EyeOff, Trash2, UserX, Palette, RotateCcw, Check, Layers, Plus, AlertTriangle, ImageIcon, Upload, X } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { useJobdeskLimits, useUpdateJobdeskLimits } from "@/hooks/use-jobdesk-limits";
 import { useDeleteUser } from "@/hooks/use-delete-user";
-import { hslToHex, hexToHsl, applyCustomColors } from "@/components/theme-provider";
+import { hslToHex, hexToHsl, applyCustomColors, applyBgImage } from "@/components/theme-provider";
 
 export default function Settings() {
   const { user } = useAuth();
@@ -41,6 +41,7 @@ export default function Settings() {
   const [themePrimary, setThemePrimary] = useState<string>("");
   const [newJabatan, setNewJabatan] = useState<string>("");
   const [showResetJabatanConfirm, setShowResetJabatanConfirm] = useState<boolean>(false);
+  const [bgImagePreview, setBgImagePreview] = useState<string>("");
 
   const limitsQuery = useJobdeskLimits();
   const updateLimitsMutation = useUpdateJobdeskLimits();
@@ -79,7 +80,7 @@ export default function Settings() {
     enabled: user?.role === "admin",
   });
 
-  const themeQuery = useQuery<{ bg: string | null; primary: string | null }>({
+  const themeQuery = useQuery<{ bg: string | null; primary: string | null; bgImage: string | null }>({
     queryKey: ["/api/theme-settings"],
     enabled: user?.role === "admin",
   });
@@ -88,6 +89,7 @@ export default function Settings() {
     if (themeQuery.data) {
       setThemeBg(themeQuery.data.bg ?? "");
       setThemePrimary(themeQuery.data.primary ?? "");
+      setBgImagePreview(themeQuery.data.bgImage ?? "");
     }
   }, [themeQuery.data]);
 
@@ -102,13 +104,26 @@ export default function Settings() {
     onError: () => toast({ title: "Error", description: "Gagal menyimpan tema", variant: "destructive" }),
   });
 
+  const saveBgImageMutation = useMutation({
+    mutationFn: (data: { bgImage: string }) =>
+      apiRequest("POST", "/api/theme-settings", data).then(r => r.json()),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/theme-settings"] });
+      applyBgImage(data.bgImage);
+      toast({ title: "Berhasil", description: "Gambar latar dashboard diperbarui" });
+    },
+    onError: () => toast({ title: "Error", description: "Gagal menyimpan gambar latar", variant: "destructive" }),
+  });
+
   const resetThemeMutation = useMutation({
     mutationFn: () => apiRequest("DELETE", "/api/theme-settings").then(r => r.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/theme-settings"] });
       setThemeBg("");
       setThemePrimary("");
+      setBgImagePreview("");
       applyCustomColors(null, null);
+      applyBgImage(null);
       toast({ title: "Berhasil", description: "Tema direset ke default" });
     },
     onError: () => toast({ title: "Error", description: "Gagal reset tema", variant: "destructive" }),
@@ -308,6 +323,76 @@ export default function Settings() {
           <h1 className="text-3xl font-bold">Pengaturan</h1>
           <p className="text-muted-foreground">Kelola konfigurasi sistem, pengguna, dan whitelist IP</p>
         </div>
+
+        {/* Gambar Latar Dashboard */}
+        <Card className="border-primary/30 bg-primary/5">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <ImageIcon className="w-5 h-5 text-primary" />
+              <CardTitle className="text-primary">Gambar Latar Dashboard</CardTitle>
+            </div>
+            <CardDescription>Upload gambar untuk dijadikan background dashboard. Maks 2MB (JPG/PNG).</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {bgImagePreview ? (
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-foreground">Gambar Latar Saat Ini</p>
+                <div className="relative rounded-xl overflow-hidden border border-white/10 max-w-md">
+                  <img src={bgImagePreview} alt="Background" className="w-full h-40 object-cover" />
+                  <button
+                    onClick={() => {
+                      setBgImagePreview("");
+                      saveBgImageMutation.mutate({ bgImage: "" });
+                    }}
+                    className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/70 flex items-center justify-center text-white hover:bg-red-600 transition-colors"
+                    data-testid="button-remove-bg-image"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Belum ada gambar latar yang diatur.</p>
+            )}
+            <div>
+              <label
+                htmlFor="bg-image-upload"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary/20 text-primary hover:bg-primary/30 cursor-pointer transition-colors font-medium text-sm"
+              >
+                <Upload className="w-4 h-4" />
+                {bgImagePreview ? "Ganti Gambar" : "Upload Gambar"}
+              </label>
+              <input
+                id="bg-image-upload"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                data-testid="input-bg-image-upload"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 2 * 1024 * 1024) {
+                    toast({ title: "Error", description: "Ukuran file maksimal 2MB", variant: "destructive" });
+                    return;
+                  }
+                  const reader = new FileReader();
+                  reader.onload = (ev) => {
+                    const base64 = ev.target?.result as string;
+                    setBgImagePreview(base64);
+                    saveBgImageMutation.mutate({ bgImage: base64 });
+                  };
+                  reader.readAsDataURL(file);
+                  e.target.value = "";
+                }}
+              />
+              {saveBgImageMutation.isPending && (
+                <span className="ml-3 text-sm text-muted-foreground inline-flex items-center gap-1">
+                  <Loader2 className="w-3 h-3 animate-spin" /> Menyimpan...
+                </span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Tema Dashboard */}
         <Card className="border-primary/30 bg-primary/5">
