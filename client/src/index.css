@@ -205,8 +205,8 @@
     animation: page-enter-anim 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
-  /* Background image overlay */
-  .bg-background {
+  /* Background image overlay — only on the body, not inner elements */
+  body {
     background-image: var(--bg-image, none);
     background-size: cover;
     background-position: center;
