@@ -140,11 +140,11 @@ export default function History() {
   const rawDisplayLeaves: Leave[] = displayDate ? (groupedByDate[displayDate] || []) : [];
   const displayLeaves = statusFilter === "SEMUA"
     ? rawDisplayLeaves
-    : rawDisplayLeaves.filter(l => calculateStatus(l.startTime, l.clockInTime) === statusFilter);
+    : rawDisplayLeaves.filter(l => calculateStatus(l.startTime, l.clockInTime ?? null) === statusFilter);
 
-  const tepat = rawDisplayLeaves.filter(l => calculateStatus(l.startTime, l.clockInTime) === "TEPAT WAKTU").length;
-  const terlambat = rawDisplayLeaves.filter(l => calculateStatus(l.startTime, l.clockInTime) === "TERLAMBAT").length;
-  const belum = rawDisplayLeaves.filter(l => calculateStatus(l.startTime, l.clockInTime) === "BELUM CHECK IN").length;
+  const tepat = rawDisplayLeaves.filter(l => calculateStatus(l.startTime, l.clockInTime ?? null) === "TEPAT WAKTU").length;
+  const terlambat = rawDisplayLeaves.filter(l => calculateStatus(l.startTime, l.clockInTime ?? null) === "TERLAMBAT").length;
+  const belum = rawDisplayLeaves.filter(l => calculateStatus(l.startTime, l.clockInTime ?? null) === "BELUM CHECK IN").length;
 
   return (
     <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
@@ -294,8 +294,8 @@ export default function History() {
                 </TableHeader>
                 <TableBody>
                   {displayLeaves.map((leave: Leave) => {
-                    const staffItem = staffMap[leave.staffId];
-                    const status = calculateStatus(leave.startTime, leave.clockInTime);
+                    const staffItem = staffMap[Number(leave.staffId)];
+                    const status = calculateStatus(leave.startTime, leave.clockInTime ?? null);
                     const isLate = status === "TERLAMBAT";
                     const isEditingThis = editingPunishmentId === leave.id;
 
@@ -311,7 +311,7 @@ export default function History() {
                           {leave.clockInTime ? format(new Date(leave.clockInTime), "HH:mm:ss") : "-"}
                         </TableCell>
                         <TableCell className="text-sm">
-                          {calculateDuration(leave.startTime, leave.clockInTime)}
+                          {calculateDuration(leave.startTime, leave.clockInTime ?? null)}
                         </TableCell>
                         <TableCell>
                           <Badge

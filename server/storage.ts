@@ -1,16 +1,15 @@
-import { users, staff, leaves, auditLogs, settings, staffPermissions, type User, type InsertUser, type Staff, type InsertStaff, type Leave, type InsertLeave, type AuditLog, type InsertAuditLog, type Setting, type StaffPermission, type InsertStaffPermission } from "@shared/schema";
-import { db } from "./db";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { type User, type InsertUser, type Staff, type InsertStaff, type Leave, type InsertLeave, type AuditLog, type InsertAuditLog, type Setting, type StaffPermission, type InsertStaffPermission } from "@shared/schema";
 import session from "express-session";
-import connectPg from "connect-pg-simple";
-import { pool } from "./db";
-
-const PostgresStore = connectPg(session);
+import MongoStore from "connect-mongo";
+import { UserModel, StaffModel, LeaveModel, AuditLogModel, SettingModel, StaffPermissionModel } from "./models";
 
 export function setupSession(app: any) {
   app.use(
     session({
-      store: new PostgresStore({ pool, createTableIfMissing: true }),
+      store: MongoStore.create({ 
+        mongoUrl: process.env.MONGODB_URI as string,
+        collectionName: 'sessions'
+      }),
       secret: process.env.SESSION_SECRET || "dashboard-secret",
       resave: false,
       saveUninitialized: false,
@@ -43,7 +42,7 @@ export interface IStorage {
   deleteStaff(id: number): Promise<boolean>;
   bulkDeleteAllStaff(): Promise<number>;
   getLeaves(): Promise<Leave[]>;
-  createLeave(leave: InsertLeave): Promise<Leave>;
+  createLeave(leave: InsertLeave & { date: string }): Promise<Leave>;
   updateLeaveClockIn(id: number, clockInTime: Date): Promise<Leave>;
   deleteLeave(id: number): Promise<boolean>;
   updateLeave(id: number, clockInTime: Date | null): Promise<Leave>;
@@ -58,215 +57,209 @@ export interface IStorage {
   getPermissionByRole(role: string): Promise<StaffPermission | undefined>;
   upsertPermission(perm: InsertStaffPermission): Promise<StaffPermission>;
   deletePermission(role: string): Promise<boolean>;
+  updateUserAvatar(id: number, avatarUrl: string): Promise<User>;
 }
 
 export class DatabaseStorage implements IStorage {
   async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+    const user = await UserModel.findOne({ id }).lean();
+    return user ? (user as unknown as User) : undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user;
+    const user = await UserModel.findOne({ username }).lean();
+    return user ? (user as unknown as User) : undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
-    return user;
+    const user = new UserModel(insertUser);
+    await user.save();
+    return user.toObject() as unknown as User;
   }
 
   async getUsers(): Promise<User[]> {
-    return await db.select().from(users);
+    return await UserModel.find().lean() as unknown as User[];
   }
 
   async updateUserIp(id: number, allowedIp: string): Promise<User> {
-    const [user] = await db.update(users).set({ allowedIp }).where(eq(users.id, id)).returning();
-    return user;
+    const user = await UserModel.findOneAndUpdate({ id }, { allowedIp }, { new: true }).lean();
+    return user as unknown as User;
   }
 
   async bulkUpdateAgentIp(allowedIp: string): Promise<number> {
-    const result = await db.update(users).set({ allowedIp }).where(eq(users.role, 'agent')).returning();
-    return result.length;
+    const result = await UserModel.updateMany({ role: 'agent' }, { allowedIp });
+    return result.modifiedCount;
   }
 
   async bulkUpdateAgentPassword(password: string): Promise<number> {
-    const result = await db.update(users).set({ password }).where(eq(users.role, 'agent')).returning();
-    return result.length;
+    const result = await UserModel.updateMany({ role: 'agent' }, { password });
+    return result.modifiedCount;
   }
 
   async updateUserPassword(id: number, password: string): Promise<User> {
-    const [user] = await db.update(users).set({ password }).where(eq(users.id, id)).returning();
-    return user;
+    const user = await UserModel.findOneAndUpdate({ id }, { password }, { new: true }).lean();
+    return user as unknown as User;
   }
 
   async updateUserUsername(id: number, username: string): Promise<User> {
-    const [user] = await db.update(users).set({ username }).where(eq(users.id, id)).returning();
-    return user;
+    const user = await UserModel.findOneAndUpdate({ id }, { username }, { new: true }).lean();
+    return user as unknown as User;
   }
 
   async updateUserAvatar(id: number, avatarUrl: string): Promise<User> {
-    const [user] = await db.update(users).set({ avatarUrl }).where(eq(users.id, id)).returning();
-    return user;
+    const user = await UserModel.findOneAndUpdate({ id }, { avatarUrl }, { new: true }).lean();
+    return user as unknown as User;
   }
 
   async getStaff(): Promise<Staff[]> {
-    return await db.select().from(staff);
+    return await StaffModel.find().lean() as unknown as Staff[];
   }
 
   async createStaff(insertStaff: InsertStaff): Promise<Staff> {
-    const [newStaff] = await db.insert(staff).values(insertStaff).returning();
-    return newStaff;
+    const staff = new StaffModel(insertStaff);
+    await staff.save();
+    return staff.toObject() as unknown as Staff;
   }
 
   async updateStaffName(id: number, name: string): Promise<Staff> {
-    const [staffRecord] = await db.update(staff).set({ name }).where(eq(staff.id, id)).returning();
-    return staffRecord;
+    const staff = await StaffModel.findOneAndUpdate({ id }, { name }, { new: true }).lean();
+    return staff as unknown as Staff;
   }
 
   async updateStaff(id: number, name: string, jobdesk: string): Promise<Staff> {
-    const [staffRecord] = await db.update(staff).set({ name, jobdesk }).where(eq(staff.id, id)).returning();
-    return staffRecord;
+    const staff = await StaffModel.findOneAndUpdate({ id }, { name, jobdesk }, { new: true }).lean();
+    return staff as unknown as Staff;
   }
 
   async updateStaffJabatan(id: number, name: string, jabatan: string): Promise<Staff> {
-    const [staffRecord] = await db.update(staff).set({ name, jabatan, jobdesk: jabatan }).where(eq(staff.id, id)).returning();
-    return staffRecord;
+    const staff = await StaffModel.findOneAndUpdate({ id }, { name, jabatan, jobdesk: jabatan }, { new: true }).lean();
+    return staff as unknown as Staff;
   }
 
   async updateStaffFull(id: number, name: string, jobdesk: string, shift: string): Promise<Staff> {
-    const [staffRecord] = await db.update(staff).set({ name, jabatan: jobdesk, jobdesk, shift }).where(eq(staff.id, id)).returning();
-    return staffRecord;
+    const staff = await StaffModel.findOneAndUpdate({ id }, { name, jabatan: jobdesk, jobdesk, shift }, { new: true }).lean();
+    return staff as unknown as Staff;
   }
 
   async updateStaffJobdesk(id: number, jobdesk: string): Promise<Staff> {
-    const [staffRecord] = await db.update(staff).set({ jabatan: jobdesk, jobdesk }).where(eq(staff.id, id)).returning();
-    return staffRecord;
+    const staff = await StaffModel.findOneAndUpdate({ id }, { jabatan: jobdesk, jobdesk }, { new: true }).lean();
+    return staff as unknown as Staff;
   }
 
   async updateStaffCutiStatus(id: number, status: string | null): Promise<Staff> {
-    const [staffRecord] = await db.update(staff).set({ cutiStatus: status }).where(eq(staff.id, id)).returning();
-    return staffRecord;
+    const staff = await StaffModel.findOneAndUpdate({ id }, { cutiStatus: status }, { new: true }).lean();
+    return staff as unknown as Staff;
   }
 
   async updateStaffCustomHours(id: number, customStart: string | null, customEnd: string | null): Promise<Staff> {
-    const [staffRecord] = await db.update(staff).set({ customStart, customEnd }).where(eq(staff.id, id)).returning();
-    return staffRecord;
+    const staff = await StaffModel.findOneAndUpdate({ id }, { customStart, customEnd }, { new: true }).lean();
+    return staff as unknown as Staff;
   }
 
   async getLeaves(): Promise<Leave[]> {
-    return await db.select().from(leaves);
+    return await LeaveModel.find().lean() as unknown as Leave[];
   }
 
   async createLeave(insertLeave: InsertLeave & { date: string }): Promise<Leave> {
-    const [leave] = await db.insert(leaves).values(insertLeave).returning();
-    return leave;
+    const leave = new LeaveModel(insertLeave);
+    await leave.save();
+    return leave.toObject() as unknown as Leave;
   }
 
   async updateLeaveClockIn(id: number, clockInTime: Date): Promise<Leave> {
-    const [leave] = await db.update(leaves).set({ clockInTime }).where(eq(leaves.id, id)).returning();
-    return leave;
+    const leave = await LeaveModel.findOneAndUpdate({ id }, { clockInTime }, { new: true }).lean();
+    return leave as unknown as Leave;
   }
 
   async deleteLeave(id: number): Promise<boolean> {
-    const result = await db.delete(leaves).where(eq(leaves.id, id));
-    return !!result;
+    const result = await LeaveModel.deleteOne({ id });
+    return result.deletedCount === 1;
   }
 
   async updateLeave(id: number, clockInTime: Date | null): Promise<Leave> {
-    const [leave] = await db.update(leaves).set({ clockInTime }).where(eq(leaves.id, id)).returning();
-    return leave;
+    const leave = await LeaveModel.findOneAndUpdate({ id }, { clockInTime }, { new: true }).lean();
+    return leave as unknown as Leave;
   }
 
   async updateLeavePunishment(id: number, punishment: string | null): Promise<Leave> {
-    const [leave] = await db.update(leaves).set({ punishment }).where(eq(leaves.id, id)).returning();
-    return leave;
+    const leave = await LeaveModel.findOneAndUpdate({ id }, { punishment }, { new: true }).lean();
+    return leave as unknown as Leave;
   }
 
   async resetStaffLeavesToday(staffId: number, date: string): Promise<number> {
-    const result = await db.delete(leaves).where(
-      and(eq(leaves.staffId, staffId), eq(leaves.date, date))
-    );
-    return result.rowCount ?? 0;
+    const result = await LeaveModel.deleteMany({ staffId, date });
+    return result.deletedCount || 0;
   }
 
   async deleteUser(id: number): Promise<boolean> {
-    const result = await db.delete(users).where(eq(users.id, id));
-    return !!result;
+    const result = await UserModel.deleteOne({ id });
+    return result.deletedCount === 1;
   }
 
   async bulkDeleteAgents(): Promise<number> {
-    const result = await db.delete(users).where(eq(users.role, 'agent')).returning();
-    return result.length;
+    const result = await UserModel.deleteMany({ role: 'agent' });
+    return result.deletedCount || 0;
   }
 
   async deleteStaff(id: number): Promise<boolean> {
-    const result = await db.delete(staff).where(eq(staff.id, id));
-    return !!result;
+    const result = await StaffModel.deleteOne({ id });
+    return result.deletedCount === 1;
   }
 
   async bulkDeleteAllStaff(): Promise<number> {
-    const result = await db.delete(staff).returning();
-    return result.length;
+    const result = await StaffModel.deleteMany({});
+    return result.deletedCount || 0;
   }
 
   async getAuditLogs(): Promise<AuditLog[]> {
-    return await db.select().from(auditLogs).orderBy(desc(auditLogs.createdAt));
+    return await AuditLogModel.find().sort({ createdAt: -1 }).lean() as unknown as AuditLog[];
   }
 
   async createAuditLog(log: InsertAuditLog): Promise<AuditLog> {
-    const [entry] = await db.insert(auditLogs).values(log).returning();
-    return entry;
+    const entry = new AuditLogModel(log);
+    await entry.save();
+    return entry.toObject() as unknown as AuditLog;
   }
 
   async getSetting(key: string): Promise<string | undefined> {
-    const [row] = await db.select().from(settings).where(eq(settings.key, key));
+    const row = await SettingModel.findOne({ key }).lean();
     return row?.value;
   }
 
   async setSetting(key: string, value: string): Promise<Setting> {
-    const existing = await this.getSetting(key);
-    if (existing !== undefined) {
-      const [row] = await db.update(settings).set({ value }).where(eq(settings.key, key)).returning();
-      return row;
-    } else {
-      const [row] = await db.insert(settings).values({ key, value }).returning();
-      return row;
-    }
+    const row = await SettingModel.findOneAndUpdate(
+      { key },
+      { key, value },
+      { new: true, upsert: true }
+    ).lean();
+    return row as unknown as Setting;
   }
 
   async getAllSettings(): Promise<Setting[]> {
-    return await db.select().from(settings);
+    return await SettingModel.find().lean() as unknown as Setting[];
   }
 
   async getPermissions(): Promise<StaffPermission[]> {
-    return await db.select().from(staffPermissions);
+    return await StaffPermissionModel.find().lean() as unknown as StaffPermission[];
   }
 
   async getPermissionByRole(role: string): Promise<StaffPermission | undefined> {
-    const [perm] = await db.select().from(staffPermissions)
-      .where(sql`lower(${staffPermissions.role}) = lower(${role})`);
-    return perm;
+    const perm = await StaffPermissionModel.findOne({ role: new RegExp('^' + role + '$', 'i') }).lean();
+    return perm ? (perm as unknown as StaffPermission) : undefined;
   }
 
   async upsertPermission(perm: InsertStaffPermission): Promise<StaffPermission> {
-    const existing = await this.getPermissionByRole(perm.role);
-    if (existing) {
-      const [row] = await db.update(staffPermissions)
-        .set({ canAddStaff: perm.canAddStaff, allowedShifts: perm.allowedShifts, allowedJobdesks: perm.allowedJobdesks, canEditJobdesk: perm.canEditJobdesk ?? false, canDeleteStaff: perm.canDeleteStaff ?? false, canEditName: perm.canEditName ?? false, canEditPassword: perm.canEditPassword ?? false })
-        .where(eq(staffPermissions.role, perm.role))
-        .returning();
-      return row;
-    } else {
-      const [row] = await db.insert(staffPermissions).values(perm).returning();
-      return row;
-    }
+    const row = await StaffPermissionModel.findOneAndUpdate(
+      { role: perm.role },
+      perm,
+      { new: true, upsert: true }
+    ).lean();
+    return row as unknown as StaffPermission;
   }
 
   async deletePermission(role: string): Promise<boolean> {
-    const result = await db.delete(staffPermissions)
-      .where(sql`lower(${staffPermissions.role}) = lower(${role})`);
-    return !!result;
+    const result = await StaffPermissionModel.deleteOne({ role: new RegExp('^' + role + '$', 'i') });
+    return result.deletedCount === 1;
   }
 }
 

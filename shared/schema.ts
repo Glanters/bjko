@@ -1,76 +1,60 @@
-import { pgTable, serial, text, timestamp, integer, boolean } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-  role: text("role").notNull().default("agent"),
-  allowedIp: text("allowed_ip"),
-  avatarUrl: text("avatar_url"),
+export const insertUserSchema = z.object({
+  username: z.string().min(1),
+  password: z.string().min(1),
+  role: z.string().optional().default("agent"),
+  allowedIp: z.string().nullable().optional(),
+  avatarUrl: z.string().nullable().optional(),
 });
 
-export const staff = pgTable("staff", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  jabatan: text("jabatan").notNull().default(""),
-  jobdesk: text("jobdesk").notNull(),
-  role: text("role").notNull(),
-  shift: text("shift").notNull().default("PAGI"),
-  cutiStatus: text("cuti_status"),
-  customStart: text("custom_start"),
-  customEnd: text("custom_end"),
+export const insertStaffSchema = z.object({
+  name: z.string().min(1),
+  jabatan: z.string().optional().default(""),
+  jobdesk: z.string().min(1),
+  role: z.string().min(1),
+  shift: z.string().optional().default("PAGI"),
+  cutiStatus: z.string().nullable().optional(),
+  customStart: z.string().nullable().optional(),
+  customEnd: z.string().nullable().optional(),
 });
 
-export const leaves = pgTable("leaves", {
-  id: serial("id").primaryKey(),
-  staffId: integer("staff_id").notNull(),
-  startTime: timestamp("start_time").notNull().defaultNow(),
-  clockInTime: timestamp("clock_in_time"),
-  date: text("date").notNull(),
-  punishment: text("punishment"),
+export const insertLeaveSchema = z.object({
+  staffId: z.number().or(z.string()),
+  clockInTime: z.date().nullable().optional(),
+  punishment: z.string().nullable().optional(),
 });
 
-export const auditLogs = pgTable("audit_logs", {
-  id: serial("id").primaryKey(),
-  action: text("action").notNull(),
-  username: text("username").notNull(),
-  detail: text("detail"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+export const insertAuditLogSchema = z.object({
+  action: z.string().min(1),
+  username: z.string().min(1),
+  detail: z.string().nullable().optional(),
 });
 
-export const settings = pgTable("settings", {
-  key: text("key").primaryKey(),
-  value: text("value").notNull(),
+export const insertStaffPermissionSchema = z.object({
+  role: z.string().min(1),
+  canAddStaff: z.boolean().optional().default(false),
+  allowedShifts: z.string().optional().default(""),
+  allowedJobdesks: z.string().optional().default(""),
+  canEditJobdesk: z.boolean().optional().default(false),
+  canDeleteStaff: z.boolean().optional().default(false),
+  canEditName: z.boolean().optional().default(false),
+  canEditPassword: z.boolean().optional().default(false),
 });
 
-export const staffPermissions = pgTable("staff_permissions", {
-  id: serial("id").primaryKey(),
-  role: text("role").notNull().unique(),
-  canAddStaff: boolean("can_add_staff").notNull().default(false),
-  allowedShifts: text("allowed_shifts").notNull().default(""),
-  allowedJobdesks: text("allowed_jobdesks").notNull().default(""),
-  canEditJobdesk: boolean("can_edit_jobdesk").notNull().default(false),
-  canDeleteStaff: boolean("can_delete_staff").notNull().default(false),
-  canEditName: boolean("can_edit_name").notNull().default(false),
-  canEditPassword: boolean("can_edit_password").notNull().default(false),
-});
-
-export const insertUserSchema = createInsertSchema(users).omit({ id: true });
-export const insertStaffSchema = createInsertSchema(staff).omit({ id: true });
-export const insertLeaveSchema = createInsertSchema(leaves).omit({ id: true, startTime: true, date: true });
-export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({ id: true, createdAt: true });
-export const insertStaffPermissionSchema = createInsertSchema(staffPermissions).omit({ id: true });
-
-export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
-export type Staff = typeof staff.$inferSelect;
+export type User = InsertUser & { id: number };
+
 export type InsertStaff = z.infer<typeof insertStaffSchema>;
-export type Leave = typeof leaves.$inferSelect;
+export type Staff = InsertStaff & { id: number };
+
 export type InsertLeave = z.infer<typeof insertLeaveSchema>;
-export type AuditLog = typeof auditLogs.$inferSelect;
+export type Leave = InsertLeave & { id: number; startTime: Date; date: string };
+
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
-export type Setting = typeof settings.$inferSelect;
-export type StaffPermission = typeof staffPermissions.$inferSelect;
+export type AuditLog = InsertAuditLog & { id: number; createdAt: Date };
+
+export type Setting = { key: string; value: string };
+
 export type InsertStaffPermission = z.infer<typeof insertStaffPermissionSchema>;
+export type StaffPermission = InsertStaffPermission & { id: number };

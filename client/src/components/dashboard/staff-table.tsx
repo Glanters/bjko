@@ -328,7 +328,7 @@ export function StaffTable() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {filteredGroupedByJobdesk[jobdesk]?.map((staff) => (
+                          {filteredGroupedByJobdesk[jobdesk]?.map((staff: any) => (
                             <StaffRow key={staff.id} staff={staff} />
                           ))}
                         </TableBody>

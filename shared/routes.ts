@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { insertStaffSchema, staff, leaves, users, staffPermissions } from './schema';
+import { User, Staff, Leave, StaffPermission } from './schema';
 
 export const errorSchemas = {
   validation: z.object({ message: z.string(), field: z.string().optional() }),
@@ -15,7 +15,7 @@ export const api = {
       path: '/api/auth/login' as const,
       input: z.object({ username: z.string(), password: z.string() }),
       responses: {
-        200: z.object({ user: z.custom<typeof users.$inferSelect>() }),
+        200: z.object({ user: z.custom<User>() }),
         401: errorSchemas.unauthorized,
         403: errorSchemas.forbidden,
       }
@@ -24,7 +24,7 @@ export const api = {
       method: 'GET' as const,
       path: '/api/auth/me' as const,
       responses: {
-        200: z.custom<typeof users.$inferSelect>(),
+        200: z.custom<User>(),
         401: errorSchemas.unauthorized,
       }
     },
@@ -41,7 +41,7 @@ export const api = {
       method: 'GET' as const,
       path: '/api/leaves' as const,
       responses: {
-        200: z.array(z.custom<typeof leaves.$inferSelect>())
+        200: z.array(z.custom<Leave>())
       }
     },
     create: {
@@ -49,7 +49,7 @@ export const api = {
       path: '/api/leaves' as const,
       input: z.object({ staffId: z.number() }),
       responses: {
-        201: z.custom<typeof leaves.$inferSelect>(),
+        201: z.custom<Leave>(),
         400: errorSchemas.validation,
         401: errorSchemas.unauthorized,
         403: errorSchemas.forbidden,
@@ -60,7 +60,7 @@ export const api = {
       path: '/api/leaves/:id/clock-in' as const,
       input: z.object({}),
       responses: {
-        200: z.custom<typeof leaves.$inferSelect>(),
+        200: z.custom<Leave>(),
         400: errorSchemas.validation,
         401: errorSchemas.unauthorized,
         404: errorSchemas.notFound,
@@ -81,7 +81,7 @@ export const api = {
       path: '/api/leaves/:id' as const,
       input: z.object({ clockInTime: z.string().nullable().optional() }),
       responses: {
-        200: z.custom<typeof leaves.$inferSelect>(),
+        200: z.custom<Leave>(),
         400: errorSchemas.validation,
         401: errorSchemas.unauthorized,
         403: errorSchemas.forbidden,
@@ -94,7 +94,7 @@ export const api = {
       method: 'GET' as const,
       path: '/api/users' as const,
       responses: {
-        200: z.array(z.custom<typeof users.$inferSelect>()),
+        200: z.array(z.custom<User>()),
         401: errorSchemas.unauthorized,
         403: errorSchemas.forbidden,
       }
@@ -104,7 +104,7 @@ export const api = {
       path: '/api/users/:id/ip' as const,
       input: z.object({ allowedIp: z.string() }),
       responses: {
-        200: z.custom<typeof users.$inferSelect>(),
+        200: z.custom<User>(),
         400: errorSchemas.validation,
         401: errorSchemas.unauthorized,
         403: errorSchemas.forbidden,
@@ -116,7 +116,7 @@ export const api = {
       path: '/api/users/:id/password' as const,
       input: z.object({ password: z.string().min(6) }),
       responses: {
-        200: z.custom<typeof users.$inferSelect>(),
+        200: z.custom<User>(),
         400: errorSchemas.validation,
         401: errorSchemas.unauthorized,
         403: errorSchemas.forbidden,
@@ -128,7 +128,7 @@ export const api = {
       path: '/api/users/:id/username' as const,
       input: z.object({ username: z.string().min(1) }),
       responses: {
-        200: z.custom<typeof users.$inferSelect>(),
+        200: z.custom<User>(),
         400: errorSchemas.validation,
         401: errorSchemas.unauthorized,
         403: errorSchemas.forbidden,
@@ -140,7 +140,7 @@ export const api = {
       path: '/api/users/:id/avatar' as const,
       input: z.object({ avatarUrl: z.string() }),
       responses: {
-        200: z.custom<typeof users.$inferSelect>(),
+        200: z.custom<User>(),
         401: errorSchemas.unauthorized,
         403: errorSchemas.forbidden,
         404: errorSchemas.notFound,
@@ -191,7 +191,7 @@ export const api = {
       method: 'GET' as const,
       path: '/api/staff' as const,
       responses: {
-        200: z.array(z.custom<typeof staff.$inferSelect>())
+        200: z.array(z.custom<Staff>())
       }
     },
     create: {
@@ -203,7 +203,7 @@ export const api = {
         shift: z.enum(["PAGI", "GANTUNG", "SORE", "MALAM"]).optional().default("PAGI"),
       }),
       responses: {
-        201: z.custom<typeof staff.$inferSelect>(),
+        201: z.custom<Staff>(),
         401: errorSchemas.unauthorized,
         403: errorSchemas.forbidden,
       }
@@ -213,7 +213,7 @@ export const api = {
       path: '/api/staff/:id/name' as const,
       input: z.object({ name: z.string().min(1) }),
       responses: {
-        200: z.custom<typeof staff.$inferSelect>(),
+        200: z.custom<Staff>(),
         400: errorSchemas.validation,
         401: errorSchemas.unauthorized,
         403: errorSchemas.forbidden,
@@ -289,7 +289,7 @@ export const api = {
       method: 'GET' as const,
       path: '/api/permissions' as const,
       responses: {
-        200: z.array(z.custom<typeof staffPermissions.$inferSelect>()),
+        200: z.array(z.custom<StaffPermission>()),
         401: errorSchemas.unauthorized,
         403: errorSchemas.forbidden,
       }
@@ -298,7 +298,7 @@ export const api = {
       method: 'GET' as const,
       path: '/api/permissions/me' as const,
       responses: {
-        200: z.custom<typeof staffPermissions.$inferSelect | null>(),
+        200: z.custom<StaffPermission | null>(),
         401: errorSchemas.unauthorized,
       }
     },
@@ -315,7 +315,7 @@ export const api = {
         canEditPassword: z.boolean().optional(),
       }),
       responses: {
-        200: z.custom<typeof staffPermissions.$inferSelect>(),
+        200: z.custom<StaffPermission>(),
         401: errorSchemas.unauthorized,
         403: errorSchemas.forbidden,
       }

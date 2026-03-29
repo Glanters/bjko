@@ -1089,7 +1089,10 @@ export async function registerRoutes(
 
       // Top 5 staff by leave count (all time)
       const staffLeaveCounts: Record<number, number> = {};
-      for (const l of allLeaves) staffLeaveCounts[l.staffId] = (staffLeaveCounts[l.staffId] || 0) + 1;
+      for (const l of allLeaves) {
+        const staffIdNum = Number(l.staffId);
+        staffLeaveCounts[staffIdNum] = (staffLeaveCounts[staffIdNum] || 0) + 1;
+      }
       const top5 = Object.entries(staffLeaveCounts)
         .sort(([, a], [, b]) => b - a)
         .slice(0, 5)
