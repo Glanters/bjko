@@ -7,18 +7,9 @@ const app = express();
 app.set("trust proxy", true);
 const httpServer = createServer(app);
 
-declare module "http" {
-  interface IncomingMessage {
-    rawBody: unknown;
-  }
-}
-
 app.use(
   express.json({
     limit: "5mb",
-    verify: (req, _res, buf) => {
-      req.rawBody = buf;
-    },
   }),
 );
 
@@ -50,8 +41,14 @@ app.use((req, res, next) => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+      // Hindari JSON.stringify pada respons besar karena memberatkan CPU
       if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+        const isError = res.statusCode >= 400;
+        if (isError) {
+          logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+        } else {
+          logLine += ` :: [OK]`;
+        }
       }
 
       log(logLine);

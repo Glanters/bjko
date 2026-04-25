@@ -149,9 +149,7 @@ export async function registerRoutes(
       
       // Agent hanya bisa membuat izin untuk diri sendiri
       if (currentUser.role === "agent") {
-        const agentStaff = await storage.getStaff();
-        const agentStaffName = currentUser.username;
-        const agentStaffRecord = agentStaff.find(s => s.name === agentStaffName);
+        const agentStaffRecord = await storage.getStaffByName(currentUser.username);
         
         if (!agentStaffRecord || agentStaffRecord.id !== input.staffId) {
           return res.status(403).json({ message: "Agent hanya bisa membuat izin untuk diri sendiri" });
@@ -159,8 +157,7 @@ export async function registerRoutes(
       }
       
       const today = getWIBDate();
-      const leaves = await storage.getLeaves();
-      const staffLeavesToday = leaves.filter(l => l.staffId === input.staffId && l.date === today);
+      const staffLeavesToday = await storage.getLeavesByStaffAndDate(input.staffId, today);
 
       const maxLeavesStr = await storage.getSetting("max_leaves_per_day");
       const maxLeavesPerDay = parseInt(maxLeavesStr || "4");
@@ -175,17 +172,22 @@ export async function registerRoutes(
       }
 
       // Check jobdesk limit
-      const staffData = await storage.getStaff();
-      const staffRecord = staffData.find(s => s.id === input.staffId);
+      const staffRecord = await storage.getStaffById(input.staffId);
       const staffJabatan = staffRecord?.jabatan || staffRecord?.jobdesk;
       if (staffRecord && staffJabatan && jobdeskLimits[staffJabatan]) {
         const maxConcurrent = jobdeskLimits[staffJabatan];
-        const concurrentLeaves = leaves.filter(l => {
-          const staff = staffData.find(s => s.id === l.staffId);
+        const activeLeavesToday = await storage.getActiveLeavesByDate(today);
+        let concurrentCount = 0;
+        
+        for (const l of activeLeavesToday) {
+          const staff = await storage.getStaffById(Number(l.staffId));
           const sJabatan = staff?.jabatan || staff?.jobdesk;
-          return sJabatan === staffJabatan && l.date === today && !l.clockInTime;
-        });
-        if (concurrentLeaves.length >= maxConcurrent) {
+          if (sJabatan === staffJabatan) {
+            concurrentCount++;
+          }
+        }
+        
+        if (concurrentCount >= maxConcurrent) {
           return res.status(400).json({ message: `Maksimal ${maxConcurrent} staff ${staffJabatan} yang bisa keluar bersamaan` });
         }
       }
@@ -211,8 +213,7 @@ export async function registerRoutes(
 
     try {
       const leaveId = parseInt(req.params.id);
-      const allLeaves = await storage.getLeaves();
-      const leaveRecord = allLeaves.find(l => l.id === leaveId);
+      const leaveRecord = await storage.getLeaveById(leaveId);
       
       if (!leaveRecord) {
         return res.status(404).json({ message: "Leave record not found" });
@@ -225,9 +226,7 @@ export async function registerRoutes(
 
       // Verify user can update this leave
       if (currentUser.role === "agent") {
-        const agentStaffName = currentUser.username;
-        const agentStaff = await storage.getStaff();
-        const agentStaffRecord = agentStaff.find(s => s.name === agentStaffName);
+        const agentStaffRecord = await storage.getStaffByName(currentUser.username);
         
         if (!agentStaffRecord || agentStaffRecord.id !== leaveRecord.staffId) {
           return res.status(403).json({ message: "Anda hanya bisa clock in izin milik Anda sendiri" });
@@ -235,8 +234,7 @@ export async function registerRoutes(
       }
 
       const updatedLeave = await storage.updateLeaveClockIn(leaveId, new Date());
-      const staffList2 = await storage.getStaff();
-      const staffRec = staffList2.find(s => s.id === leaveRecord.staffId);
+      const staffRec = await storage.getStaffById(Number(leaveRecord.staffId));
       await logAudit(req.session.userId!, "CLOCK_IN", `Staff ${staffRec?.name || leaveRecord.staffId} kembali dari izin`);
       res.json(updatedLeave);
     } catch (err) {
@@ -324,14 +322,10 @@ export async function registerRoutes(
       if (!date) {
         return res.status(400).json({ message: "Date is required" });
       }
-      const leaves = await storage.getLeaves();
-      const leavesToDelete = leaves.filter(l => l.date === date);
       
-      for (const leave of leavesToDelete) {
-        await storage.deleteLeave(leave.id);
-      }
+      const count = await storage.deleteLeavesByDate(date);
       
-      res.json({ message: `${leavesToDelete.length} leave(s) berhasil dihapus`, count: leavesToDelete.length });
+      res.json({ message: `${count} leave(s) berhasil dihapus`, count });
     } catch (err) {
       res.status(500).json({ message: "Internal server error" });
     }
@@ -616,8 +610,7 @@ export async function registerRoutes(
 
     try {
       const staffId = parseInt(req.params.id);
-      const targetStaff = await storage.getStaff();
-      const staff = targetStaff.find(s => s.id === staffId);
+      const staff = await storage.getStaffById(staffId);
       if (!staff) {
         return res.status(404).json({ message: "Staff not found" });
       }
@@ -641,7 +634,7 @@ export async function registerRoutes(
     try {
       const input = api.staff.updateName.input.parse(req.body);
       const staffId = parseInt(req.params.id);
-      const staffRecord = await storage.getStaff().then(s => s.find(x => x.id === staffId));
+      const staffRecord = await storage.getStaffById(staffId);
       if (!staffRecord) {
         return res.status(404).json({ message: "Staff not found" });
       }
@@ -779,10 +772,9 @@ export async function registerRoutes(
       return res.status(400).json({ message: "staffIds (array) dan shift (PAGI/GANTUNG/SORE/MALAM) diperlukan" });
     }
     try {
-      const allStaff = await storage.getStaff();
       const updated = [];
       for (const id of staffIds) {
-        const s = allStaff.find(x => x.id === id);
+        const s = await storage.getStaffById(id);
         if (!s) continue;
         const result = await storage.updateStaffFull(s.id, s.name, s.jobdesk, shift);
         updated.push(result);
@@ -894,8 +886,7 @@ export async function registerRoutes(
   const getPermForUser = async (userId: number) => {
     const u = await storage.getUser(userId);
     if (!u || u.role === 'admin') return null;
-    const staffList = await storage.getStaff();
-    const staff = staffList.find(s => s.name.toLowerCase() === u.username.toLowerCase());
+    const staff = await storage.getStaffByName(u.username);
     const staffRole = staff?.jabatan || staff?.jobdesk;
     if (staff && staffRole) {
       const byJobdesk = await storage.getPermissionByRole(staffRole);
@@ -908,15 +899,15 @@ export async function registerRoutes(
   const isCsLine = async (userId: number): Promise<boolean> => {
     const u = await storage.getUser(userId);
     if (!u || u.role !== 'agent') return false;
-    const staffList = await storage.getStaff();
-    return staffList.some(s => s.name.toLowerCase() === u.username.toLowerCase() && (s.jabatan || s.jobdesk)?.toUpperCase() === "CS LINE");
+    const staff = await storage.getStaffByName(u.username);
+    return staff ? (staff.jabatan || staff.jobdesk)?.toUpperCase() === "CS LINE" : false;
   };
 
   const isKapten = async (userId: number): Promise<boolean> => {
     const u = await storage.getUser(userId);
     if (!u) return false;
-    const staffList = await storage.getStaff();
-    return staffList.some(s => s.name.toLowerCase() === u.username.toLowerCase() && (s.jabatan || s.jobdesk)?.toUpperCase() === "KAPTEN");
+    const staff = await storage.getStaffByName(u.username);
+    return staff ? (staff.jabatan || staff.jobdesk)?.toUpperCase() === "KAPTEN" : false;
   };
 
   // PATCH /api/staff/:id - Update staff fields (name requires canEditName, jobdesk/shift requires canEditJobdesk)
@@ -931,8 +922,7 @@ export async function registerRoutes(
     if (!canChangeJobdesk && !canChangeName) return res.status(403).json({ message: "Forbidden: Tidak ada izin edit staff" });
     try {
       const staffId = parseInt(req.params.id);
-      const allStaff = await storage.getStaff();
-      const existing = allStaff.find(s => s.id === staffId);
+      const existing = await storage.getStaffById(staffId);
       if (!existing) return res.status(404).json({ message: "Staff tidak ditemukan" });
       const { name, jabatan, jobdesk, shift } = req.body;
       const VALID_SHIFTS = ["PAGI", "GANTUNG", "SORE", "MALAM"];
@@ -1065,6 +1055,12 @@ export async function registerRoutes(
     try {
       const allLeaves = await storage.getLeaves();
       const allStaff = await storage.getStaff();
+      
+      const staffMap = new Map();
+      for (const s of allStaff) {
+        staffMap.set(s.id, s);
+      }
+      
       const today = getWIBDate();
 
       // Today's leaves
@@ -1080,7 +1076,7 @@ export async function registerRoutes(
       // Leaves per jabatan today
       const leavesByJobdesk: Record<string, number> = {};
       for (const l of todayLeaves) {
-        const s = allStaff.find(x => x.id === l.staffId);
+        const s = staffMap.get(l.staffId);
         if (s) {
           const key = s.jabatan || s.jobdesk;
           leavesByJobdesk[key] = (leavesByJobdesk[key] || 0) + 1;
@@ -1097,7 +1093,7 @@ export async function registerRoutes(
         .sort(([, a], [, b]) => b - a)
         .slice(0, 5)
         .map(([staffId, count]) => {
-          const s = allStaff.find(x => x.id === Number(staffId));
+          const s = staffMap.get(Number(staffId));
           return { staffId: Number(staffId), name: s?.name || 'Unknown', jobdesk: s?.jabatan || s?.jobdesk || '-', count };
         });
 

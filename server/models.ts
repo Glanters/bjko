@@ -45,6 +45,8 @@ const StaffSchema = new mongoose.Schema({
   customEnd: { type: String, default: null }
 });
 
+StaffSchema.index({ name: 1 });
+
 StaffSchema.pre("save", async function() {
   if (this.isNew && !this.id) {
     this.id = await getNextSequence("staffId");
@@ -62,6 +64,10 @@ const LeaveSchema = new mongoose.Schema({
   punishment: { type: String, default: null }
 });
 
+LeaveSchema.index({ date: 1 });
+LeaveSchema.index({ staffId: 1 });
+LeaveSchema.index({ date: 1, staffId: 1 });
+
 LeaveSchema.pre("save", async function() {
   if (this.isNew && !this.id) {
     this.id = await getNextSequence("leaveId");
@@ -77,6 +83,8 @@ const AuditLogSchema = new mongoose.Schema({
   detail: { type: String, default: null },
   createdAt: { type: Date, default: Date.now }
 });
+
+AuditLogSchema.index({ createdAt: -1 });
 
 AuditLogSchema.pre("save", async function() {
   if (this.isNew && !this.id) {

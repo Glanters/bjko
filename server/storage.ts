@@ -31,6 +31,8 @@ export interface IStorage {
   updateUserUsername(id: number, username: string): Promise<User>;
   deleteUser(id: number): Promise<boolean>;
   getStaff(): Promise<Staff[]>;
+  getStaffById(id: number): Promise<Staff | undefined>;
+  getStaffByName(name: string): Promise<Staff | undefined>;
   createStaff(s: InsertStaff): Promise<Staff>;
   updateStaffName(id: number, name: string): Promise<Staff>;
   updateStaff(id: number, name: string, jobdesk: string): Promise<Staff>;
@@ -42,6 +44,11 @@ export interface IStorage {
   deleteStaff(id: number): Promise<boolean>;
   bulkDeleteAllStaff(): Promise<number>;
   getLeaves(): Promise<Leave[]>;
+  getLeaveById(id: number): Promise<Leave | undefined>;
+  getLeavesByDate(date: string): Promise<Leave[]>;
+  getLeavesByStaffAndDate(staffId: number, date: string): Promise<Leave[]>;
+  getActiveLeavesByDate(date: string): Promise<Leave[]>;
+  deleteLeavesByDate(date: string): Promise<number>;
   createLeave(leave: InsertLeave & { date: string }): Promise<Leave>;
   updateLeaveClockIn(id: number, clockInTime: Date): Promise<Leave>;
   deleteLeave(id: number): Promise<boolean>;
@@ -115,6 +122,16 @@ export class DatabaseStorage implements IStorage {
     return await StaffModel.find().lean() as unknown as Staff[];
   }
 
+  async getStaffById(id: number): Promise<Staff | undefined> {
+    const staff = await StaffModel.findOne({ id }).lean();
+    return staff ? (staff as unknown as Staff) : undefined;
+  }
+
+  async getStaffByName(name: string): Promise<Staff | undefined> {
+    const staff = await StaffModel.findOne({ name: new RegExp('^' + name + '$', 'i') }).lean();
+    return staff ? (staff as unknown as Staff) : undefined;
+  }
+
   async createStaff(insertStaff: InsertStaff): Promise<Staff> {
     const staff = new StaffModel(insertStaff);
     await staff.save();
@@ -158,6 +175,28 @@ export class DatabaseStorage implements IStorage {
 
   async getLeaves(): Promise<Leave[]> {
     return await LeaveModel.find().lean() as unknown as Leave[];
+  }
+
+  async getLeaveById(id: number): Promise<Leave | undefined> {
+    const leave = await LeaveModel.findOne({ id }).lean();
+    return leave ? (leave as unknown as Leave) : undefined;
+  }
+
+  async getLeavesByDate(date: string): Promise<Leave[]> {
+    return await LeaveModel.find({ date }).lean() as unknown as Leave[];
+  }
+
+  async getLeavesByStaffAndDate(staffId: number, date: string): Promise<Leave[]> {
+    return await LeaveModel.find({ staffId, date }).lean() as unknown as Leave[];
+  }
+
+  async getActiveLeavesByDate(date: string): Promise<Leave[]> {
+    return await LeaveModel.find({ date, clockInTime: null }).lean() as unknown as Leave[];
+  }
+
+  async deleteLeavesByDate(date: string): Promise<number> {
+    const result = await LeaveModel.deleteMany({ date });
+    return result.deletedCount || 0;
   }
 
   async createLeave(insertLeave: InsertLeave & { date: string }): Promise<Leave> {
